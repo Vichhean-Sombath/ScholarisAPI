@@ -18,6 +18,11 @@ const Teachers = sequelize.define(
                 key: 'userID'
             }
         },
+        teacherNumber: {
+            type: DataTypes.STRING(20),
+            allowNull: false,
+            unique: true
+        },
         teacherPosition: {
             type: DataTypes.STRING(100),
             allowNull: false

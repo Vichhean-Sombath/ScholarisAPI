@@ -1,5 +1,8 @@
 const bcrypt = require('bcrypt');
 const Users = require('../../models/users.model');
+const Students = require('../../models/students.model');
+const Teachers = require('../../models/teachers.model');
+require('../../models/mappingContext');
 
 const CreateUserData = async (userData) => {
     const { 
@@ -19,13 +22,13 @@ const CreateUserData = async (userData) => {
             where: {userEmail} 
         }
     );
-
+    
     if(existingEmail) {
         const err = new Error('This email is already existed!');
         err.statusCode = 409;
         throw err;
     }
-
+    
     const hashedPassword = await bcrypt.hash(userPassword, 10);
     const newUser = await Users.create({
         userFirstName,
@@ -37,8 +40,63 @@ const CreateUserData = async (userData) => {
         userDOB,
         userGender
     });
-
     
+    // If the role is a student, add to table student
+    if(userRole === 'student'){
+
+        // Auto increment as S001 > S010
+        const lastStudent = await Students.findOne({
+            order: [['studentID', 'DESC']]
+        });
+
+        let nextNumber = 1;
+        if (lastStudent) {
+            const match = lastStudent.studentNumber.match(/S(\d+)/);
+            if (match) {
+                nextNumber = parseInt(match[1], 10) + 1;
+            }
+        }
+        const studentNumber = `S${String(nextNumber).padStart(3, '0')}`;
+
+        await Students.create({
+            userID: newUser.userID,
+            studentNumber,
+            enrollmentDate: new Date()
+        })
+    }
+
+    // If the role is a teacher, add to table teacher
+    if(userRole === 'teacher'){
+        const { teacherPosition } = userData;
+        // Position
+        if(!teacherPosition || teacherPosition.trim() === ''){
+            const err = new Error('Teacher position is required!');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        // Auto increment as S001 > S010
+        const lastTeacher = await Students.findOne({
+            order: [['teacherID', 'DESC']]
+        });
+
+        let nextNumber = 1;
+        if (lastTeacher) {
+            const match = lastTeacher.teacherNumber.match(/T(\d+)/);
+            if (match) {
+                nextNumber = parseInt(match[1], 10) + 1;
+            }
+        }
+        const teacherNumber = `T${String(nextNumber).padStart(3, '0')}`;
+
+        await Teachers.create({
+            userID: newUser.userID,
+            teacherNumber,
+            teacherPosition,
+            hireDate: new Date()
+        })
+    }
+
     return {
         userID: newUser.userID,
         userFirstName: newUser.userFirstName,

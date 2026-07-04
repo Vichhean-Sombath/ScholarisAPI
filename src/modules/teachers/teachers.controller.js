@@ -1,0 +1,21 @@
+const { GetTeacherData } = require('./teachers.service');
+
+const GetTeacher = async (req, res) => {
+    try {
+        const teacherData = await GetTeacherData();
+        res.status(201).json({
+            message: 'Teachers retrieved successfully!',
+            data: teacherData
+        })
+    } catch (error) {
+        const statusCode = error.statusCode || 500;
+        res.status(statusCode).json({
+            message: error.message || 'Internal server error!',
+            error: error.statusCode ? null : error.message
+        })
+    }
+}
+
+module.exports = {
+    GetTeacher,
+}

@@ -23,7 +23,6 @@ const Students = sequelize.define(
             allowNull: false,
             unique: true
         },
-
         enrollmentDate: {
             type: DataTypes.DATE,
             allowNull: false

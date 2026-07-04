@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const UserController = require('./src/modules/users/users.route');
 const AuthController = require('./src/modules/auth/auth.route');
+const StudentController = require('./src/modules/students/students.route');
 
 // Sync DB
 const sequelize = require('./src/config/db');
@@ -35,6 +36,7 @@ app.use(cors());
 // Routes
 UserController(app);
 AuthController(app);
+StudentController(app);
 
 
 app.listen(3000, () => console.log('Server is listening on port 3000!'));

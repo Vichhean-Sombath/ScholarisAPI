@@ -10,6 +10,11 @@ const Classes = sequelize.define(
             autoIncrement: true,
             allowNull: false
         },
+        classCode: {
+            type: DataTypes.STRING(20),
+            allowNull: false,
+            unique: true
+        },
         className: {
             type: DataTypes.STRING(100),
             allowNull: false,
