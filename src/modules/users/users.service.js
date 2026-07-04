@@ -52,6 +52,143 @@ const CreateUserData = async (userData) => {
     };
 }
 
+// Update
+//                          SelectedID, DataFormDB, CurrentUserData
+const UpdateUserData = async (userID, userData, currentUser) => {
+
+    // Check valid user
+    const user = await Users.findByPk(userID);
+    if(!user){
+        const err = new Error('User not found!');
+        err.statusCode = 404;
+        throw err;
+    }
+
+    // Only admin or owner can edit
+    if(currentUser.userRole !== 'admin' && currentUser.userID !== parseInt(userID)){
+        const err = new Error('Unauthorize!');
+        err.statusCode = 403;
+        throw err;
+    }
+
+    // Check if existed email
+    if(userData.userEmail && userData.userEmail !== user.userEmail){
+        const existingEmail = await Users.findOne({ where: {userEmail: userData.userEmail} });
+        if(existingEmail){
+            const err = new Error('This email is already existed!');
+            err.statusCode = 400;
+            throw err;
+        }
+    }
+
+    // Hash update password
+    if(userData.userPassword) {
+        userData.userPassword = await bcrypt.hash(userData.userPassword, 10);
+    }
+
+    await user.update(userData);
+
+    return {
+        userID: user.userID,
+        userFirstName: user.userFirstName,
+        userLastName: user.userLastName,
+        userEmail: user.userEmail,
+        userRole: user.userRole,
+        userAddress: user.userAddress,
+        userDOB: user.userDOB,
+        userGender: user.userGender,
+        isActive: user.isActive
+    }
+}
+
+const DisableUserData = async (userID, currentUser) => {
+    // Check valid user
+    const user = await Users.findByPk(userID);
+    if(!user){
+        const err = new Error('User not found!');
+        err.statusCode = 404;
+        throw err;
+    }
+
+    // Only admin can disable & can disable admin
+    if(currentUser.userRole !== 'admin'){
+        const err = new Error('Unauthorize!');
+        err.statusCode = 403;
+        throw err;
+    }
+
+    // Enable to disable admin account
+    if(user.userRole === 'admin'){
+        const err = new Error('Can not disable admin account!');
+        err.statusCode = 403;
+        throw err;
+    }
+
+    // Can not disable own account
+    if(currentUser.userID === parseInt(userID)){
+        const err = new Error('You cannot deactivate your own account!');
+        err.statusCode = 403;
+        throw err;
+    }
+
+    // Check if already inactive
+    if(user.isActive === 'inactive'){
+        const err = new Error('User is already deactivated!');
+        err.statusCode = 400;
+        throw err;
+    }
+
+    await user.update({ isActive: 'inactive' });
+
+    return {
+        userID: user.userID,
+        userFirstName: user.userFirstName,
+        userLastName: user.userLastName,
+        userRole: user.userRole,
+        userEmail: user.userEmail,
+        isActive: user.isActive
+    }
+}
+
+// Enable
+const EnableUserData = async(userID, currentUser) => {
+    // Check valid user
+    const user = await Users.findByPk(userID);
+    if(!user){
+        const err = new Error('User not found!');
+        err.statusCode = 404;
+        throw err;
+    }
+
+    // Only admin can disable & can disable admin
+    if(currentUser.userRole !== 'admin'){
+        const err = new Error('Unauthorize!');
+        err.statusCode = 403;
+        throw err;
+    }
+
+    // Check if already activated
+    if(currentUser.isActive === 'active'){
+        const err = new Error('User is already active!');
+        err.statusCode = 400;
+        throw err;
+    }
+
+    await user.update({ isActive: 'active' });
+
+    return {
+        userID: user.userID,
+        userFirstName: user.userFirstName,
+        userLastName: user.userLastName,
+        userRole: user.userRole,
+        userEmail: user.userEmail,
+        isActive: user.isActive
+    }
+}
+
 module.exports = {
-    CreateUserData
+    CreateUserData,
+    UpdateUserData,
+    DisableUserData,
+    EnableUserData
 }
