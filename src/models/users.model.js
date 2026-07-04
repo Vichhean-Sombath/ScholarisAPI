@@ -54,7 +54,6 @@ const Users = sequelize.define(
         },
         isActive: {
             type: DataTypes.ENUM('active', 'inactive'),
-            allowNull: false,
             defaultValue: 'active'
         }
     },
