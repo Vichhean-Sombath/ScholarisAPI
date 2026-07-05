@@ -4,6 +4,8 @@ const cors = require('cors');
 const UserController = require('./src/modules/users/users.route');
 const AuthController = require('./src/modules/auth/auth.route');
 const StudentController = require('./src/modules/students/students.route');
+const TeacherController = require('./src/modules/teachers/teachers.route');
+const ClassController = require('./src/modules/classes/classes.route');
 
 // Sync DB
 const sequelize = require('./src/config/db');
@@ -37,6 +39,8 @@ app.use(cors());
 UserController(app);
 AuthController(app);
 StudentController(app);
+TeacherController(app);
+ClassController(app);
 
 
 app.listen(3000, () => console.log('Server is listening on port 3000!'));
