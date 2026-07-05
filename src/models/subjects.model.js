@@ -9,6 +9,11 @@ const Subjects = sequelize.define(
             primaryKey: true,
             autoIncrement: true
         },
+        subjectCode: {
+            type: DataTypes.STRING(20),
+            allowNull: false,
+            unique: true
+        },
         subjectName: {
             type: DataTypes.STRING(100),
             allowNull: false,
