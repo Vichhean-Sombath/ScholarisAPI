@@ -1,4 +1,3 @@
-const express = require('express');
 const { GetStudent, UpdateStudent, SelectStudent } = require('./students.controller');
 const AccessToken = require('../../middleware/authenticate');
 

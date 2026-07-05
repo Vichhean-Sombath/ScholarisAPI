@@ -1,4 +1,3 @@
-const express = require('express');
 const { CreateUser, UpdateUser, DisableUser, EnableUser } = require('./users.controller');
 const AccessToken = require('../../middleware/authenticate');
 
