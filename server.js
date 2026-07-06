@@ -8,6 +8,7 @@ const TeacherController = require('./src/modules/teachers/teachers.route');
 const ClassController = require('./src/modules/classes/classes.route');
 const SubjectController = require('./src/modules/subjects/subjects.route');
 const ClassSubjectController = require('./src/modules/classes_subjects/classes_subjects.route');
+const CertificateController = require('./src/modules/certificates/certificates.route');
 
 // Sync DB
 const sequelize = require('./src/config/db');
@@ -45,5 +46,6 @@ TeacherController(app);
 ClassController(app);
 SubjectController(app);
 ClassSubjectController(app);
+CertificateController(app);
 
 app.listen(3000, () => console.log('Server is listening on port 3000!'));
