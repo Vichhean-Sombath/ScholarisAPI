@@ -4,33 +4,54 @@ const sequelize = require('../config/db');
 const Students = sequelize.define(
     'Students',
     {
-        studentID: {
+        student_id: {
             type: DataTypes.INTEGER,
             primaryKey: true,
             autoIncrement: true
         },
-        userID: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            unique: true,
-            references: {
-                model: 'users',
-                key: 'userID'
-            }
+        first_name: {
+            type: DataTypes.STRING(50),
+            allowNull: false
         },
-        studentNumber: {
+        last_name: {
+            type: DataTypes.STRING(50),
+            allowNull: false
+        },
+        dob: {
+            type: DataTypes.DATE,
+            allowNull: true
+        },
+        gender: {
+            type: DataTypes.ENUM('Male', 'Female', 'Other'),
+            allowNull: true
+        },
+        photo_url: {
+            type: DataTypes.STRING(255),
+            allowNull: true
+        },
+        contact_number: {
             type: DataTypes.STRING(20),
-            allowNull: false,
-            unique: true
+            allowNull: true
         },
-        enrollmentDate: {
+        address: {
+            type: DataTypes.STRING(255),
+            allowNull: true
+        },
+        enrollment_date: {
             type: DataTypes.DATE,
             allowNull: false
+        },
+        status: {
+            type: DataTypes.ENUM('Active', 'Inactive'),
+            allowNull: false,
+            defaultValue: 'Active'
         }
     },
     {
         tableName: 'students',
-        timestamps: true
+        timestamps: true,
+        createdAt: 'created_at',
+        updatedAt: false
     }
 );
 

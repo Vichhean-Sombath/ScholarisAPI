@@ -4,25 +4,42 @@ const sequelize = require('../config/db');
 const Subjects = sequelize.define(
     'Subjects',
     {
-        subjectID: {
+        subject_id: {
             type: DataTypes.INTEGER,
             primaryKey: true,
             autoIncrement: true
         },
-        subjectCode: {
+        subject_code: {
             type: DataTypes.STRING(20),
             allowNull: false,
             unique: true
         },
-        subjectName: {
+        subject_name: {
             type: DataTypes.STRING(100),
-            allowNull: false,
-            unique: true
+            allowNull: false
+        },
+        description: {
+            type: DataTypes.TEXT,
+            allowNull: true
+        },
+        prerequisite_subject_id: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            references: {
+                model: 'subjects',
+                key: 'subject_id'
+            }
         }
     },
     {
         tableName: 'subjects',
-        timestamps: true
+        timestamps: false,
+        indexes: [
+            {
+                name: 'idx_subjects_prerequisite',
+                fields: ['prerequisite_subject_id']
+            }
+        ]
     }
 );
 

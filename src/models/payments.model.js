@@ -4,37 +4,61 @@ const sequelize = require('../config/db');
 const Payments = sequelize.define(
     'Payments',
     {
-        paymentID: {
+        payment_id: {
             type: DataTypes.INTEGER,
-            allowNull: false,
             primaryKey: true,
             autoIncrement: true
         },
-        studentID: {
+        invoice_id: {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-                model: 'students',
-                key: 'studentID'
+                model: 'invoices',
+                key: 'invoice_id'
             }
         },
-        paymentAmount: {
-            type: DataTypes.DECIMAL(10,2),
-            allowNull: false
-        },
-        paymentDate: {
+        payment_date: {
             type: DataTypes.DATE,
             allowNull: false
         },
-        paymentStatus: {
-            type: DataTypes.ENUM('Pending', 'Paid'),
-            defaultValue: 'Pending',
+        amount: {
+            type: DataTypes.DECIMAL(10, 2),
             allowNull: false
+        },
+        payment_method: {
+            type: DataTypes.ENUM('Cash', 'ABA', 'BankTransfer', 'Check'),
+            allowNull: false
+        },
+        receipt_url: {
+            type: DataTypes.STRING(255),
+            allowNull: true
+        },
+        recorded_by: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            references: {
+                model: 'users',
+                key: 'user_id'
+            }
+        },
+        notes: {
+            type: DataTypes.STRING(255),
+            allowNull: true
         }
     },
     {
         tableName: 'payments',
-        timestamps: true
+        timestamps: false,
+        indexes: [
+            {
+                name: 'idx_payments_invoice',
+                fields: ['invoice_id']
+            },
+            {
+                name: 'idx_payments_recorded_by',
+                fields: ['recorded_by']
+            }
+        ]
     }
 );
 

@@ -4,42 +4,65 @@ const sequelize = require('../config/db');
 const Teachers = sequelize.define(
     'Teachers',
     {
-        teacherID: {
+        teacher_id: {
             type: DataTypes.INTEGER,
-            autoIncrement: true,
-            primaryKey: true
+            primaryKey: true,
+            autoIncrement: true
         },
-        userID: {
+        user_id: {
             type: DataTypes.INTEGER,
             allowNull: false,
             unique: true,
             references: {
                 model: 'users',
-                key: 'userID'
+                key: 'user_id'
             }
         },
-        teacherNumber: {
-            type: DataTypes.STRING(20),
-            allowNull: false,
-            unique: true
-        },
-        teacherPosition: {
-            type: DataTypes.STRING(100),
+        first_name: {
+            type: DataTypes.STRING(50),
             allowNull: false
         },
-        hireDate: {
+        last_name: {
+            type: DataTypes.STRING(50),
+            allowNull: false
+        },
+        gender: {
+            type: DataTypes.ENUM('Male', 'Female', 'Other'),
+            allowNull: true
+        },
+        dob: {
             type: DataTypes.DATE,
-            allowNull: false
+            allowNull: true
         },
-        isActive: {
-            type: DataTypes.ENUM('active', 'inactive'),
+        photo_url: {
+            type: DataTypes.STRING(255),
+            allowNull: true
+        },
+        contact_number: {
+            type: DataTypes.STRING(20),
+            allowNull: true
+        },
+        specialization: {
+            type: DataTypes.STRING(100),
+            allowNull: true
+        },
+        bio: {
+            type: DataTypes.TEXT,
+            allowNull: true
+        },
+        hire_date: {
+            type: DataTypes.DATE,
+            allowNull: true
+        },
+        status: {
+            type: DataTypes.ENUM('Active', 'Inactive'),
             allowNull: false,
-            defaultValue: 'active'
+            defaultValue: 'Active'
         }
     },
     {
         tableName: 'teachers',
-        timestamps: true
+        timestamps: false
     }
 );
 

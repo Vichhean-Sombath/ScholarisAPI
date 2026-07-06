@@ -4,62 +4,44 @@ const sequelize = require('../config/db');
 const Users = sequelize.define(
     'Users',
     {
-        userID: {
+        user_id: {
             type: DataTypes.INTEGER,
             primaryKey: true,
-            autoIncrement: true,
+            autoIncrement: true
         },
-        userFirstName: {
-            type: DataTypes.STRING(100),
-            allowNull: false
-        },
-        userLastName: {
-            type: DataTypes.STRING(100),
-            allowNull: false
-        },
-        userRole: {
-            type: DataTypes.ENUM('admin', 'teacher', 'student'),
-            defaultValue: 'student',
-            allowNull: false
-        },
-        userEmail: {
-            type: DataTypes.STRING(200),
+        username: {
+            type: DataTypes.STRING(50),
             allowNull: false,
-            unique: true,
-            validate: {
-                isEmail: true
-            }
+            unique: true
         },
-        userPassword: {
-            type: DataTypes.STRING(300),
+        email: {
+            type: DataTypes.STRING(100),
             allowNull: false,
-            validate: {
-                len: [8, 300]
-            }
+            unique: true
         },
-        userAddress: {
+        password_hash: {
             type: DataTypes.STRING(255),
             allowNull: false
         },
-
-        userDOB: {
-            type: DataTypes.DATE,
+        role: {
+            type: DataTypes.ENUM('Admin', 'Teacher'),
             allowNull: false
         },
-
-        userGender: {
-            type: DataTypes.ENUM('Male', 'Female', 'Other'),
+        status: {
+            type: DataTypes.ENUM('Active', 'Inactive'),
             allowNull: false,
-            defaultValue: 'Other'
+            defaultValue: 'Active'
         },
-        isActive: {
-            type: DataTypes.ENUM('active', 'inactive'),
-            defaultValue: 'active'
+        last_login_at: {
+            type: DataTypes.DATE,
+            allowNull: true
         }
     },
     {
         tableName: 'users',
-        timestamps: true
+        timestamps: true,
+        createdAt: 'created_at',
+        updatedAt: 'updated_at'
     }
 );
 
