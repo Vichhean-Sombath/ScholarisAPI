@@ -15,6 +15,13 @@ const AcademicYearController = require('./src/modules/academic_years/academic_ye
 const SemesterController = require('./src/modules/semesters/semesters.route');
 const TimeSlotController = require('./src/modules/time_slots/time_slots.route');
 const ScheduleController = require('./src/modules/schedules/schedules.route');
+const GradingCriteriaController = require('./src/modules/grading_criteria/grading_criteria.route');
+const AssessmentController = require('./src/modules/assessments/assessments.route');
+const GradeController = require('./src/modules/grades/grades.route');
+const FinalGradeController = require('./src/modules/final_grades/final_grades.route');
+const FeeStructureController = require('./src/modules/fee_structures/fee_structures.route');
+const InvoiceController = require('./src/modules/invoices/invoices.route');
+const PaymentController = require('./src/modules/payments/payments.route');
 
 // Sync DB
 const sequelize = require('./src/config/db');
@@ -66,5 +73,12 @@ AcademicYearController(app);
 SemesterController(app);
 TimeSlotController(app);
 ScheduleController(app);
+GradingCriteriaController(app);
+AssessmentController(app);
+GradeController(app);
+FinalGradeController(app);
+FeeStructureController(app);
+InvoiceController(app);
+PaymentController(app);
 
 app.listen(3000, () => console.log('Server is listening on port 3000!'));
