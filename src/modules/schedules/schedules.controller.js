@@ -3,7 +3,7 @@ const { ValidationCreateSchedule, ValidationUpdateSchedule } = require('./schedu
 
 const GetSchedule = async (req, res) => {
     try {
-        const scheduleData = await GetScheduleData();
+        const scheduleData = await GetScheduleData(req.user);
 
         res.status(200).json({
                 message: 'Schedule retrieved successfully!',
@@ -19,7 +19,7 @@ const GetSchedule = async (req, res) => {
 
 const SelectSchedule = async (req, res) => {
     try {
-        const scheduleData = await SelectedScheduleData(req.params.id);
+        const scheduleData = await SelectedScheduleData(req.params.id, req.user);
 
         res.status(200).json({
                 message: 'Schedule retrieved successfully!',
@@ -43,7 +43,7 @@ const CreateSchedule = async (req, res) => {
             });
         }
 
-        const scheduleData = await CreateScheduleData(req.body);
+        const scheduleData = await CreateScheduleData(req.body, req.user);
 
         res.status(201).json({
             message: 'Schedule created successfully!',
@@ -67,7 +67,7 @@ const UpdateSchedule = async (req, res) => {
             });
         }
 
-        const scheduleData = await UpdateScheduleData(req.params.id, req.body);
+        const scheduleData = await UpdateScheduleData(req.params.id, req.body, req.user);
 
         res.status(200).json({
             message: 'Schedule updated successfully!',
@@ -83,7 +83,7 @@ const UpdateSchedule = async (req, res) => {
 
 const DeleteSchedule = async (req, res) => {
     try {
-        await DeleteScheduleData(req.params.id);
+        await DeleteScheduleData(req.params.id, req.user);
         res.status(200).json({
                 message: 'Schedule deleted successfully!'
             });

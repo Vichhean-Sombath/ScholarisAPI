@@ -43,7 +43,6 @@ const UpdateUser = async (req, res) => {
             });
         }
 
-        //                                      SelectedID, UpdateData, DataFromService
         const newUserData = await UpdateUserData(req.params.id, req.body, req.user);
 
         res.status(201).json({

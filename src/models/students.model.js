@@ -45,6 +45,11 @@ const Students = sequelize.define(
             type: DataTypes.ENUM('Active', 'Inactive'),
             allowNull: false,
             defaultValue: 'Active'
+        },
+        user_id: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            unique: true
         }
     },
     {

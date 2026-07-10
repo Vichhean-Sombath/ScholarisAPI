@@ -3,7 +3,7 @@ const { ValidationCreateAssessment, ValidationUpdateAssessment } = require('./as
 
 const GetAssessment = async (req, res) => {
     try {
-        const assessmentData = await GetAssessmentData();
+        const assessmentData = await GetAssessmentData(req.user);
 
         res.status(200).json({
                 message: 'Assessment retrieved successfully!',
@@ -19,7 +19,7 @@ const GetAssessment = async (req, res) => {
 
 const SelectAssessment = async (req, res) => {
     try {
-        const assessmentData = await SelectedAssessmentData(req.params.id);
+        const assessmentData = await SelectedAssessmentData(req.params.id, req.user);
 
         res.status(200).json({
                 message: 'Assessment retrieved successfully!',
@@ -43,7 +43,7 @@ const CreateAssessment = async (req, res) => {
             });
         }
 
-        const assessmentData = await CreateAssessmentData(req.body);
+        const assessmentData = await CreateAssessmentData(req.body, req.user);
 
         res.status(201).json({
             message: 'Assessment created successfully!',
@@ -67,7 +67,7 @@ const UpdateAssessment = async (req, res) => {
             });
         }
 
-        const assessmentData = await UpdateAssessmentData(req.params.id, req.body);
+        const assessmentData = await UpdateAssessmentData(req.params.id, req.body, req.user);
 
         res.status(200).json({
             message: 'Assessment updated successfully!',
@@ -83,7 +83,7 @@ const UpdateAssessment = async (req, res) => {
 
 const DeleteAssessment = async (req, res) => {
     try {
-        await DeleteAssessmentData(req.params.id);
+        await DeleteAssessmentData(req.params.id, req.user);
         res.status(200).json({
                 message: 'Assessment deleted successfully!'
             });

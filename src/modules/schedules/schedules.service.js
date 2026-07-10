@@ -5,8 +5,13 @@ const Teachers = require('../../models/teachers.model');
 const TimeSlots = require('../../models/time_slots.model');
 const { Op } = require('sequelize');
 
-const GetScheduleData = async () => {
+const GetScheduleData = async (currentUser) => {
+    const where = currentUser.role === 'Teacher'
+        ? { teacher_id: currentUser.teacher_id }
+        : {};
+
     return await Schedules.findAll({
+        where,
         include: [
             { model: Classes, attributes: ['class_id', 'class_name'] },
             { model: Subjects, attributes: ['subject_id', 'subject_code', 'subject_name'] },
@@ -16,7 +21,7 @@ const GetScheduleData = async () => {
     });
 };
 
-const SelectedScheduleData = async (data) => {
+const SelectedScheduleData = async (data, currentUser) => {
     const selectedSchedule = await Schedules.findByPk(data, {
         include: [
             { model: Classes, attributes: ['class_id', 'class_name'] },
@@ -32,11 +37,20 @@ const SelectedScheduleData = async (data) => {
         throw err;
     }
 
+    if (currentUser.role === 'Teacher' && selectedSchedule.teacher_id !== currentUser.teacher_id) {
+        const err = new Error('Unauthorized!');
+        err.statusCode = 403;
+        throw err;
+    }
+
     return selectedSchedule;
 };
 
-const CreateScheduleData = async (scheduleData) => {
-    const { class_id, subject_id, teacher_id, time_slot_id, room_number } = scheduleData;
+const CreateScheduleData = async (scheduleData, currentUser) => {
+    const { class_id, subject_id, time_slot_id, room_number } = scheduleData;
+    const teacher_id = currentUser.role === 'Teacher'
+        ? currentUser.teacher_id
+        : scheduleData.teacher_id;
 
     const relatedClass = await Classes.findByPk(class_id);
     if (!relatedClass) {
@@ -86,11 +100,23 @@ const CreateScheduleData = async (scheduleData) => {
     return createSchedule;
 };
 
-const UpdateScheduleData = async (schedule_id, scheduleData) => {
+const UpdateScheduleData = async (schedule_id, scheduleData, currentUser) => {
     const selectedSchedule = await Schedules.findByPk(schedule_id);
     if (!selectedSchedule) {
         const err = new Error('Schedule not found!');
         err.statusCode = 404;
+        throw err;
+    }
+
+    if (currentUser.role === 'Teacher' && selectedSchedule.teacher_id !== currentUser.teacher_id) {
+        const err = new Error('Unauthorized!');
+        err.statusCode = 403;
+        throw err;
+    }
+
+    if (currentUser.role === 'Teacher' && scheduleData.teacher_id && parseInt(scheduleData.teacher_id) !== currentUser.teacher_id) {
+        const err = new Error('Cannot assign schedule to another teacher!');
+        err.statusCode = 403;
         throw err;
     }
 
@@ -148,11 +174,17 @@ const UpdateScheduleData = async (schedule_id, scheduleData) => {
     return selectedSchedule;
 };
 
-const DeleteScheduleData = async (schedule_id) => {
+const DeleteScheduleData = async (schedule_id, currentUser) => {
     const selectedSchedule = await Schedules.findByPk(schedule_id);
     if (!selectedSchedule) {
         const err = new Error('Schedule not found!');
         err.statusCode = 404;
+        throw err;
+    }
+
+    if (currentUser.role === 'Teacher' && selectedSchedule.teacher_id !== currentUser.teacher_id) {
+        const err = new Error('Unauthorized!');
+        err.statusCode = 403;
         throw err;
     }
 

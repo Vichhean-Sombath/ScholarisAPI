@@ -6,8 +6,13 @@ const Teachers = require('../../models/teachers.model');
 const Grades = require('../../models/grades.model');
 const { Op } = require('sequelize');
 
-const GetAssessmentData = async () => {
+const GetAssessmentData = async (currentUser) => {
+    const where = currentUser.role === 'Teacher'
+        ? { teacher_id: currentUser.teacher_id }
+        : {};
+
     return await Assessments.findAll({
+        where,
         include: [
             { model: GradingCriteria, attributes: ['criteria_id', 'component_name', 'weight_percentage'] },
             { model: Classes, attributes: ['class_id', 'class_name'] },
@@ -18,7 +23,7 @@ const GetAssessmentData = async () => {
     });
 };
 
-const SelectedAssessmentData = async (data) => {
+const SelectedAssessmentData = async (data, currentUser) => {
     const selectedAssessment = await Assessments.findOne({
         where: {
             [Op.or]: [
@@ -41,11 +46,20 @@ const SelectedAssessmentData = async (data) => {
         throw err;
     }
 
+    if (currentUser.role === 'Teacher' && selectedAssessment.teacher_id !== currentUser.teacher_id) {
+        const err = new Error('Unauthorized!');
+        err.statusCode = 403;
+        throw err;
+    }
+
     return selectedAssessment;
 };
 
-const CreateAssessmentData = async (assessmentData) => {
-    const { criteria_id, class_id, subject_id, teacher_id, assessment_name, max_score, assessment_date } = assessmentData;
+const CreateAssessmentData = async (assessmentData, currentUser) => {
+    const { criteria_id, class_id, subject_id, assessment_name, max_score, assessment_date } = assessmentData;
+    const teacher_id = currentUser.role === 'Teacher'
+        ? currentUser.teacher_id
+        : assessmentData.teacher_id;
 
     const criteria = await GradingCriteria.findByPk(criteria_id);
     if (!criteria) {
@@ -88,11 +102,23 @@ const CreateAssessmentData = async (assessmentData) => {
     return createAssessment;
 };
 
-const UpdateAssessmentData = async (assessment_id, assessmentData) => {
+const UpdateAssessmentData = async (assessment_id, assessmentData, currentUser) => {
     const selectedAssessment = await Assessments.findByPk(assessment_id);
     if (!selectedAssessment) {
         const err = new Error('Assessment not found!');
         err.statusCode = 404;
+        throw err;
+    }
+
+    if (currentUser.role === 'Teacher' && selectedAssessment.teacher_id !== currentUser.teacher_id) {
+        const err = new Error('Unauthorized!');
+        err.statusCode = 403;
+        throw err;
+    }
+
+    if (currentUser.role === 'Teacher' && assessmentData.teacher_id && parseInt(assessmentData.teacher_id) !== currentUser.teacher_id) {
+        const err = new Error('Cannot assign assessment to another teacher!');
+        err.statusCode = 403;
         throw err;
     }
 
@@ -137,11 +163,17 @@ const UpdateAssessmentData = async (assessment_id, assessmentData) => {
     return selectedAssessment;
 };
 
-const DeleteAssessmentData = async (assessment_id) => {
+const DeleteAssessmentData = async (assessment_id, currentUser) => {
     const selectedAssessment = await Assessments.findByPk(assessment_id);
     if (!selectedAssessment) {
         const err = new Error('Assessment not found!');
         err.statusCode = 404;
+        throw err;
+    }
+
+    if (currentUser.role === 'Teacher' && selectedAssessment.teacher_id !== currentUser.teacher_id) {
+        const err = new Error('Unauthorized!');
+        err.statusCode = 403;
         throw err;
     }
 

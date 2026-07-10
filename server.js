@@ -23,6 +23,7 @@ const FeeStructureController = require('./src/modules/fee_structures/fee_structu
 const InvoiceController = require('./src/modules/invoices/invoices.route');
 const PaymentController = require('./src/modules/payments/payments.route');
 const LessonResourceController = require('./src/modules/lesson_resources/lesson_resources.route');
+const errorHandler = require('./src/middleware/errorHandler');
 
 // Sync DB
 const sequelize = require('./src/config/db');
@@ -82,5 +83,7 @@ FeeStructureController(app);
 InvoiceController(app);
 PaymentController(app);
 LessonResourceController(app);
+
+app.use(errorHandler);
 
 app.listen(3000, () => console.log('Server is listening on port 3000!'));

@@ -38,11 +38,17 @@ const SelectTeacherData = async (data) => {
     return selectedTeacher;
 };
 
-const UpdateTeacherData = async (teacher_id, teacherData) => {
+const UpdateTeacherData = async (teacher_id, teacherData, currentUser) => {
     const teacher = await Teachers.findByPk(teacher_id);
     if (!teacher) {
         const err = new Error('Teacher not found!');
         err.statusCode = 404;
+        throw err;
+    }
+
+    if (currentUser.role === 'Teacher' && teacher.teacher_id !== currentUser.teacher_id) {
+        const err = new Error('Unauthorized!');
+        err.statusCode = 403;
         throw err;
     }
 

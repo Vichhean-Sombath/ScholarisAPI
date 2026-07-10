@@ -1,6 +1,8 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const Users = require('../../models/users.model');
+const Teachers = require('../../models/teachers.model');
+const Students = require('../../models/students.model');
 
 const LoginUserData = async (userData) => {
     const { email, password } = userData;
@@ -21,11 +23,16 @@ const LoginUserData = async (userData) => {
 
     await user.update({ last_login_at: new Date() });
 
+    const teacher = await Teachers.findOne({ where: { user_id: user.user_id } });
+    const student = await Students.findOne({ where: { user_id: user.user_id } });
+
     const token = jwt.sign(
         {
             user_id: user.user_id,
             email: user.email,
-            role: user.role
+            role: user.role,
+            teacher_id: teacher ? teacher.teacher_id : null,
+            student_id: student ? student.student_id : null
         },
         process.env.SECRET_KEY,
         { expiresIn: '2h' }

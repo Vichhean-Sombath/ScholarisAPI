@@ -5,17 +5,25 @@ const Teachers = require('../../models/teachers.model');
 require('../../models/mappingContext');
 const { Op } = require('sequelize');
 
-const GetAttendanceRecordData = async () => {
+const GetAttendanceRecordData = async (currentUser) => {
+    const scheduleWhere = currentUser.role === 'Teacher'
+        ? { teacher_id: currentUser.teacher_id }
+        : {};
+
     return await AttendanceRecords.findAll({
         include: [
             { model: Students, attributes: ['student_id', 'first_name', 'last_name'] },
-            { model: Schedules, attributes: ['schedule_id', 'class_id', 'subject_id', 'time_slot_id'] },
+            {
+                model: Schedules,
+                attributes: ['schedule_id', 'class_id', 'subject_id', 'time_slot_id'],
+                where: scheduleWhere
+            },
             { model: Teachers, as: 'Marker', attributes: ['teacher_id', 'first_name', 'last_name'] }
         ]
     });
 };
 
-const SelectedAttendanceRecordData = async (data) => {
+const SelectedAttendanceRecordData = async (data, currentUser) => {
     const selectedRecord = await AttendanceRecords.findOne({
         where: {
             [Op.or]: [
@@ -26,7 +34,10 @@ const SelectedAttendanceRecordData = async (data) => {
         },
         include: [
             { model: Students, attributes: ['student_id', 'first_name', 'last_name'] },
-            { model: Schedules, attributes: ['schedule_id', 'class_id', 'subject_id', 'time_slot_id'] },
+            {
+                model: Schedules,
+                attributes: ['schedule_id', 'class_id', 'subject_id', 'time_slot_id', 'teacher_id']
+            },
             { model: Teachers, as: 'Marker', attributes: ['teacher_id', 'first_name', 'last_name'] }
         ]
     });
@@ -37,16 +48,31 @@ const SelectedAttendanceRecordData = async (data) => {
         throw err;
     }
 
+    if (currentUser.role === 'Teacher' && selectedRecord.Schedule.teacher_id !== currentUser.teacher_id) {
+        const err = new Error('Unauthorized!');
+        err.statusCode = 403;
+        throw err;
+    }
+
     return selectedRecord;
 };
 
-const CreateAttendanceRecordData = async (recordData) => {
-    const { schedule_id, student_id, attendance_date, status, marked_by } = recordData;
+const CreateAttendanceRecordData = async (recordData, currentUser) => {
+    const { schedule_id, student_id, attendance_date, status } = recordData;
+    const marked_by = currentUser.role === 'Teacher'
+        ? currentUser.teacher_id
+        : recordData.marked_by;
 
     const schedule = await Schedules.findByPk(schedule_id);
     if (!schedule) {
         const err = new Error('Schedule not found!');
         err.statusCode = 404;
+        throw err;
+    }
+
+    if (currentUser.role === 'Teacher' && schedule.teacher_id !== currentUser.teacher_id) {
+        const err = new Error('Unauthorized!');
+        err.statusCode = 403;
         throw err;
     }
 
@@ -82,11 +108,25 @@ const CreateAttendanceRecordData = async (recordData) => {
     return createRecord;
 };
 
-const UpdateAttendanceRecordData = async (attendance_id, recordData) => {
-    const selectedRecord = await AttendanceRecords.findByPk(attendance_id);
+const UpdateAttendanceRecordData = async (attendance_id, recordData, currentUser) => {
+    const selectedRecord = await AttendanceRecords.findByPk(attendance_id, {
+        include: [{ model: Schedules, attributes: ['teacher_id'] }]
+    });
     if (!selectedRecord) {
         const err = new Error('Attendance record not found!');
         err.statusCode = 404;
+        throw err;
+    }
+
+    if (currentUser.role === 'Teacher' && selectedRecord.Schedule.teacher_id !== currentUser.teacher_id) {
+        const err = new Error('Unauthorized!');
+        err.statusCode = 403;
+        throw err;
+    }
+
+    if (currentUser.role === 'Teacher' && recordData.marked_by && parseInt(recordData.marked_by) !== currentUser.teacher_id) {
+        const err = new Error('Cannot mark attendance for another teacher!');
+        err.statusCode = 403;
         throw err;
     }
 
@@ -136,11 +176,19 @@ const UpdateAttendanceRecordData = async (attendance_id, recordData) => {
     return selectedRecord;
 };
 
-const DeleteAttendanceRecordData = async (attendance_id) => {
-    const selectedRecord = await AttendanceRecords.findByPk(attendance_id);
+const DeleteAttendanceRecordData = async (attendance_id, currentUser) => {
+    const selectedRecord = await AttendanceRecords.findByPk(attendance_id, {
+        include: [{ model: Schedules, attributes: ['teacher_id'] }]
+    });
     if (!selectedRecord) {
         const err = new Error('Attendance record not found!');
         err.statusCode = 404;
+        throw err;
+    }
+
+    if (currentUser.role === 'Teacher' && selectedRecord.Schedule.teacher_id !== currentUser.teacher_id) {
+        const err = new Error('Unauthorized!');
+        err.statusCode = 403;
         throw err;
     }
 

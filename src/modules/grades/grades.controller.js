@@ -3,7 +3,7 @@ const { ValidationCreateGrade, ValidationUpdateGrade } = require('./grades.valid
 
 const GetGrade = async (req, res) => {
     try {
-        const gradeData = await GetGradeData();
+        const gradeData = await GetGradeData(req.user);
 
         res.status(200).json({
                 message: 'Grade retrieved successfully!',
@@ -19,7 +19,7 @@ const GetGrade = async (req, res) => {
 
 const SelectGrade = async (req, res) => {
     try {
-        const gradeData = await SelectedGradeData(req.params.id);
+        const gradeData = await SelectedGradeData(req.params.id, req.user);
 
         res.status(200).json({
                 message: 'Grade retrieved successfully!',
@@ -43,7 +43,7 @@ const CreateGrade = async (req, res) => {
             });
         }
 
-        const gradeData = await CreateGradeData(req.body);
+        const gradeData = await CreateGradeData(req.body, req.user);
 
         res.status(201).json({
             message: 'Grade created successfully!',
@@ -67,7 +67,7 @@ const UpdateGrade = async (req, res) => {
             });
         }
 
-        const gradeData = await UpdateGradeData(req.params.id, req.body);
+        const gradeData = await UpdateGradeData(req.params.id, req.body, req.user);
 
         res.status(200).json({
             message: 'Grade updated successfully!',
@@ -83,7 +83,7 @@ const UpdateGrade = async (req, res) => {
 
 const DeleteGrade = async (req, res) => {
     try {
-        await DeleteGradeData(req.params.id);
+        await DeleteGradeData(req.params.id, req.user);
         res.status(200).json({
                 message: 'Grade deleted successfully!'
             });

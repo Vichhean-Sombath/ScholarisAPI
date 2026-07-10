@@ -33,9 +33,9 @@ const CreateUserData = async (userData) => {
         throw err;
     }
 
-    const allowedRoles = ['Admin', 'Teacher'];
+    const allowedRoles = ['Admin', 'Teacher', 'Student'];
     if (!allowedRoles.includes(role)) {
-        const err = new Error('Role must be Admin or Teacher!');
+        const err = new Error('Role must be Admin, Teacher or Student!');
         err.statusCode = 400;
         throw err;
     }
@@ -90,6 +90,14 @@ const UpdateUserData = async (user_id, userData, currentUser) => {
         const err = new Error('Unauthorized!');
         err.statusCode = 403;
         throw err;
+    }
+
+    if (currentUser.role !== 'Admin') {
+        if (userData.role !== undefined || userData.status !== undefined) {
+            const err = new Error('Forbidden. You cannot change role or status!');
+            err.statusCode = 403;
+            throw err;
+        }
     }
 
     if (userData.email && userData.email !== user.email) {

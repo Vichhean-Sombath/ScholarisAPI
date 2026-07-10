@@ -9,7 +9,7 @@ const { ValidationCreateAttendanceRecord, ValidationUpdateAttendanceRecord } = r
 
 const GetAttendanceRecord = async (req, res) => {
     try {
-        const recordData = await GetAttendanceRecordData();
+        const recordData = await GetAttendanceRecordData(req.user);
 
         res.status(200).json({
             message: 'Attendance records retrieved successfully!',
@@ -25,7 +25,7 @@ const GetAttendanceRecord = async (req, res) => {
 
 const SelectAttendanceRecord = async (req, res) => {
     try {
-        const recordData = await SelectedAttendanceRecordData(req.params.id);
+        const recordData = await SelectedAttendanceRecordData(req.params.id, req.user);
 
         res.status(200).json({
             message: 'Attendance record retrieved successfully!',
@@ -49,7 +49,7 @@ const CreateAttendanceRecord = async (req, res) => {
             });
         }
 
-        const recordData = await CreateAttendanceRecordData(req.body);
+        const recordData = await CreateAttendanceRecordData(req.body, req.user);
 
         res.status(201).json({
             message: 'Attendance record created successfully!',
@@ -73,7 +73,7 @@ const UpdateAttendanceRecord = async (req, res) => {
             });
         }
 
-        const recordData = await UpdateAttendanceRecordData(req.params.id, req.body);
+        const recordData = await UpdateAttendanceRecordData(req.params.id, req.body, req.user);
 
         res.status(200).json({
             message: 'Attendance record updated successfully!',
@@ -89,7 +89,7 @@ const UpdateAttendanceRecord = async (req, res) => {
 
 const DeleteAttendanceRecord = async (req, res) => {
     try {
-        await DeleteAttendanceRecordData(req.params.id);
+        await DeleteAttendanceRecordData(req.params.id, req.user);
 
         res.status(200).json({
             message: 'Attendance record deleted successfully!'

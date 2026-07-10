@@ -3,7 +3,7 @@ const { ValidationCreateLessonResource, ValidationUpdateLessonResource } = requi
 
 const GetLessonResource = async (req, res) => {
     try {
-        const lessonResourceData = await GetLessonResourceData();
+        const lessonResourceData = await GetLessonResourceData(req.user);
 
         res.status(200).json({
                 message: 'Lesson resource retrieved successfully!',
@@ -19,7 +19,7 @@ const GetLessonResource = async (req, res) => {
 
 const SelectLessonResource = async (req, res) => {
     try {
-        const lessonResourceData = await SelectedLessonResourceData(req.params.id);
+        const lessonResourceData = await SelectedLessonResourceData(req.params.id, req.user);
 
         res.status(200).json({
                 message: 'Lesson resource retrieved successfully!',
@@ -43,7 +43,7 @@ const CreateLessonResource = async (req, res) => {
             });
         }
 
-        const lessonResourceData = await CreateLessonResourceData(req.body);
+        const lessonResourceData = await CreateLessonResourceData(req.body, req.user);
 
         res.status(201).json({
             message: 'Lesson resource created successfully!',
@@ -67,7 +67,7 @@ const UpdateLessonResource = async (req, res) => {
             });
         }
 
-        const lessonResourceData = await UpdateLessonResourceData(req.params.id, req.body);
+        const lessonResourceData = await UpdateLessonResourceData(req.params.id, req.body, req.user);
 
         res.status(200).json({
             message: 'Lesson resource updated successfully!',
@@ -83,7 +83,7 @@ const UpdateLessonResource = async (req, res) => {
 
 const DeleteLessonResource = async (req, res) => {
     try {
-        await DeleteLessonResourceData(req.params.id);
+        await DeleteLessonResourceData(req.params.id, req.user);
         res.status(200).json({
                 message: 'Lesson resource deleted successfully!'
             });

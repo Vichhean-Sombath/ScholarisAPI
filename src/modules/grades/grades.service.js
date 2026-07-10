@@ -4,17 +4,23 @@ const Students = require('../../models/students.model');
 const Teachers = require('../../models/teachers.model');
 const { Op } = require('sequelize');
 
-const GetGradeData = async () => {
+const GetGradeData = async (currentUser) => {
+    const includeOptions = [
+        {
+            model: Assessments,
+            attributes: ['assessment_id', 'assessment_name', 'max_score'],
+            where: currentUser.role === 'Teacher' ? { teacher_id: currentUser.teacher_id } : {}
+        },
+        { model: Students, attributes: ['student_id', 'first_name', 'last_name'] },
+        { model: Teachers, as: 'EnteredBy', attributes: ['teacher_id', 'first_name', 'last_name'] }
+    ];
+
     return await Grades.findAll({
-        include: [
-            { model: Assessments, attributes: ['assessment_id', 'assessment_name', 'max_score'] },
-            { model: Students, attributes: ['student_id', 'first_name', 'last_name'] },
-            { model: Teachers, as: 'EnteredBy', attributes: ['teacher_id', 'first_name', 'last_name'] }
-        ]
+        include: includeOptions
     });
 };
 
-const SelectedGradeData = async (data) => {
+const SelectedGradeData = async (data, currentUser) => {
     const selectedGrade = await Grades.findByPk(data, {
         include: [
             { model: Assessments, attributes: ['assessment_id', 'assessment_name', 'max_score'] },
@@ -29,16 +35,31 @@ const SelectedGradeData = async (data) => {
         throw err;
     }
 
+    if (currentUser.role === 'Teacher' && selectedGrade.Assessment.teacher_id !== currentUser.teacher_id) {
+        const err = new Error('Unauthorized!');
+        err.statusCode = 403;
+        throw err;
+    }
+
     return selectedGrade;
 };
 
-const CreateGradeData = async (gradeData) => {
-    const { assessment_id, student_id, score, entered_by, is_published } = gradeData;
+const CreateGradeData = async (gradeData, currentUser) => {
+    const { assessment_id, student_id, score, is_published } = gradeData;
+    const entered_by = currentUser.role === 'Teacher'
+        ? currentUser.teacher_id
+        : gradeData.entered_by;
 
     const assessment = await Assessments.findByPk(assessment_id);
     if (!assessment) {
         const err = new Error('Assessment not found!');
         err.statusCode = 404;
+        throw err;
+    }
+
+    if (currentUser.role === 'Teacher' && assessment.teacher_id !== currentUser.teacher_id) {
+        const err = new Error('Unauthorized!');
+        err.statusCode = 403;
         throw err;
     }
 
@@ -82,11 +103,25 @@ const CreateGradeData = async (gradeData) => {
     return createGrade;
 };
 
-const UpdateGradeData = async (grade_id, gradeData) => {
-    const selectedGrade = await Grades.findByPk(grade_id);
+const UpdateGradeData = async (grade_id, gradeData, currentUser) => {
+    const selectedGrade = await Grades.findByPk(grade_id, {
+        include: [{ model: Assessments, attributes: ['teacher_id'] }]
+    });
     if (!selectedGrade) {
         const err = new Error('Grade not found!');
         err.statusCode = 404;
+        throw err;
+    }
+
+    if (currentUser.role === 'Teacher' && selectedGrade.Assessment.teacher_id !== currentUser.teacher_id) {
+        const err = new Error('Unauthorized!');
+        err.statusCode = 403;
+        throw err;
+    }
+
+    if (currentUser.role === 'Teacher' && gradeData.entered_by && parseInt(gradeData.entered_by) !== currentUser.teacher_id) {
+        const err = new Error('Cannot assign grade to another teacher!');
+        err.statusCode = 403;
         throw err;
     }
 
@@ -146,11 +181,19 @@ const UpdateGradeData = async (grade_id, gradeData) => {
     return selectedGrade;
 };
 
-const DeleteGradeData = async (grade_id) => {
-    const selectedGrade = await Grades.findByPk(grade_id);
+const DeleteGradeData = async (grade_id, currentUser) => {
+    const selectedGrade = await Grades.findByPk(grade_id, {
+        include: [{ model: Assessments, attributes: ['teacher_id'] }]
+    });
     if (!selectedGrade) {
         const err = new Error('Grade not found!');
         err.statusCode = 404;
+        throw err;
+    }
+
+    if (currentUser.role === 'Teacher' && selectedGrade.Assessment.teacher_id !== currentUser.teacher_id) {
+        const err = new Error('Unauthorized!');
+        err.statusCode = 403;
         throw err;
     }
 

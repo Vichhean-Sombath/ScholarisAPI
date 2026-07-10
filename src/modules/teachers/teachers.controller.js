@@ -32,7 +32,7 @@ const SelectTeacher = async (req, res) => {
 
 const UpdateTeacher = async (req, res) => {
     try {
-        const teacherData = await UpdateTeacherData(req.params.id, req.body);
+        const teacherData = await UpdateTeacherData(req.params.id, req.body, req.user);
         res.status(200).json({
             message: 'Teacher updated successfully!',
             data: teacherData

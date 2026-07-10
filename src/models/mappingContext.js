@@ -27,6 +27,9 @@ const LessonResources = require('./lesson_resources.model');
 Users.hasOne(Teachers, { foreignKey: 'user_id', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
 Teachers.belongsTo(Users, { foreignKey: 'user_id' });
 
+Users.hasOne(Students, { foreignKey: 'user_id', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
+Students.belongsTo(Users, { foreignKey: 'user_id' });
+
 Users.hasMany(Payments, { foreignKey: 'recorded_by', onDelete: 'RESTRICT', onUpdate: 'CASCADE' });
 Payments.belongsTo(Users, { foreignKey: 'recorded_by' });
 
