@@ -11,6 +11,8 @@ const CertificateController = require('./src/modules/certificates/certificates.r
 const EmergencyContactController = require('./src/modules/student_emergency_contacts/student_emergency_contacts.route');
 const ClassEnrollmentController = require('./src/modules/class_enrollments/class_enrollments.route');
 const AttendanceRecordController = require('./src/modules/attendance_records/attendance_records.route');
+const AcademicYearController = require('./src/modules/academic_years/academic_years.route');
+const SemesterController = require('./src/modules/semesters/semesters.route');
 
 // Sync DB
 const sequelize = require('./src/config/db');
@@ -58,5 +60,7 @@ CertificateController(app);
 EmergencyContactController(app);
 ClassEnrollmentController(app);
 AttendanceRecordController(app);
+AcademicYearController(app);
+SemesterController(app);
 
 app.listen(3000, () => console.log('Server is listening on port 3000!'));
