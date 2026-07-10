@@ -14,15 +14,15 @@ const ValidationCreateInvoice = (data) => {
         error.push('Invoice number must not exceed 30 characters.');
     }
 
-    if (!student_id || isNaN(Number(student_id))) {
+    if (student_id === undefined || student_id === null || isNaN(Number(student_id))) {
         error.push('Student ID required and must be a number.');
     }
 
-    if (!fee_id || isNaN(Number(fee_id))) {
+    if (fee_id === undefined || fee_id === null || isNaN(Number(fee_id))) {
         error.push('Fee ID required and must be a number.');
     }
 
-    if (!semester_id || isNaN(Number(semester_id))) {
+    if (semester_id === undefined || semester_id === null || isNaN(Number(semester_id))) {
         error.push('Semester ID required and must be a number.');
     }
 

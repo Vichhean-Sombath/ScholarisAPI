@@ -18,8 +18,7 @@ const GetAttendanceRecord = async (req, res) => {
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
+            message: error.message || 'Internal server error!'
         });
     }
 };
@@ -35,8 +34,7 @@ const SelectAttendanceRecord = async (req, res) => {
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
+            message: error.message || 'Internal server error!'
         });
     }
 };
@@ -54,14 +52,13 @@ const CreateAttendanceRecord = async (req, res) => {
         const recordData = await CreateAttendanceRecordData(req.body);
 
         res.status(201).json({
-            message: 'Created attendance record successfully!',
+            message: 'Attendance record created successfully!',
             data: recordData
         });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
+            message: error.message || 'Internal server error!'
         });
     }
 };
@@ -79,14 +76,13 @@ const UpdateAttendanceRecord = async (req, res) => {
         const recordData = await UpdateAttendanceRecordData(req.params.id, req.body);
 
         res.status(200).json({
-            message: 'Updated attendance record successfully!',
+            message: 'Attendance record updated successfully!',
             data: recordData
         });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
+            message: error.message || 'Internal server error!'
         });
     }
 };
@@ -96,13 +92,12 @@ const DeleteAttendanceRecord = async (req, res) => {
         await DeleteAttendanceRecordData(req.params.id);
 
         res.status(200).json({
-            message: 'Deleted attendance record successfully!'
+            message: 'Attendance record deleted successfully!'
         });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
+            message: error.message || 'Internal server error!'
         });
     }
 };

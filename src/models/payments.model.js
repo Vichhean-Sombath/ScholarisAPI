@@ -26,7 +26,7 @@ const Payments = sequelize.define(
             allowNull: false
         },
         payment_method: {
-            type: DataTypes.ENUM('Cash', 'ABA', 'BankTransfer', 'Check'),
+            type: DataTypes.ENUM('Stripe', 'BakongKHQR'),
             allowNull: false
         },
         receipt_url: {

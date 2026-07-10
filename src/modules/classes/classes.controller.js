@@ -8,13 +8,12 @@ const GetClass = async (req, res) => {
         res.status(200).json({
                 message: 'Class retrieved successfully!',
                 data: classData
-            })
+            });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -25,13 +24,12 @@ const SelectClass = async (req, res) => {
         res.status(200).json({
                 message: 'Class retrieved successfully!',
                 data: classData
-            })
+            });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -48,15 +46,14 @@ const CreateClass = async (req, res) => {
         const classData = await CreateClassData(req.body);
 
         res.status(201).json({
-            message: 'Created class successfully!',
+            message: 'Class created successfully!',
             data: classData
-        })
+        });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -73,15 +70,14 @@ const UpdateClass = async (req, res) => {
         const classData = await UpdateClassData(req.params.id, req.body);
         
         res.status(200).json({
-            message: 'Updated class successfully!',
+            message: 'Class updated successfully!',
             data: classData
-        })
+        });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -89,14 +85,13 @@ const DeleteClass = async (req, res) => {
     try {
         const classData = await DeleteClassData(req.params.id);
         res.status(200).json({
-                message: 'Deleted class successfully!'
-            })
+                message: 'Class deleted successfully!'
+            });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 

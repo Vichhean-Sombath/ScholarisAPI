@@ -8,7 +8,7 @@ const ValidationCreatePayment = (data) => {
     const error = [];
     const { invoice_id, payment_date, amount, payment_method, receipt_url, recorded_by, notes } = data;
 
-    if (!invoice_id || isNaN(Number(invoice_id))) {
+    if (invoice_id === undefined || invoice_id === null || isNaN(Number(invoice_id))) {
         error.push('Invoice ID required and must be a number.');
     }
 
@@ -24,7 +24,7 @@ const ValidationCreatePayment = (data) => {
         error.push('Payment method required and must be Cash, ABA, BankTransfer, or Check.');
     }
 
-    if (!recorded_by || isNaN(Number(recorded_by))) {
+    if (recorded_by === undefined || recorded_by === null || isNaN(Number(recorded_by))) {
         error.push('Recorded by required and must be a number.');
     }
 

@@ -18,8 +18,7 @@ const GetEmergencyContact = async (req, res) => {
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
+            message: error.message || 'Internal server error!'
         });
     }
 };
@@ -35,8 +34,7 @@ const SelectEmergencyContact = async (req, res) => {
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
+            message: error.message || 'Internal server error!'
         });
     }
 };
@@ -54,14 +52,13 @@ const CreateEmergencyContact = async (req, res) => {
         const contactData = await CreateEmergencyContactData(req.body);
 
         res.status(201).json({
-            message: 'Created emergency contact successfully!',
+            message: 'Emergency contact created successfully!',
             data: contactData
         });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
+            message: error.message || 'Internal server error!'
         });
     }
 };
@@ -79,14 +76,13 @@ const UpdateEmergencyContact = async (req, res) => {
         const contactData = await UpdateEmergencyContactData(req.params.id, req.body);
 
         res.status(200).json({
-            message: 'Updated emergency contact successfully!',
+            message: 'Emergency contact updated successfully!',
             data: contactData
         });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
+            message: error.message || 'Internal server error!'
         });
     }
 };
@@ -96,13 +92,12 @@ const DeleteEmergencyContact = async (req, res) => {
         await DeleteEmergencyContactData(req.params.id);
 
         res.status(200).json({
-            message: 'Deleted emergency contact successfully!'
+            message: 'Emergency contact deleted successfully!'
         });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
+            message: error.message || 'Internal server error!'
         });
     }
 };

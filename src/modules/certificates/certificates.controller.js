@@ -3,35 +3,33 @@ const { ValidationCreateCertificate } = require('./certificates.validation');
 
 const GetCertificate = async (req, res) => {
     try {
-        const getCertificate = await GetCertificateData();
+        const certificateData = await GetCertificateData();
 
         res.status(200).json({
             message: 'Certificate retrieved successfully!',
-            data: getCertificate
+            data: certificateData
         });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
 const SelectCertificate = async (req, res) => {
     try {
-        const getCertificate = await SelectCertificateData(req.params.search);
+        const certificateData = await SelectCertificateData(req.params.id);
 
         res.status(200).json({
             message: 'Certificate retrieved successfully!',
-            data: getCertificate
+            data: certificateData
         });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -45,24 +43,23 @@ const CreateCertificate = async (req, res) => {
             });
         }
 
-        const createCertificate = await CreateCertificateData(req.body);
+        const certificateData = await CreateCertificateData(req.body);
 
         res.status(201).json({
             message: 'Certificate created successfully!',
-            data: createCertificate
+            data: certificateData
         });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
 const DeleteCertificate = async (req, res) => {
     try {
-        const deleteCertificate = await DeleteCertificateData(req.params.id);
+        await DeleteCertificateData(req.params.id);
 
         res.status(200).json({
             message: 'Certificate deleted successfully!'
@@ -70,9 +67,8 @@ const DeleteCertificate = async (req, res) => {
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 

@@ -12,7 +12,7 @@ const CreateUser = async (req, res) => {
             return res.status(400).json({
                 message: 'Validation failed!',
                 errors: validation.error
-            })
+            });
         }
 
         // Sync to database
@@ -26,9 +26,8 @@ const CreateUser = async (req, res) => {
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -41,22 +40,21 @@ const UpdateUser = async (req, res) => {
             return res.status(400).json({
                 message: 'Validation failed!',
                 errors: validation.error
-            })
+            });
         }
 
         //                                      SelectedID, UpdateData, DataFromService
         const newUserData = await UpdateUserData(req.params.id, req.body, req.user);
 
         res.status(201).json({
-            message: 'Updated user successfully!',
+            message: 'User updated successfully!',
             data: newUserData
-        })
+        });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -72,9 +70,8 @@ const DisableUser = async (req, res) => {
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -90,9 +87,8 @@ const EnableUser = async(req, res) => {
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 

@@ -39,7 +39,7 @@ const CreateAcademicYearData = async (academicYearData) => {
 
     const existedYearName = await AcademicYears.findOne({ where: { year_name } });
     if (existedYearName) {
-        const err = new Error('This year name is already existed!');
+        const err = new Error('This year name already exists!');
         err.statusCode = 400;
         throw err;
     }
@@ -71,7 +71,7 @@ const UpdateAcademicYearData = async (academic_year_id, academicYearData) => {
     if (academicYearData.year_name && academicYearData.year_name !== selectedAcademicYear.year_name) {
         const existedYearName = await AcademicYears.findOne({ where: { year_name: academicYearData.year_name } });
         if (existedYearName) {
-            const err = new Error('This year name is already existed!');
+            const err = new Error('This year name already exists!');
             err.statusCode = 400;
             throw err;
         }

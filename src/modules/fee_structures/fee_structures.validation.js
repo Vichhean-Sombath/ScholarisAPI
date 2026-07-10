@@ -8,7 +8,7 @@ const ValidationCreateFeeStructure = (data) => {
     const error = [];
     const { class_id, semester_id, fee_name, amount, due_date } = data;
 
-    if (!semester_id || isNaN(Number(semester_id))) {
+    if (semester_id === undefined || semester_id === null || isNaN(Number(semester_id))) {
         error.push('Semester ID required and must be a number!');
     }
 

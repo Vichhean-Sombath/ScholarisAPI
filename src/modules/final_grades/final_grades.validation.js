@@ -2,19 +2,19 @@ const ValidationCreateFinalGrade = (data) => {
     const error = [];
     const { student_id, subject_id, class_id, semester_id, final_score, letter_grade, gpa_points } = data;
 
-    if (!student_id || isNaN(Number(student_id))) {
+    if (student_id === undefined || student_id === null || isNaN(Number(student_id))) {
         error.push('Student ID required and must be a number!');
     }
 
-    if (!subject_id || isNaN(Number(subject_id))) {
+    if (subject_id === undefined || subject_id === null || isNaN(Number(subject_id))) {
         error.push('Subject ID required and must be a number!');
     }
 
-    if (!class_id || isNaN(Number(class_id))) {
+    if (class_id === undefined || class_id === null || isNaN(Number(class_id))) {
         error.push('Class ID required and must be a number!');
     }
 
-    if (!semester_id || isNaN(Number(semester_id))) {
+    if (semester_id === undefined || semester_id === null || isNaN(Number(semester_id))) {
         error.push('Semester ID required and must be a number!');
     }
 

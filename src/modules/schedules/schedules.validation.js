@@ -2,19 +2,19 @@ const ValidationCreateSchedule = (data) => {
     const error = [];
     const { class_id, subject_id, teacher_id, time_slot_id, room_number } = data;
 
-    if (!class_id || isNaN(Number(class_id))) {
+    if (class_id === undefined || class_id === null || isNaN(Number(class_id))) {
         error.push('Class ID required and must be a number!');
     }
 
-    if (!subject_id || isNaN(Number(subject_id))) {
+    if (subject_id === undefined || subject_id === null || isNaN(Number(subject_id))) {
         error.push('Subject ID required and must be a number!');
     }
 
-    if (!teacher_id || isNaN(Number(teacher_id))) {
+    if (teacher_id === undefined || teacher_id === null || isNaN(Number(teacher_id))) {
         error.push('Teacher ID required and must be a number!');
     }
 
-    if (!time_slot_id || isNaN(Number(time_slot_id))) {
+    if (time_slot_id === undefined || time_slot_id === null || isNaN(Number(time_slot_id))) {
         error.push('Time slot ID required and must be a number!');
     }
 

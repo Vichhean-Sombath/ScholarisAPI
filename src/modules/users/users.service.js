@@ -21,14 +21,14 @@ const CreateUserData = async (userData) => {
 
     const existingEmail = await Users.findOne({ where: { email } });
     if (existingEmail) {
-        const err = new Error('This email is already existed!');
+        const err = new Error('This email already exists!');
         err.statusCode = 409;
         throw err;
     }
 
     const existingUsername = await Users.findOne({ where: { username } });
     if (existingUsername) {
-        const err = new Error('This username is already existed!');
+        const err = new Error('This username already exists!');
         err.statusCode = 409;
         throw err;
     }
@@ -87,7 +87,7 @@ const UpdateUserData = async (user_id, userData, currentUser) => {
     }
 
     if (currentUser.role !== 'Admin' && currentUser.user_id !== parseInt(user_id)) {
-        const err = new Error('Unauthorize!');
+        const err = new Error('Unauthorized!');
         err.statusCode = 403;
         throw err;
     }
@@ -95,7 +95,7 @@ const UpdateUserData = async (user_id, userData, currentUser) => {
     if (userData.email && userData.email !== user.email) {
         const existingEmail = await Users.findOne({ where: { email: userData.email } });
         if (existingEmail) {
-            const err = new Error('This email is already existed!');
+            const err = new Error('This email already exists!');
             err.statusCode = 400;
             throw err;
         }
@@ -104,7 +104,7 @@ const UpdateUserData = async (user_id, userData, currentUser) => {
     if (userData.username && userData.username !== user.username) {
         const existingUsername = await Users.findOne({ where: { username: userData.username } });
         if (existingUsername) {
-            const err = new Error('This username is already existed!');
+            const err = new Error('This username already exists!');
             err.statusCode = 400;
             throw err;
         }
@@ -136,13 +136,13 @@ const DisableUserData = async (user_id, currentUser) => {
     }
 
     if (currentUser.role !== 'Admin') {
-        const err = new Error('Unauthorize!');
+        const err = new Error('Unauthorized!');
         err.statusCode = 403;
         throw err;
     }
 
     if (user.role === 'Admin') {
-        const err = new Error('Can not disable admin account!');
+        const err = new Error('Cannot disable admin account!');
         err.statusCode = 403;
         throw err;
     }
@@ -179,7 +179,7 @@ const EnableUserData = async (user_id, currentUser) => {
     }
 
     if (currentUser.role !== 'Admin') {
-        const err = new Error('Unauthorize!');
+        const err = new Error('Unauthorized!');
         err.statusCode = 403;
         throw err;
     }

@@ -8,13 +8,12 @@ const GetFinalGrade = async (req, res) => {
         res.status(200).json({
                 message: 'Final grade retrieved successfully!',
                 data: finalGradeData
-            })
+            });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -25,13 +24,12 @@ const SelectFinalGrade = async (req, res) => {
         res.status(200).json({
                 message: 'Final grade retrieved successfully!',
                 data: finalGradeData
-            })
+            });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -48,15 +46,14 @@ const CreateFinalGrade = async (req, res) => {
         const finalGradeData = await CreateFinalGradeData(req.body);
 
         res.status(201).json({
-            message: 'Created final grade successfully!',
+            message: 'Final grade created successfully!',
             data: finalGradeData
-        })
+        });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -73,15 +70,14 @@ const UpdateFinalGrade = async (req, res) => {
         const finalGradeData = await UpdateFinalGradeData(req.params.id, req.body);
 
         res.status(200).json({
-            message: 'Updated final grade successfully!',
+            message: 'Final grade updated successfully!',
             data: finalGradeData
-        })
+        });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -89,14 +85,13 @@ const DeleteFinalGrade = async (req, res) => {
     try {
         await DeleteFinalGradeData(req.params.id);
         res.status(200).json({
-                message: 'Deleted final grade successfully!'
-            })
+                message: 'Final grade deleted successfully!'
+            });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 

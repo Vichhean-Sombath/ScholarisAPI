@@ -8,13 +8,12 @@ const GetSubject = async (req, res) => {
         res.status(200).json({
                 message: 'Subject retrieved successfully!',
                 data: subjectData
-            })
+            });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -25,13 +24,12 @@ const SelectSubject = async (req, res) => {
         res.status(200).json({
                 message: 'Subject retrieved successfully!',
                 data: subjectData
-            })
+            });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -48,15 +46,14 @@ const CreateSubject = async (req, res) => {
         const subjectData = await CreateSubjectData(req.body);
 
         res.status(201).json({
-            message: 'Created subject successfully!',
+            message: 'Subject created successfully!',
             data: subjectData
-        })
+        });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -73,15 +70,14 @@ const UpdateSubject = async (req, res) => {
         const subjectData = await UpdateSubjectData(req.params.id, req.body);
         
         res.status(200).json({
-            message: 'Updated subject successfully!',
+            message: 'Subject updated successfully!',
             data: subjectData
-        })
+        });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -89,14 +85,13 @@ const DeleteSubject = async (req, res) => {
     try {
         const subjectData = await DeleteSubjectData(req.params.id);
         res.status(200).json({
-                message: 'Deleted subject successfully!'
-            })
+                message: 'Subject deleted successfully!'
+            });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 

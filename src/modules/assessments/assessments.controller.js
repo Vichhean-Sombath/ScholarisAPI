@@ -8,13 +8,12 @@ const GetAssessment = async (req, res) => {
         res.status(200).json({
                 message: 'Assessment retrieved successfully!',
                 data: assessmentData
-            })
+            });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -25,13 +24,12 @@ const SelectAssessment = async (req, res) => {
         res.status(200).json({
                 message: 'Assessment retrieved successfully!',
                 data: assessmentData
-            })
+            });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -48,15 +46,14 @@ const CreateAssessment = async (req, res) => {
         const assessmentData = await CreateAssessmentData(req.body);
 
         res.status(201).json({
-            message: 'Created assessment successfully!',
+            message: 'Assessment created successfully!',
             data: assessmentData
-        })
+        });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -73,15 +70,14 @@ const UpdateAssessment = async (req, res) => {
         const assessmentData = await UpdateAssessmentData(req.params.id, req.body);
 
         res.status(200).json({
-            message: 'Updated assessment successfully!',
+            message: 'Assessment updated successfully!',
             data: assessmentData
-        })
+        });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -89,14 +85,13 @@ const DeleteAssessment = async (req, res) => {
     try {
         await DeleteAssessmentData(req.params.id);
         res.status(200).json({
-                message: 'Deleted assessment successfully!'
-            })
+                message: 'Assessment deleted successfully!'
+            });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 

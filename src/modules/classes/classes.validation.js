@@ -6,11 +6,11 @@ const ValidationCreateClass = (data) => {
         error.push('Class name required!');
     }
 
-    if (!academic_year_id || isNaN(Number(academic_year_id))) {
+    if (academic_year_id === undefined || academic_year_id === null || isNaN(Number(academic_year_id))) {
         error.push('Academic year ID required and must be a number!');
     }
 
-    if (!semester_id || isNaN(Number(semester_id))) {
+    if (semester_id === undefined || semester_id === null || isNaN(Number(semester_id))) {
         error.push('Semester ID required and must be a number!');
     }
 

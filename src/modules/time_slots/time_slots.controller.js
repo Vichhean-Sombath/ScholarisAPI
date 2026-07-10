@@ -8,13 +8,12 @@ const GetTimeSlot = async (req, res) => {
         res.status(200).json({
                 message: 'Time slot retrieved successfully!',
                 data: timeSlotData
-            })
+            });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -25,13 +24,12 @@ const SelectTimeSlot = async (req, res) => {
         res.status(200).json({
                 message: 'Time slot retrieved successfully!',
                 data: timeSlotData
-            })
+            });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -48,15 +46,14 @@ const CreateTimeSlot = async (req, res) => {
         const timeSlotData = await CreateTimeSlotData(req.body);
 
         res.status(201).json({
-            message: 'Created time slot successfully!',
+            message: 'Time slot created successfully!',
             data: timeSlotData
-        })
+        });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -73,15 +70,14 @@ const UpdateTimeSlot = async (req, res) => {
         const timeSlotData = await UpdateTimeSlotData(req.params.id, req.body);
 
         res.status(200).json({
-            message: 'Updated time slot successfully!',
+            message: 'Time slot updated successfully!',
             data: timeSlotData
-        })
+        });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -89,14 +85,13 @@ const DeleteTimeSlot = async (req, res) => {
     try {
         await DeleteTimeSlotData(req.params.id);
         res.status(200).json({
-                message: 'Deleted time slot successfully!'
-            })
+                message: 'Time slot deleted successfully!'
+            });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 

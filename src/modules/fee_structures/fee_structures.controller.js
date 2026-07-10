@@ -8,13 +8,12 @@ const GetFeeStructure = async (req, res) => {
         res.status(200).json({
                 message: 'Fee structure retrieved successfully!',
                 data: feeStructureData
-            })
+            });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -25,13 +24,12 @@ const SelectFeeStructure = async (req, res) => {
         res.status(200).json({
                 message: 'Fee structure retrieved successfully!',
                 data: feeStructureData
-            })
+            });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -48,15 +46,14 @@ const CreateFeeStructure = async (req, res) => {
         const feeStructureData = await CreateFeeStructureData(req.body);
 
         res.status(201).json({
-            message: 'Created fee structure successfully!',
+            message: 'Fee structure created successfully!',
             data: feeStructureData
-        })
+        });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -73,15 +70,14 @@ const UpdateFeeStructure = async (req, res) => {
         const feeStructureData = await UpdateFeeStructureData(req.params.id, req.body);
 
         res.status(200).json({
-            message: 'Updated fee structure successfully!',
+            message: 'Fee structure updated successfully!',
             data: feeStructureData
-        })
+        });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -89,14 +85,13 @@ const DeleteFeeStructure = async (req, res) => {
     try {
         await DeleteFeeStructureData(req.params.id);
         res.status(200).json({
-                message: 'Deleted fee structure successfully!'
-            })
+                message: 'Fee structure deleted successfully!'
+            });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 

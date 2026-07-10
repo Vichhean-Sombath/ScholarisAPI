@@ -18,8 +18,7 @@ const GetClassEnrollment = async (req, res) => {
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
+            message: error.message || 'Internal server error!'
         });
     }
 };
@@ -35,8 +34,7 @@ const SelectClassEnrollment = async (req, res) => {
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
+            message: error.message || 'Internal server error!'
         });
     }
 };
@@ -54,14 +52,13 @@ const CreateClassEnrollment = async (req, res) => {
         const enrollmentData = await CreateClassEnrollmentData(req.body);
 
         res.status(201).json({
-            message: 'Created class enrollment successfully!',
+            message: 'Class enrollment created successfully!',
             data: enrollmentData
         });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
+            message: error.message || 'Internal server error!'
         });
     }
 };
@@ -79,14 +76,13 @@ const UpdateClassEnrollment = async (req, res) => {
         const enrollmentData = await UpdateClassEnrollmentData(req.params.id, req.body);
 
         res.status(200).json({
-            message: 'Updated class enrollment successfully!',
+            message: 'Class enrollment updated successfully!',
             data: enrollmentData
         });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
+            message: error.message || 'Internal server error!'
         });
     }
 };
@@ -96,13 +92,12 @@ const DeleteClassEnrollment = async (req, res) => {
         await DeleteClassEnrollmentData(req.params.id);
 
         res.status(200).json({
-            message: 'Deleted class enrollment successfully!'
+            message: 'Class enrollment deleted successfully!'
         });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
+            message: error.message || 'Internal server error!'
         });
     }
 };

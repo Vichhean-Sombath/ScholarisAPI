@@ -2,19 +2,19 @@ const ValidationCreateAssessment = (data) => {
     const error = [];
     const { criteria_id, class_id, subject_id, teacher_id, assessment_name, max_score, assessment_date } = data;
 
-    if (!criteria_id || isNaN(Number(criteria_id))) {
+    if (criteria_id === undefined || criteria_id === null || isNaN(Number(criteria_id))) {
         error.push('Criteria ID required and must be a number!');
     }
 
-    if (!class_id || isNaN(Number(class_id))) {
+    if (class_id === undefined || class_id === null || isNaN(Number(class_id))) {
         error.push('Class ID required and must be a number!');
     }
 
-    if (!subject_id || isNaN(Number(subject_id))) {
+    if (subject_id === undefined || subject_id === null || isNaN(Number(subject_id))) {
         error.push('Subject ID required and must be a number!');
     }
 
-    if (!teacher_id || isNaN(Number(teacher_id))) {
+    if (teacher_id === undefined || teacher_id === null || isNaN(Number(teacher_id))) {
         error.push('Teacher ID required and must be a number!');
     }
 

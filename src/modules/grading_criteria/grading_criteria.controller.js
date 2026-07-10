@@ -8,13 +8,12 @@ const GetGradingCriteria = async (req, res) => {
         res.status(200).json({
                 message: 'Grading criteria retrieved successfully!',
                 data: gradingCriteriaData
-            })
+            });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -25,13 +24,12 @@ const SelectGradingCriteria = async (req, res) => {
         res.status(200).json({
                 message: 'Grading criteria retrieved successfully!',
                 data: gradingCriteriaData
-            })
+            });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -48,15 +46,14 @@ const CreateGradingCriteria = async (req, res) => {
         const gradingCriteriaData = await CreateGradingCriteriaData(req.body);
 
         res.status(201).json({
-            message: 'Created grading criteria successfully!',
+            message: 'Grading criteria created successfully!',
             data: gradingCriteriaData
-        })
+        });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -73,15 +70,14 @@ const UpdateGradingCriteria = async (req, res) => {
         const gradingCriteriaData = await UpdateGradingCriteriaData(req.params.id, req.body);
 
         res.status(200).json({
-            message: 'Updated grading criteria successfully!',
+            message: 'Grading criteria updated successfully!',
             data: gradingCriteriaData
-        })
+        });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -89,14 +85,13 @@ const DeleteGradingCriteria = async (req, res) => {
     try {
         await DeleteGradingCriteriaData(req.params.id);
         res.status(200).json({
-                message: 'Deleted grading criteria successfully!'
-            })
+                message: 'Grading criteria deleted successfully!'
+            });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 

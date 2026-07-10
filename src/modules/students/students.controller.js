@@ -10,15 +10,14 @@ const GetStudent = async (req, res) => {
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
+            message: error.message || 'Internal server error!'
         });
     }
 };
 
 const SelectStudent = async (req, res) => {
     try {
-        const selectedStudent = await SelectStudentData(req.params.search);
+        const selectedStudent = await SelectStudentData(req.params.id);
         res.status(200).json({
             message: 'Student retrieved successfully!',
             data: selectedStudent
@@ -26,8 +25,7 @@ const SelectStudent = async (req, res) => {
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
+            message: error.message || 'Internal server error!'
         });
     }
 };
@@ -42,8 +40,7 @@ const UpdateStudent = async (req, res) => {
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
+            message: error.message || 'Internal server error!'
         });
     }
 };

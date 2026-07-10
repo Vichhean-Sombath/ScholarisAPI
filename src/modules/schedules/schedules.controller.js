@@ -8,13 +8,12 @@ const GetSchedule = async (req, res) => {
         res.status(200).json({
                 message: 'Schedule retrieved successfully!',
                 data: scheduleData
-            })
+            });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -25,13 +24,12 @@ const SelectSchedule = async (req, res) => {
         res.status(200).json({
                 message: 'Schedule retrieved successfully!',
                 data: scheduleData
-            })
+            });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -48,15 +46,14 @@ const CreateSchedule = async (req, res) => {
         const scheduleData = await CreateScheduleData(req.body);
 
         res.status(201).json({
-            message: 'Created schedule successfully!',
+            message: 'Schedule created successfully!',
             data: scheduleData
-        })
+        });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -73,15 +70,14 @@ const UpdateSchedule = async (req, res) => {
         const scheduleData = await UpdateScheduleData(req.params.id, req.body);
 
         res.status(200).json({
-            message: 'Updated schedule successfully!',
+            message: 'Schedule updated successfully!',
             data: scheduleData
-        })
+        });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -89,14 +85,13 @@ const DeleteSchedule = async (req, res) => {
     try {
         await DeleteScheduleData(req.params.id);
         res.status(200).json({
-                message: 'Deleted schedule successfully!'
-            })
+                message: 'Schedule deleted successfully!'
+            });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 

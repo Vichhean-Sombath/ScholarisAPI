@@ -2,7 +2,7 @@ const ValidationCreateGradingCriteria = (data) => {
     const error = [];
     const { subject_id, class_id, component_name, weight_percentage } = data;
 
-    if (!subject_id || isNaN(Number(subject_id))) {
+    if (subject_id === undefined || subject_id === null || isNaN(Number(subject_id))) {
         error.push('Subject ID required and must be a number!');
     }
 

@@ -10,15 +10,14 @@ const GetTeacher = async (req, res) => {
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
+            message: error.message || 'Internal server error!'
         });
     }
 };
 
 const SelectTeacher = async (req, res) => {
     try {
-        const selectedTeacher = await SelectTeacherData(req.params.search);
+        const selectedTeacher = await SelectTeacherData(req.params.id);
         res.status(200).json({
             message: 'Teacher retrieved successfully!',
             data: selectedTeacher
@@ -26,8 +25,7 @@ const SelectTeacher = async (req, res) => {
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
+            message: error.message || 'Internal server error!'
         });
     }
 };
@@ -42,8 +40,7 @@ const UpdateTeacher = async (req, res) => {
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
+            message: error.message || 'Internal server error!'
         });
     }
 };

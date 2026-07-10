@@ -8,13 +8,12 @@ const GetPayment = async (req, res) => {
         res.status(200).json({
                 message: 'Payment retrieved successfully!',
                 data: paymentData
-            })
+            });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -25,13 +24,12 @@ const SelectPayment = async (req, res) => {
         res.status(200).json({
                 message: 'Payment retrieved successfully!',
                 data: paymentData
-            })
+            });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -48,15 +46,14 @@ const CreatePayment = async (req, res) => {
         const paymentData = await CreatePaymentData(req.body);
 
         res.status(201).json({
-            message: 'Created payment successfully!',
+            message: 'Payment created successfully!',
             data: paymentData
-        })
+        });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -73,15 +70,14 @@ const UpdatePayment = async (req, res) => {
         const paymentData = await UpdatePaymentData(req.params.id, req.body);
 
         res.status(200).json({
-            message: 'Updated payment successfully!',
+            message: 'Payment updated successfully!',
             data: paymentData
-        })
+        });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -89,14 +85,13 @@ const DeletePayment = async (req, res) => {
     try {
         await DeletePaymentData(req.params.id);
         res.status(200).json({
-                message: 'Deleted payment successfully!'
-            })
+                message: 'Payment deleted successfully!'
+            });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 

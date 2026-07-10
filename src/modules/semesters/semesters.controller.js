@@ -8,13 +8,12 @@ const GetSemester = async (req, res) => {
         res.status(200).json({
                 message: 'Semester retrieved successfully!',
                 data: semesterData
-            })
+            });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -25,13 +24,12 @@ const SelectSemester = async (req, res) => {
         res.status(200).json({
                 message: 'Semester retrieved successfully!',
                 data: semesterData
-            })
+            });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -48,15 +46,14 @@ const CreateSemester = async (req, res) => {
         const semesterData = await CreateSemesterData(req.body);
 
         res.status(201).json({
-            message: 'Created semester successfully!',
+            message: 'Semester created successfully!',
             data: semesterData
-        })
+        });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -73,15 +70,14 @@ const UpdateSemester = async (req, res) => {
         const semesterData = await UpdateSemesterData(req.params.id, req.body);
 
         res.status(200).json({
-            message: 'Updated semester successfully!',
+            message: 'Semester updated successfully!',
             data: semesterData
-        })
+        });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -89,14 +85,13 @@ const DeleteSemester = async (req, res) => {
     try {
         await DeleteSemesterData(req.params.id);
         res.status(200).json({
-                message: 'Deleted semester successfully!'
-            })
+                message: 'Semester deleted successfully!'
+            });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 

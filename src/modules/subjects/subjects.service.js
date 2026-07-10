@@ -41,7 +41,7 @@ const CreateSubjectData = async (subjectData) => {
 
     const existedSubjectCode = await Subjects.findOne({ where: { subject_code } });
     if (existedSubjectCode) {
-        const err = new Error('This subject code is already existed!');
+        const err = new Error('This subject code already exists!');
         err.statusCode = 400;
         throw err;
     }
@@ -76,7 +76,7 @@ const UpdateSubjectData = async (subject_id, subjectData) => {
     if (subjectData.subject_code && subjectData.subject_code !== selectedSubject.subject_code) {
         const existedSubjectCode = await Subjects.findOne({ where: { subject_code: subjectData.subject_code } });
         if (existedSubjectCode) {
-            const err = new Error('This subject code is already existed!');
+            const err = new Error('This subject code already exists!');
             err.statusCode = 400;
             throw err;
         }

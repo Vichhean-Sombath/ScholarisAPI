@@ -2,7 +2,7 @@ const ValidationCreateSemester = (data) => {
     const error = [];
     const { academic_year_id, semester_name, start_date, end_date } = data;
 
-    if (!academic_year_id || isNaN(Number(academic_year_id))) {
+    if (academic_year_id === undefined || academic_year_id === null || isNaN(Number(academic_year_id))) {
         error.push('Academic year ID required and must be a number!');
     }
 

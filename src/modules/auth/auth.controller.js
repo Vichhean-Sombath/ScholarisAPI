@@ -10,7 +10,7 @@ const LoginUser = async (req, res) => {
             return res.status(400).json({
                 message: 'Validation failed!',
                 errors: validation.error
-            })
+            });
         }
 
         const loginResult = await LoginUserData(req.body);
@@ -20,8 +20,7 @@ const LoginUser = async (req, res) => {
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message,
+            message: error.message || 'Internal server error!'
         });
     }
 };
@@ -34,8 +33,7 @@ const LogoutUser = async (req, res) => {
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message,
+            message: error.message || 'Internal server error!'
         });
     }
 };

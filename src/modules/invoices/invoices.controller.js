@@ -8,13 +8,12 @@ const GetInvoice = async (req, res) => {
         res.status(200).json({
                 message: 'Invoice retrieved successfully!',
                 data: invoiceData
-            })
+            });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -25,13 +24,12 @@ const SelectInvoice = async (req, res) => {
         res.status(200).json({
                 message: 'Invoice retrieved successfully!',
                 data: invoiceData
-            })
+            });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -48,15 +46,14 @@ const CreateInvoice = async (req, res) => {
         const invoiceData = await CreateInvoiceData(req.body);
 
         res.status(201).json({
-            message: 'Created invoice successfully!',
+            message: 'Invoice created successfully!',
             data: invoiceData
-        })
+        });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -73,15 +70,14 @@ const UpdateInvoice = async (req, res) => {
         const invoiceData = await UpdateInvoiceData(req.params.id, req.body);
 
         res.status(200).json({
-            message: 'Updated invoice successfully!',
+            message: 'Invoice updated successfully!',
             data: invoiceData
-        })
+        });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
@@ -89,14 +85,13 @@ const DeleteInvoice = async (req, res) => {
     try {
         await DeleteInvoiceData(req.params.id);
         res.status(200).json({
-                message: 'Deleted invoice successfully!'
-            })
+                message: 'Invoice deleted successfully!'
+            });
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({
-            message: error.message || 'Internal server error!',
-            error: error.statusCode ? null : error.message
-        })
+            message: error.message || 'Internal server error!'
+        });
     }
 }
 
