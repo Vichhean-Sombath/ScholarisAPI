@@ -1,19 +1,17 @@
-// Login
 const ValidationLoginUser = (data) => {
     const error = [];
-    const { userEmail, userPassword } = data;
+    const { email, password } = data;
 
     const isEmpty = (value) => !value || value.toString().trim() === '';
-
     const emailFormat = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    if (!userEmail || isEmpty(userEmail)) {
+    if (!email || isEmpty(email)) {
         error.push('Email required!');
-    } else if (!emailFormat.test(userEmail)) {
+    } else if (!emailFormat.test(email)) {
         error.push('Invalid email format!');
     }
 
-    if (!userPassword || isEmpty(userPassword)) {
+    if (!password || isEmpty(password)) {
         error.push('Password required!');
     }
 
@@ -23,5 +21,5 @@ const ValidationLoginUser = (data) => {
 };
 
 module.exports = {
-    ValidationLoginUser,
+    ValidationLoginUser
 };

@@ -1,76 +1,82 @@
 const Teachers = require('../../models/teachers.model');
 const Users = require('../../models/users.model');
-require('../../models/mappingContext'); // For tables relationship
+require('../../models/mappingContext');
 const { Op } = require('sequelize');
 
-// Get
 const GetTeacherData = async () => {
-    const teacherData = await Teachers.findAll({
+    return await Teachers.findAll({
         include: {
             model: Users,
-            attributes: { exclude: ['userPassword'] } // Hide password
+            attributes: { exclude: ['password_hash'] }
         }
     });
+};
 
-    return teacherData;
-}
-
-// Select
 const SelectTeacherData = async (data) => {
     const selectedTeacher = await Teachers.findOne({
         where: {
             [Op.or]: [
-                { teacherID: data },
-                { userID: data },
-                { '$Users.userFirstName$': { [Op.like]: `%${data}%` } },
-                { '$Users.userLastName$': { [Op.like]: `%${data}%` } }
+                { teacher_id: data },
+                { user_id: data },
+                { first_name: { [Op.like]: `%${data}%` } },
+                { last_name: { [Op.like]: `%${data}%` } },
+                { specialization: { [Op.like]: `%${data}%` } }
             ]
         },
         include: [{
             model: Users,
-            attributes: { exclude: ['userPassword'] }
+            attributes: { exclude: ['password_hash'] }
         }]
     });
 
-    if(!selectedTeacher){
+    if (!selectedTeacher) {
         const err = new Error('Teacher not found!');
         err.statusCode = 404;
         throw err;
     }
 
     return selectedTeacher;
-}
+};
 
-// Update
-const UpdateTeacherData = async (userID, teacherData) => {
-    const { teacherPosition } = teacherData;
-
-    const teacher = await Teachers.findOne({ where: {userID} });
-    if(!teacher){
+const UpdateTeacherData = async (teacher_id, teacherData) => {
+    const teacher = await Teachers.findByPk(teacher_id);
+    if (!teacher) {
         const err = new Error('Teacher not found!');
         err.statusCode = 404;
         throw err;
     }
 
-    if(!teacherPosition || teacherPosition.trim() === ''){
-        const err = new Error('Teacher position is required!');
+    if (teacherData.gender !== undefined && !['Male', 'Female', 'Other'].includes(teacherData.gender)) {
+        const err = new Error('Gender must be Male, Female, or Other!');
         err.statusCode = 400;
         throw err;
     }
 
-    await teacher.update({ teacherPosition });
+    if (teacherData.status !== undefined && !['Active', 'Inactive'].includes(teacherData.status)) {
+        const err = new Error('Status must be Active or Inactive!');
+        err.statusCode = 400;
+        throw err;
+    }
 
-    return {
-        teacherID: teacher.teacherID,
-        userID: teacher.userID,
-        teacherNumber: teacher.teacherNumber,
-        teacherPosition,
-        hireDate: teacher.hireDate
-    };
-}
+    if (teacherData.dob !== undefined && isNaN(Date.parse(teacherData.dob))) {
+        const err = new Error('Invalid date of birth!');
+        err.statusCode = 400;
+        throw err;
+    }
+
+    if (teacherData.hire_date !== undefined && isNaN(Date.parse(teacherData.hire_date))) {
+        const err = new Error('Invalid hire date!');
+        err.statusCode = 400;
+        throw err;
+    }
+
+    await teacher.update(teacherData);
+
+    return teacher;
+};
 
 module.exports = {
     GetTeacherData,
     SelectTeacherData,
-    UpdateTeacherData,
-}
+    UpdateTeacherData
+};

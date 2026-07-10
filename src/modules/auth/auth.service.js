@@ -2,58 +2,55 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const Users = require('../../models/users.model');
 
-// Login
 const LoginUserData = async (userData) => {
-    const { userEmail, userPassword } = userData;
+    const { email, password } = userData;
 
-    // Find matching user
-    const user = await Users.findOne({ where: { userEmail }});
-    if(!user){
+    const user = await Users.findOne({ where: { email } });
+    if (!user) {
         const err = new Error('Invalid email!');
         err.statusCode = 401;
         throw err;
     }
 
-    // Matching password
-    const isMatchPassword = await bcrypt.compare(userPassword, user.userPassword);
-    if(!isMatchPassword){
+    const isMatchPassword = await bcrypt.compare(password, user.password_hash);
+    if (!isMatchPassword) {
         const err = new Error('Invalid password!');
         err.statusCode = 401;
         throw err;
     }
 
-    // Generate Token
+    await user.update({ last_login_at: new Date() });
+
     const token = jwt.sign(
         {
-            userID: user.userID,
-            userEmail: user.userEmail,
-            userRole: user.userRole
+            user_id: user.user_id,
+            email: user.email,
+            role: user.role
         },
         process.env.SECRET_KEY,
-        { expiresIn: '2h' } 
-    )
+        { expiresIn: '2h' }
+    );
 
     return {
         message: 'Login successful!',
         token,
         user: {
-            userID: user.userID,
-            userFirstName: user.userFirstName,
-            userLastName: user.userLastName,
-            userEmail: user.userEmail,
-            userRole: user.userRole
+            user_id: user.user_id,
+            username: user.username,
+            email: user.email,
+            role: user.role,
+            status: user.status
         }
-    }
-}
+    };
+};
 
-// Logout
 const LogoutUserData = async () => {
     return {
         message: 'Logout successful!'
     };
-}
+};
 
 module.exports = {
     LoginUserData,
     LogoutUserData
-}
+};

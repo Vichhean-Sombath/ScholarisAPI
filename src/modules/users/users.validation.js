@@ -1,116 +1,104 @@
-// Create
 const ValidationCreateUser = (data) => {
     const error = [];
-    const { 
-        userFirstName,
-        userLastName,
-        userRole,
-        userEmail,
-        userPassword,
-        userAddress,
-        userDOB,
-        userGender
+    const {
+        username,
+        email,
+        role,
+        password,
+        first_name,
+        last_name,
+        gender,
+        dob
     } = data;
 
-    // Required field
     const isEmpty = (value) => !value || value.toString().trim() === '';
-
-if(!userFirstName || isEmpty(userFirstName)) error.push('First name required!');
-    if(!userLastName || isEmpty(userLastName)) error.push('Last name required!');
-
-    // Email format
     const emailFormat = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if(!userEmail || isEmpty(userEmail)){
-        error.push('Email required!')
-    } else if(!emailFormat.test(userEmail)){
-        error.push('Invalid email format!')
-    };
-    
-    // Password
-    if (!userPassword || isEmpty(userPassword)) {
-        error.push('Password required!');
-    } else if (userPassword.length < 8) {
-        error.push('Password must be at least 8 characters!');
-    } else if (!/[A-Z]/.test(userPassword)) {
-        error.push('Password must contain at least one capital letter!');
-    } else if (!/[!@#$%^&*(),.?":{}|<>]/.test(userPassword)) {
-        error.push('Password must contain at least one special character!');
-    };
 
-    // Gender
-    const allowedGender = ['Male', 'Female', 'Other'];
-    if (!allowedGender.includes(userGender)) {
+    if (!username || isEmpty(username)) {
+        error.push('Username required!');
+    } else if (username.length > 50) {
+        error.push('Username must not exceed 50 characters!');
+    }
+
+    if (!email || isEmpty(email)) {
+        error.push('Email required!');
+    } else if (!emailFormat.test(email)) {
+        error.push('Invalid email format!');
+    } else if (email.length > 100) {
+        error.push('Email must not exceed 100 characters!');
+    }
+
+    if (!password || isEmpty(password)) {
+        error.push('Password required!');
+    } else if (password.length < 8) {
+        error.push('Password must be at least 8 characters!');
+    } else if (!/[A-Z]/.test(password)) {
+        error.push('Password must contain at least one capital letter!');
+    } else if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+        error.push('Password must contain at least one special character!');
+    }
+
+    if (!role || isEmpty(role)) {
+        error.push('Role required!');
+    } else if (!['Admin', 'Teacher'].includes(role)) {
+        error.push('Role must be Admin or Teacher!');
+    }
+
+    if (role === 'Teacher') {
+        if (!first_name || isEmpty(first_name)) {
+            error.push('Teacher first name required!');
+        }
+        if (!last_name || isEmpty(last_name)) {
+            error.push('Teacher last name required!');
+        }
+    }
+
+    if (gender !== undefined && !['Male', 'Female', 'Other'].includes(gender)) {
         error.push('Gender must be Male, Female, or Other!');
     }
 
-    // Address
-    if(!userAddress || isEmpty(userAddress)) error.push('Address required!');
-
-    // Date of Birth
-    if (!userDOB || isEmpty(userDOB)) {
-        error.push('Date of Birth required!');
-    } else if (isNaN(new Date(userDOB).getTime())) {
+    if (dob !== undefined && isNaN(Date.parse(dob))) {
         error.push('Invalid date of birth format!');
     }
 
-    // Role
-    const userAllowedRole = ['admin', 'student', 'teacher'];
-    if(!userRole || isEmpty(userRole)){
-        error.push('Role required!')
-    } else if(!userAllowedRole.includes(userRole)){
-        error.push('Role must be only Admin, Teacher, and Student!');
-    }
-
-
     return error.length > 0
         ? { success: false, error }
-        : { success: true, error: null};
+        : { success: true, error: null };
 };
 
-// Update
 const ValidationUpdateUser = (data) => {
     const error = [];
-    const { 
-        userFirstName,
-        userLastName,
-        userEmail,
-        userPassword,
-        userAddress,
-        userDOB,
-        userGender,
-        isActive,
+    const {
+        username,
+        email,
+        password,
+        status,
+        gender,
+        dob
     } = data;
 
-    if (userFirstName !== undefined && (typeof userFirstName !== 'string' || userFirstName.trim() === '')) {
-        error.push('First name must be a non-empty string.');
+    if (username !== undefined && (typeof username !== 'string' || username.trim() === '')) {
+        error.push('Username must be a non-empty string.');
     }
 
-    if (userLastName !== undefined && (typeof userLastName !== 'string' || userLastName.trim() === '')) {
-        error.push('Last name must be a non-empty string.');
-    }
-
-    if (userEmail !== undefined && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userEmail)) {
+    if (email !== undefined && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         error.push('Invalid email format.');
     }
 
-    if (userPassword !== undefined && (typeof userPassword !== 'string' || userPassword.length < 8)) {
+    if (password !== undefined && (typeof password !== 'string' || password.length < 8)) {
         error.push('Password must be at least 8 characters.');
     }
 
-    if (userAddress !== undefined && (typeof userAddress !== 'string' || userAddress.trim() === '')) {
-        error.push('Address must be a non-empty string.');
+    if (status !== undefined && !['Active', 'Inactive'].includes(status)) {
+        error.push('Status must be Active or Inactive.');
     }
 
-    if (userDOB !== undefined && isNaN(Date.parse(userDOB))) {
-        error.push('Invalid date of birth.');
-    }
-
-    if (userGender !== undefined && !['Male', 'Female', 'Other'].includes(userGender)) {
+    if (gender !== undefined && !['Male', 'Female', 'Other'].includes(gender)) {
         error.push('Gender must be Male, Female, or Other.');
     }
-    
-    if (isActive !== undefined && !['active', 'inactive'].includes(isActive)) {
-        error.push('isActive must be active or inactive.');
+
+    if (dob !== undefined && isNaN(Date.parse(dob))) {
+        error.push('Invalid date of birth.');
     }
 
     return error.length > 0
@@ -121,4 +109,4 @@ const ValidationUpdateUser = (data) => {
 module.exports = {
     ValidationCreateUser,
     ValidationUpdateUser
-}
+};

@@ -1,252 +1,209 @@
 const bcrypt = require('bcrypt');
 const Users = require('../../models/users.model');
-const Students = require('../../models/students.model');
 const Teachers = require('../../models/teachers.model');
 require('../../models/mappingContext');
 
 const CreateUserData = async (userData) => {
-    const { 
-        userFirstName,
-        userLastName,
-        userRole,
-        userEmail,
-        userPassword,
-        userAddress,
-        userDOB,
-        userGender
+    const {
+        username,
+        email,
+        role,
+        password,
+        first_name,
+        last_name,
+        gender,
+        dob,
+        contact_number,
+        specialization,
+        bio,
+        hire_date
     } = userData;
 
-    // Check existed email
-    const existingEmail = await Users.findOne(
-        { 
-            where: {userEmail} 
-        }
-    );
-    
-    if(existingEmail) {
+    const existingEmail = await Users.findOne({ where: { email } });
+    if (existingEmail) {
         const err = new Error('This email is already existed!');
         err.statusCode = 409;
         throw err;
     }
-    
-    const hashedPassword = await bcrypt.hash(userPassword, 10);
-    const newUser = await Users.create({
-        userFirstName,
-        userLastName,
-        userRole,
-        userEmail,
-        userPassword: hashedPassword,
-        userAddress,
-        userDOB,
-        userGender
-    });
-    
-    // If the role is a student, add to table student
-    if(userRole === 'student'){
 
-        // Auto increment as S001 > S010
-        const lastStudent = await Students.findOne({
-            order: [['studentID', 'DESC']]
-        });
-
-        let nextNumber = 1;
-        if (lastStudent) {
-            const match = lastStudent.studentNumber.match(/S(\d+)/);
-            if (match) {
-                nextNumber = parseInt(match[1], 10) + 1;
-            }
-        }
-        const studentNumber = `S${String(nextNumber).padStart(3, '0')}`;
-
-        await Students.create({
-            userID: newUser.userID,
-            studentNumber,
-            enrollmentDate: new Date()
-        })
+    const existingUsername = await Users.findOne({ where: { username } });
+    if (existingUsername) {
+        const err = new Error('This username is already existed!');
+        err.statusCode = 409;
+        throw err;
     }
 
-    // If the role is a teacher, add to table teacher
-    if(userRole === 'teacher'){
-        const { teacherPosition } = userData;
-        // Position
-        if(!teacherPosition || teacherPosition.trim() === ''){
-            const err = new Error('Teacher position is required!');
+    const allowedRoles = ['Admin', 'Teacher'];
+    if (!allowedRoles.includes(role)) {
+        const err = new Error('Role must be Admin or Teacher!');
+        err.statusCode = 400;
+        throw err;
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = await Users.create({
+        username,
+        email,
+        role,
+        password_hash: hashedPassword
+    });
+
+    if (role === 'Teacher') {
+        if (!first_name || !last_name) {
+            const err = new Error('Teacher first and last name are required!');
             err.statusCode = 400;
             throw err;
         }
 
-        // Auto increment as S001 > S010
-        const lastTeacher = await Students.findOne({
-            order: [['teacherID', 'DESC']]
-        });
-
-        let nextNumber = 1;
-        if (lastTeacher) {
-            const match = lastTeacher.teacherNumber.match(/T(\d+)/);
-            if (match) {
-                nextNumber = parseInt(match[1], 10) + 1;
-            }
-        }
-        const teacherNumber = `T${String(nextNumber).padStart(3, '0')}`;
-
         await Teachers.create({
-            userID: newUser.userID,
-            teacherNumber,
-            teacherPosition,
-            hireDate: new Date()
-        })
+            user_id: newUser.user_id,
+            first_name,
+            last_name,
+            gender,
+            dob,
+            contact_number,
+            specialization,
+            bio,
+            hire_date
+        });
     }
 
     return {
-        userID: newUser.userID,
-        userFirstName: newUser.userFirstName,
-        userLastName: newUser.userLastName,
-        userRole: newUser.userRole,
-        userEmail: newUser.userEmail,
-        userAddress: newUser.userAddress,
-        userDOB: newUser.userDOB,
-        userGender: newUser.userGender,
-        isActive: newUser.isActive
+        user_id: newUser.user_id,
+        username: newUser.username,
+        email: newUser.email,
+        role: newUser.role,
+        status: newUser.status
     };
-}
+};
 
-// Update
-//                          SelectedID, DataFormDB, CurrentUserData
-const UpdateUserData = async (userID, userData, currentUser) => {
-
-    // Check valid user
-    const user = await Users.findByPk(userID);
-    if(!user){
+const UpdateUserData = async (user_id, userData, currentUser) => {
+    const user = await Users.findByPk(user_id);
+    if (!user) {
         const err = new Error('User not found!');
         err.statusCode = 404;
         throw err;
     }
 
-    // Only admin or owner can edit
-    if(currentUser.userRole !== 'admin' && currentUser.userID !== parseInt(userID)){
+    if (currentUser.role !== 'Admin' && currentUser.user_id !== parseInt(user_id)) {
         const err = new Error('Unauthorize!');
         err.statusCode = 403;
         throw err;
     }
 
-    // Check if existed email
-    if(userData.userEmail && userData.userEmail !== user.userEmail){
-        const existingEmail = await Users.findOne({ where: {userEmail: userData.userEmail} });
-        if(existingEmail){
+    if (userData.email && userData.email !== user.email) {
+        const existingEmail = await Users.findOne({ where: { email: userData.email } });
+        if (existingEmail) {
             const err = new Error('This email is already existed!');
             err.statusCode = 400;
             throw err;
         }
     }
 
-    // Hash update password
-    if(userData.userPassword) {
-        userData.userPassword = await bcrypt.hash(userData.userPassword, 10);
+    if (userData.username && userData.username !== user.username) {
+        const existingUsername = await Users.findOne({ where: { username: userData.username } });
+        if (existingUsername) {
+            const err = new Error('This username is already existed!');
+            err.statusCode = 400;
+            throw err;
+        }
+    }
+
+    if (userData.password) {
+        userData.password_hash = await bcrypt.hash(userData.password, 10);
+        delete userData.password;
     }
 
     await user.update(userData);
 
     return {
-        userID: user.userID,
-        userFirstName: user.userFirstName,
-        userLastName: user.userLastName,
-        userEmail: user.userEmail,
-        userRole: user.userRole,
-        userAddress: user.userAddress,
-        userDOB: user.userDOB,
-        userGender: user.userGender,
-        isActive: user.isActive
-    }
-}
+        user_id: user.user_id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        status: user.status,
+        last_login_at: user.last_login_at
+    };
+};
 
-const DisableUserData = async (userID, currentUser) => {
-    // Check valid user
-    const user = await Users.findByPk(userID);
-    if(!user){
+const DisableUserData = async (user_id, currentUser) => {
+    const user = await Users.findByPk(user_id);
+    if (!user) {
         const err = new Error('User not found!');
         err.statusCode = 404;
         throw err;
     }
 
-    // Only admin can disable & can disable admin
-    if(currentUser.userRole !== 'admin'){
+    if (currentUser.role !== 'Admin') {
         const err = new Error('Unauthorize!');
         err.statusCode = 403;
         throw err;
     }
 
-    // Enable to disable admin account
-    if(user.userRole === 'admin'){
+    if (user.role === 'Admin') {
         const err = new Error('Can not disable admin account!');
         err.statusCode = 403;
         throw err;
     }
 
-    // Can not disable own account
-    if(currentUser.userID === parseInt(userID)){
+    if (currentUser.user_id === parseInt(user_id)) {
         const err = new Error('You cannot deactivate your own account!');
         err.statusCode = 403;
         throw err;
     }
 
-    // Check if already inactive
-    if(user.isActive === 'inactive'){
+    if (user.status === 'Inactive') {
         const err = new Error('User is already deactivated!');
         err.statusCode = 400;
         throw err;
     }
 
-    await user.update({ isActive: 'inactive' });
+    await user.update({ status: 'Inactive' });
 
     return {
-        userID: user.userID,
-        userFirstName: user.userFirstName,
-        userLastName: user.userLastName,
-        userRole: user.userRole,
-        userEmail: user.userEmail,
-        isActive: user.isActive
-    }
-}
+        user_id: user.user_id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        status: user.status
+    };
+};
 
-// Enable
-const EnableUserData = async(userID, currentUser) => {
-    // Check valid user
-    const user = await Users.findByPk(userID);
-    if(!user){
+const EnableUserData = async (user_id, currentUser) => {
+    const user = await Users.findByPk(user_id);
+    if (!user) {
         const err = new Error('User not found!');
         err.statusCode = 404;
         throw err;
     }
 
-    // Only admin can disable & can disable admin
-    if(currentUser.userRole !== 'admin'){
+    if (currentUser.role !== 'Admin') {
         const err = new Error('Unauthorize!');
         err.statusCode = 403;
         throw err;
     }
 
-    // Check if already activated
-    if(currentUser.isActive === 'active'){
+    if (user.status === 'Active') {
         const err = new Error('User is already active!');
         err.statusCode = 400;
         throw err;
     }
 
-    await user.update({ isActive: 'active' });
+    await user.update({ status: 'Active' });
 
     return {
-        userID: user.userID,
-        userFirstName: user.userFirstName,
-        userLastName: user.userLastName,
-        userRole: user.userRole,
-        userEmail: user.userEmail,
-        isActive: user.isActive
-    }
-}
+        user_id: user.user_id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        status: user.status
+    };
+};
 
 module.exports = {
     CreateUserData,
     UpdateUserData,
     DisableUserData,
     EnableUserData
-}
+};

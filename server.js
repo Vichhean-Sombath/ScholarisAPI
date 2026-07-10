@@ -7,8 +7,8 @@ const StudentController = require('./src/modules/students/students.route');
 const TeacherController = require('./src/modules/teachers/teachers.route');
 const ClassController = require('./src/modules/classes/classes.route');
 const SubjectController = require('./src/modules/subjects/subjects.route');
-const ClassSubjectController = require('./src/modules/classes_subjects/classes_subjects.route');
 const CertificateController = require('./src/modules/certificates/certificates.route');
+const EmergencyContactController = require('./src/modules/student_emergency_contacts/student_emergency_contacts.route');
 
 // Sync DB
 const sequelize = require('./src/config/db');
@@ -19,19 +19,26 @@ sequelize.sync({ alter: true })
 // Models
 const {
     Users,
-    Students,
     Teachers,
+    Students,
+    StudentEmergencyContacts,
+    AcademicYears,
+    Semesters,
     Subjects,
     Classes,
-    ClassSubjects,
+    ClassEnrollments,
+    TimeSlots,
+    Schedules,
+    AttendanceRecords,
+    GradingCriteria,
+    Assessments,
+    Grades,
+    FinalGrades,
+    FeeStructures,
+    Invoices,
     Payments,
-    PaymentTransactions,
-    PaymentGatewayLogs,
-    Attendance,
-    AttendanceQR,
-    Reports,
     Certificates,
-    Notifications
+    LessonResources
 } = require('./src/models/mappingContext');
 
 const app = express();
@@ -45,7 +52,7 @@ StudentController(app);
 TeacherController(app);
 ClassController(app);
 SubjectController(app);
-ClassSubjectController(app);
 CertificateController(app);
+EmergencyContactController(app);
 
 app.listen(3000, () => console.log('Server is listening on port 3000!'));

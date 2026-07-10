@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -c \"D:/Completed Project/Scholaris/server.js\")",
+      "Bash(node -c \"D:/Completed Project/Scholaris/src/modules/student_emergency_contacts/student_emergency_contacts.service.js\")",
+      "Bash(node -c \"D:/Completed Project/Scholaris/src/modules/student_emergency_contacts/student_emergency_contacts.controller.js\")",
+      "Bash(node -c \"D:/Completed Project/Scholaris/src/modules/student_emergency_contacts/student_emergency_contacts.validation.js\")",
+      "Bash(node -c \"D:/Completed Project/Scholaris/src/modules/student_emergency_contacts/student_emergency_contacts.route.js\")"
+    ]
+  }
+}
