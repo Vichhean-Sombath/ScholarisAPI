@@ -1,0 +1,168 @@
+const Schedules = require('../../models/schedules.model');
+const Classes = require('../../models/classes.model');
+const Subjects = require('../../models/subjects.model');
+const Teachers = require('../../models/teachers.model');
+const TimeSlots = require('../../models/time_slots.model');
+const { Op } = require('sequelize');
+
+const GetScheduleData = async () => {
+    return await Schedules.findAll({
+        include: [
+            { model: Classes, attributes: ['class_id', 'class_name'] },
+            { model: Subjects, attributes: ['subject_id', 'subject_code', 'subject_name'] },
+            { model: Teachers, attributes: ['teacher_id', 'first_name', 'last_name'] },
+            { model: TimeSlots, attributes: ['time_slot_id', 'day_of_week', 'start_time', 'end_time'] }
+        ]
+    });
+};
+
+const SelectedScheduleData = async (data) => {
+    const selectedSchedule = await Schedules.findByPk(data, {
+        include: [
+            { model: Classes, attributes: ['class_id', 'class_name'] },
+            { model: Subjects, attributes: ['subject_id', 'subject_code', 'subject_name'] },
+            { model: Teachers, attributes: ['teacher_id', 'first_name', 'last_name'] },
+            { model: TimeSlots, attributes: ['time_slot_id', 'day_of_week', 'start_time', 'end_time'] }
+        ]
+    });
+
+    if (!selectedSchedule) {
+        const err = new Error('Schedule not found!');
+        err.statusCode = 404;
+        throw err;
+    }
+
+    return selectedSchedule;
+};
+
+const CreateScheduleData = async (scheduleData) => {
+    const { class_id, subject_id, teacher_id, time_slot_id, room_number } = scheduleData;
+
+    const relatedClass = await Classes.findByPk(class_id);
+    if (!relatedClass) {
+        const err = new Error('Class not found!');
+        err.statusCode = 404;
+        throw err;
+    }
+
+    const relatedSubject = await Subjects.findByPk(subject_id);
+    if (!relatedSubject) {
+        const err = new Error('Subject not found!');
+        err.statusCode = 404;
+        throw err;
+    }
+
+    const relatedTeacher = await Teachers.findByPk(teacher_id);
+    if (!relatedTeacher) {
+        const err = new Error('Teacher not found!');
+        err.statusCode = 404;
+        throw err;
+    }
+
+    const relatedTimeSlot = await TimeSlots.findByPk(time_slot_id);
+    if (!relatedTimeSlot) {
+        const err = new Error('Time slot not found!');
+        err.statusCode = 404;
+        throw err;
+    }
+
+    const existedTeacherSchedule = await Schedules.findOne({
+        where: { teacher_id, time_slot_id }
+    });
+    if (existedTeacherSchedule) {
+        const err = new Error('Teacher is already assigned to another schedule at this time slot!');
+        err.statusCode = 400;
+        throw err;
+    }
+
+    const createSchedule = await Schedules.create({
+        class_id,
+        subject_id,
+        teacher_id,
+        time_slot_id,
+        room_number
+    });
+
+    return createSchedule;
+};
+
+const UpdateScheduleData = async (schedule_id, scheduleData) => {
+    const selectedSchedule = await Schedules.findByPk(schedule_id);
+    if (!selectedSchedule) {
+        const err = new Error('Schedule not found!');
+        err.statusCode = 404;
+        throw err;
+    }
+
+    const newClassId = scheduleData.class_id || selectedSchedule.class_id;
+    const newSubjectId = scheduleData.subject_id || selectedSchedule.subject_id;
+    const newTeacherId = scheduleData.teacher_id || selectedSchedule.teacher_id;
+    const newTimeSlotId = scheduleData.time_slot_id || selectedSchedule.time_slot_id;
+
+    const relatedClass = await Classes.findByPk(newClassId);
+    if (!relatedClass) {
+        const err = new Error('Class not found!');
+        err.statusCode = 404;
+        throw err;
+    }
+
+    const relatedSubject = await Subjects.findByPk(newSubjectId);
+    if (!relatedSubject) {
+        const err = new Error('Subject not found!');
+        err.statusCode = 404;
+        throw err;
+    }
+
+    const relatedTeacher = await Teachers.findByPk(newTeacherId);
+    if (!relatedTeacher) {
+        const err = new Error('Teacher not found!');
+        err.statusCode = 404;
+        throw err;
+    }
+
+    const relatedTimeSlot = await TimeSlots.findByPk(newTimeSlotId);
+    if (!relatedTimeSlot) {
+        const err = new Error('Time slot not found!');
+        err.statusCode = 404;
+        throw err;
+    }
+
+    if ((scheduleData.teacher_id && parseInt(scheduleData.teacher_id) !== parseInt(selectedSchedule.teacher_id)) ||
+        (scheduleData.time_slot_id && parseInt(scheduleData.time_slot_id) !== parseInt(selectedSchedule.time_slot_id))) {
+        const existedTeacherSchedule = await Schedules.findOne({
+            where: {
+                teacher_id: newTeacherId,
+                time_slot_id: newTimeSlotId,
+                schedule_id: { [Op.ne]: schedule_id }
+            }
+        });
+        if (existedTeacherSchedule) {
+            const err = new Error('Teacher is already assigned to another schedule at this time slot!');
+            err.statusCode = 400;
+            throw err;
+        }
+    }
+
+    await selectedSchedule.update(scheduleData);
+
+    return selectedSchedule;
+};
+
+const DeleteScheduleData = async (schedule_id) => {
+    const selectedSchedule = await Schedules.findByPk(schedule_id);
+    if (!selectedSchedule) {
+        const err = new Error('Schedule not found!');
+        err.statusCode = 404;
+        throw err;
+    }
+
+    await selectedSchedule.destroy();
+};
+
+module.exports = {
+    GetScheduleData,
+    SelectedScheduleData,
+    CreateScheduleData,
+    UpdateScheduleData,
+    DeleteScheduleData
+};
