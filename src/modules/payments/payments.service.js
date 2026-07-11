@@ -1,3 +1,4 @@
+const bcrypt = require('bcrypt');
 const Payments = require('../../models/payments.model');
 const Invoices = require('../../models/invoices.model');
 const Users = require('../../models/users.model');
@@ -22,10 +23,11 @@ const getSystemUserId = async () => {
     });
 
     if (!user) {
+        const hashedPassword = await bcrypt.hash('system_automation_not_for_login', 10);
         user = await Users.create({
             username: 'system_automation',
             email: 'system@scholaris.local',
-            password_hash: 'system_automation_not_for_login',
+            password_hash: hashedPassword,
             role: 'Admin',
             status: 'Active'
         });

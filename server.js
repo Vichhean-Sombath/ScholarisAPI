@@ -95,4 +95,21 @@ LessonResourceController(app);
 
 app.use(errorHandler);
 
-app.listen(3000, () => console.log('Server is listening on port 3000!'));
+const PORT = process.env.PORT || 3000;
+const server = app.listen(PORT, () => console.log(`Server is listening on port ${PORT}!`));
+
+const gracefulShutdown = (signal) => {
+    console.log(`${signal} received. Shutting down gracefully...`);
+    server.close(async () => {
+        try {
+            await sequelize.close();
+            console.log('Database connection closed.');
+        } catch (err) {
+            console.error('Error closing database connection:', err.message);
+        }
+        process.exit(0);
+    });
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));

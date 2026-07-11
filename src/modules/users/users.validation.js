@@ -40,8 +40,8 @@ const ValidationCreateUser = (data) => {
 
     if (!role || isEmpty(role)) {
         error.push('Role required!');
-    } else if (!['Admin', 'Teacher'].includes(role)) {
-        error.push('Role must be Admin or Teacher!');
+    } else if (!['Admin', 'Teacher', 'Student'].includes(role)) {
+        error.push('Role must be Admin, Teacher, or Student!');
     }
 
     if (role === 'Teacher') {

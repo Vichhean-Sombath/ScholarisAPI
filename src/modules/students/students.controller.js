@@ -1,4 +1,5 @@
 const { GetStudentData, UpdateStudentData, SelectStudentData } = require('./students.service');
+const { ValidationUpdateStudent } = require('./students.validation');
 
 const GetStudent = async (req, res, next) => {
     try {
@@ -14,7 +15,12 @@ const GetStudent = async (req, res, next) => {
 
 const SelectStudent = async (req, res, next) => {
     try {
-        const selectedStudent = await SelectStudentData(req.params.id);
+        const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) {
+            return res.status(400).json({ message: 'Student ID must be a number.' });
+        }
+
+        const selectedStudent = await SelectStudentData(id);
         res.status(200).json({
             message: 'Student retrieved successfully!',
             data: selectedStudent
@@ -26,7 +32,20 @@ const SelectStudent = async (req, res, next) => {
 
 const UpdateStudent = async (req, res, next) => {
     try {
-        const studentData = await UpdateStudentData(req.params.id, req.body);
+        const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) {
+            return res.status(400).json({ message: 'Student ID must be a number.' });
+        }
+
+        const validation = ValidationUpdateStudent(req.body);
+        if (!validation.success) {
+            return res.status(400).json({
+                message: 'Validation failed!',
+                errors: validation.error
+            });
+        }
+
+        const studentData = await UpdateStudentData(id, req.body);
         res.status(200).json({
             message: 'Student updated successfully!',
             data: studentData
