@@ -1,7 +1,7 @@
 const { GetPaymentData, SelectedPaymentData, CreatePaymentData, UpdatePaymentData, DeletePaymentData } = require('./payments.service');
 const { ValidationCreatePayment, ValidationUpdatePayment } = require('./payments.validation')
 
-const GetPayment = async (req, res) => {
+const GetPayment = async (req, res, next) => {
     try {
         const paymentData = await GetPaymentData();
 
@@ -10,14 +10,11 @@ const GetPayment = async (req, res) => {
                 data: paymentData
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const SelectPayment = async (req, res) => {
+const SelectPayment = async (req, res, next) => {
     try {
         const paymentData = await SelectedPaymentData(req.params.id);
 
@@ -26,14 +23,11 @@ const SelectPayment = async (req, res) => {
                 data: paymentData
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const CreatePayment = async (req, res) => {
+const CreatePayment = async (req, res, next) => {
     try {
         const validation = ValidationCreatePayment(req.body);
         if(!validation.success){
@@ -50,14 +44,11 @@ const CreatePayment = async (req, res) => {
             data: paymentData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const UpdatePayment = async (req, res) => {
+const UpdatePayment = async (req, res, next) => {
     try {
         const validation = ValidationUpdatePayment(req.body);
         if(!validation.success){
@@ -74,24 +65,18 @@ const UpdatePayment = async (req, res) => {
             data: paymentData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const DeletePayment = async (req, res) => {
+const DeletePayment = async (req, res, next) => {
     try {
         await DeletePaymentData(req.params.id);
         res.status(200).json({
                 message: 'Payment deleted successfully!'
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 

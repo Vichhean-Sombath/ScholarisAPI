@@ -1,7 +1,7 @@
 const { GetSemesterData, SelectedSemesterData, CreateSemesterData, UpdateSemesterData, DeleteSemesterData } = require('./semesters.service');
 const { ValidationCreateSemester, ValidationUpdateSemester } = require('./semesters.validation')
 
-const GetSemester = async (req, res) => {
+const GetSemester = async (req, res, next) => {
     try {
         const semesterData = await GetSemesterData();
 
@@ -10,14 +10,11 @@ const GetSemester = async (req, res) => {
                 data: semesterData
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const SelectSemester = async (req, res) => {
+const SelectSemester = async (req, res, next) => {
     try {
         const semesterData = await SelectedSemesterData(req.params.id);
 
@@ -26,14 +23,11 @@ const SelectSemester = async (req, res) => {
                 data: semesterData
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const CreateSemester = async (req, res) => {
+const CreateSemester = async (req, res, next) => {
     try {
         const validation = ValidationCreateSemester(req.body);
         if(!validation.success){
@@ -50,14 +44,11 @@ const CreateSemester = async (req, res) => {
             data: semesterData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const UpdateSemester = async (req, res) => {
+const UpdateSemester = async (req, res, next) => {
     try {
         const validation = ValidationUpdateSemester(req.body);
         if(!validation.success){
@@ -74,24 +65,18 @@ const UpdateSemester = async (req, res) => {
             data: semesterData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const DeleteSemester = async (req, res) => {
+const DeleteSemester = async (req, res, next) => {
     try {
         await DeleteSemesterData(req.params.id);
         res.status(200).json({
                 message: 'Semester deleted successfully!'
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 

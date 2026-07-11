@@ -1,7 +1,7 @@
 const { GetCertificateData, SelectCertificateData, CreateCertificateData, DeleteCertificateData } = require('./certificates.service');
 const { ValidationCreateCertificate } = require('./certificates.validation');
 
-const GetCertificate = async (req, res) => {
+const GetCertificate = async (req, res, next) => {
     try {
         const certificateData = await GetCertificateData();
 
@@ -10,14 +10,11 @@ const GetCertificate = async (req, res) => {
             data: certificateData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const SelectCertificate = async (req, res) => {
+const SelectCertificate = async (req, res, next) => {
     try {
         const certificateData = await SelectCertificateData(req.params.id);
 
@@ -26,14 +23,11 @@ const SelectCertificate = async (req, res) => {
             data: certificateData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const CreateCertificate = async (req, res) => {
+const CreateCertificate = async (req, res, next) => {
     try {
         const validation = ValidationCreateCertificate(req.body);
         if (!validation.success) {
@@ -50,14 +44,11 @@ const CreateCertificate = async (req, res) => {
             data: certificateData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const DeleteCertificate = async (req, res) => {
+const DeleteCertificate = async (req, res, next) => {
     try {
         await DeleteCertificateData(req.params.id);
 
@@ -65,10 +56,7 @@ const DeleteCertificate = async (req, res) => {
             message: 'Certificate deleted successfully!'
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 

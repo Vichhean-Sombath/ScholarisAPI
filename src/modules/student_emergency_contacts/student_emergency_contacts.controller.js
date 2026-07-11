@@ -7,7 +7,7 @@ const {
 } = require('./student_emergency_contacts.service');
 const { ValidationCreateEmergencyContact, ValidationUpdateEmergencyContact } = require('./student_emergency_contacts.validation');
 
-const GetEmergencyContact = async (req, res) => {
+const GetEmergencyContact = async (req, res, next) => {
     try {
         const contactData = await GetEmergencyContactData();
 
@@ -16,14 +16,11 @@ const GetEmergencyContact = async (req, res) => {
             data: contactData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 };
 
-const SelectEmergencyContact = async (req, res) => {
+const SelectEmergencyContact = async (req, res, next) => {
     try {
         const contactData = await SelectedEmergencyContactData(req.params.id);
 
@@ -32,14 +29,11 @@ const SelectEmergencyContact = async (req, res) => {
             data: contactData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 };
 
-const CreateEmergencyContact = async (req, res) => {
+const CreateEmergencyContact = async (req, res, next) => {
     try {
         const validation = ValidationCreateEmergencyContact(req.body);
         if (!validation.success) {
@@ -56,14 +50,11 @@ const CreateEmergencyContact = async (req, res) => {
             data: contactData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 };
 
-const UpdateEmergencyContact = async (req, res) => {
+const UpdateEmergencyContact = async (req, res, next) => {
     try {
         const validation = ValidationUpdateEmergencyContact(req.body);
         if (!validation.success) {
@@ -80,14 +71,11 @@ const UpdateEmergencyContact = async (req, res) => {
             data: contactData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 };
 
-const DeleteEmergencyContact = async (req, res) => {
+const DeleteEmergencyContact = async (req, res, next) => {
     try {
         await DeleteEmergencyContactData(req.params.id);
 
@@ -95,10 +83,7 @@ const DeleteEmergencyContact = async (req, res) => {
             message: 'Emergency contact deleted successfully!'
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 };
 

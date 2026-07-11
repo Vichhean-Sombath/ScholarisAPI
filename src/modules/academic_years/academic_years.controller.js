@@ -1,7 +1,7 @@
 const { GetAcademicYearData, SelectedAcademicYearData, CreateAcademicYearData, UpdateAcademicYearData, DeleteAcademicYearData } = require('./academic_years.service');
 const { ValidationCreateAcademicYear, ValidationUpdateAcademicYear } = require('./academic_years.validation')
 
-const GetAcademicYear = async (req, res) => {
+const GetAcademicYear = async (req, res, next) => {
     try {
         const academicYearData = await GetAcademicYearData();
 
@@ -10,14 +10,11 @@ const GetAcademicYear = async (req, res) => {
                 data: academicYearData
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const SelectAcademicYear = async (req, res) => {
+const SelectAcademicYear = async (req, res, next) => {
     try {
         const academicYearData = await SelectedAcademicYearData(req.params.id);
 
@@ -26,14 +23,11 @@ const SelectAcademicYear = async (req, res) => {
                 data: academicYearData
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const CreateAcademicYear = async (req, res) => {
+const CreateAcademicYear = async (req, res, next) => {
     try {
         const validation = ValidationCreateAcademicYear(req.body);
         if(!validation.success){
@@ -50,14 +44,11 @@ const CreateAcademicYear = async (req, res) => {
             data: academicYearData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const UpdateAcademicYear = async (req, res) => {
+const UpdateAcademicYear = async (req, res, next) => {
     try {
         const validation = ValidationUpdateAcademicYear(req.body);
         if(!validation.success){
@@ -74,24 +65,18 @@ const UpdateAcademicYear = async (req, res) => {
             data: academicYearData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const DeleteAcademicYear = async (req, res) => {
+const DeleteAcademicYear = async (req, res, next) => {
     try {
         await DeleteAcademicYearData(req.params.id);
         res.status(200).json({
                 message: 'Academic year deleted successfully!'
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 

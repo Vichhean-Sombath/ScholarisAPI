@@ -3,7 +3,7 @@ const { ValidationCreateUser, ValidationUpdateUser } = require('./users.validati
 const { CreateUserData, UpdateUserData, DisableUserData, EnableUserData } = require('./users.service');
 
 // Create
-const CreateUser = async (req, res) => {
+const CreateUser = async (req, res, next) => {
     try {
         const validation = ValidationCreateUser(req.body);
 
@@ -24,15 +24,12 @@ const CreateUser = async (req, res) => {
         });
 
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
 // Update
-const UpdateUser = async (req, res) => {
+const UpdateUser = async (req, res, next) => {
     try {
         const validation = ValidationUpdateUser(req.body);
 
@@ -50,15 +47,12 @@ const UpdateUser = async (req, res) => {
             data: newUserData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
 // Disable
-const DisableUser = async (req, res) => {
+const DisableUser = async (req, res, next) => {
     try {
         const disableUser = await DisableUserData(req.params.id, req.user);
 
@@ -67,15 +61,12 @@ const DisableUser = async (req, res) => {
             data: disableUser
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
 // Enable
-const EnableUser = async(req, res) => {
+const EnableUser = async (req, res, next) => {
     try {
         const enableUser = await EnableUserData(req.params.id, req.user);
 
@@ -84,10 +75,7 @@ const EnableUser = async(req, res) => {
             data: enableUser
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 

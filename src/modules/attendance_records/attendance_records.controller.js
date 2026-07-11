@@ -7,7 +7,7 @@ const {
 } = require('./attendance_records.service');
 const { ValidationCreateAttendanceRecord, ValidationUpdateAttendanceRecord } = require('./attendance_records.validation');
 
-const GetAttendanceRecord = async (req, res) => {
+const GetAttendanceRecord = async (req, res, next) => {
     try {
         const recordData = await GetAttendanceRecordData(req.user);
 
@@ -16,14 +16,11 @@ const GetAttendanceRecord = async (req, res) => {
             data: recordData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 };
 
-const SelectAttendanceRecord = async (req, res) => {
+const SelectAttendanceRecord = async (req, res, next) => {
     try {
         const recordData = await SelectedAttendanceRecordData(req.params.id, req.user);
 
@@ -32,14 +29,11 @@ const SelectAttendanceRecord = async (req, res) => {
             data: recordData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 };
 
-const CreateAttendanceRecord = async (req, res) => {
+const CreateAttendanceRecord = async (req, res, next) => {
     try {
         const validation = ValidationCreateAttendanceRecord(req.body);
         if (!validation.success) {
@@ -56,14 +50,11 @@ const CreateAttendanceRecord = async (req, res) => {
             data: recordData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 };
 
-const UpdateAttendanceRecord = async (req, res) => {
+const UpdateAttendanceRecord = async (req, res, next) => {
     try {
         const validation = ValidationUpdateAttendanceRecord(req.body);
         if (!validation.success) {
@@ -80,14 +71,11 @@ const UpdateAttendanceRecord = async (req, res) => {
             data: recordData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 };
 
-const DeleteAttendanceRecord = async (req, res) => {
+const DeleteAttendanceRecord = async (req, res, next) => {
     try {
         await DeleteAttendanceRecordData(req.params.id, req.user);
 
@@ -95,10 +83,7 @@ const DeleteAttendanceRecord = async (req, res) => {
             message: 'Attendance record deleted successfully!'
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 };
 

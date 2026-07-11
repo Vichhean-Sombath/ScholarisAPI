@@ -1,7 +1,7 @@
 const { GetLessonResourceData, SelectedLessonResourceData, CreateLessonResourceData, UpdateLessonResourceData, DeleteLessonResourceData } = require('./lesson_resources.service');
 const { ValidationCreateLessonResource, ValidationUpdateLessonResource } = require('./lesson_resources.validation')
 
-const GetLessonResource = async (req, res) => {
+const GetLessonResource = async (req, res, next) => {
     try {
         const lessonResourceData = await GetLessonResourceData(req.user);
 
@@ -10,14 +10,11 @@ const GetLessonResource = async (req, res) => {
                 data: lessonResourceData
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     };
 }
 
-const SelectLessonResource = async (req, res) => {
+const SelectLessonResource = async (req, res, next) => {
     try {
         const lessonResourceData = await SelectedLessonResourceData(req.params.id, req.user);
 
@@ -26,14 +23,11 @@ const SelectLessonResource = async (req, res) => {
                 data: lessonResourceData
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     };
 }
 
-const CreateLessonResource = async (req, res) => {
+const CreateLessonResource = async (req, res, next) => {
     try {
         const validation = ValidationCreateLessonResource(req.body);
         if(!validation.success){
@@ -50,14 +44,11 @@ const CreateLessonResource = async (req, res) => {
             data: lessonResourceData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     };
 }
 
-const UpdateLessonResource = async (req, res) => {
+const UpdateLessonResource = async (req, res, next) => {
     try {
         const validation = ValidationUpdateLessonResource(req.body);
         if(!validation.success){
@@ -74,24 +65,18 @@ const UpdateLessonResource = async (req, res) => {
             data: lessonResourceData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     };
 }
 
-const DeleteLessonResource = async (req, res) => {
+const DeleteLessonResource = async (req, res, next) => {
     try {
         await DeleteLessonResourceData(req.params.id, req.user);
         res.status(200).json({
                 message: 'Lesson resource deleted successfully!'
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     };
 }
 

@@ -1,7 +1,7 @@
 const { GetAssessmentData, SelectedAssessmentData, CreateAssessmentData, UpdateAssessmentData, DeleteAssessmentData } = require('./assessments.service');
 const { ValidationCreateAssessment, ValidationUpdateAssessment } = require('./assessments.validation')
 
-const GetAssessment = async (req, res) => {
+const GetAssessment = async (req, res, next) => {
     try {
         const assessmentData = await GetAssessmentData(req.user);
 
@@ -10,14 +10,11 @@ const GetAssessment = async (req, res) => {
                 data: assessmentData
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const SelectAssessment = async (req, res) => {
+const SelectAssessment = async (req, res, next) => {
     try {
         const assessmentData = await SelectedAssessmentData(req.params.id, req.user);
 
@@ -26,14 +23,11 @@ const SelectAssessment = async (req, res) => {
                 data: assessmentData
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const CreateAssessment = async (req, res) => {
+const CreateAssessment = async (req, res, next) => {
     try {
         const validation = ValidationCreateAssessment(req.body);
         if(!validation.success){
@@ -50,14 +44,11 @@ const CreateAssessment = async (req, res) => {
             data: assessmentData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const UpdateAssessment = async (req, res) => {
+const UpdateAssessment = async (req, res, next) => {
     try {
         const validation = ValidationUpdateAssessment(req.body);
         if(!validation.success){
@@ -74,24 +65,18 @@ const UpdateAssessment = async (req, res) => {
             data: assessmentData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const DeleteAssessment = async (req, res) => {
+const DeleteAssessment = async (req, res, next) => {
     try {
         await DeleteAssessmentData(req.params.id, req.user);
         res.status(200).json({
                 message: 'Assessment deleted successfully!'
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 

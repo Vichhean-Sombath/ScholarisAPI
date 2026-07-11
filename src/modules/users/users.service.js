@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const Users = require('../../models/users.model');
 const Teachers = require('../../models/teachers.model');
+const Students = require('../../models/students.model');
 require('../../models/mappingContext');
 
 const CreateUserData = async (userData) => {
@@ -16,7 +17,10 @@ const CreateUserData = async (userData) => {
         contact_number,
         specialization,
         bio,
-        hire_date
+        hire_date,
+        enrollment_date,
+        photo_url,
+        address
     } = userData;
 
     const existingEmail = await Users.findOne({ where: { email } });
@@ -66,6 +70,38 @@ const CreateUserData = async (userData) => {
             specialization,
             bio,
             hire_date
+        });
+    }
+
+    if (role === 'Student') {
+        if (!first_name || !last_name || !enrollment_date) {
+            const err = new Error('Student first name, last name and enrollment date are required!');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        if (isNaN(Date.parse(enrollment_date))) {
+            const err = new Error('Invalid enrollment date!');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        if (dob !== undefined && isNaN(Date.parse(dob))) {
+            const err = new Error('Invalid date of birth!');
+            err.statusCode = 400;
+            throw err;
+        }
+
+        await Students.create({
+            user_id: newUser.user_id,
+            first_name,
+            last_name,
+            gender,
+            dob,
+            contact_number,
+            address,
+            photo_url,
+            enrollment_date
         });
     }
 
@@ -122,6 +158,8 @@ const UpdateUserData = async (user_id, userData, currentUser) => {
         userData.password_hash = await bcrypt.hash(userData.password, 10);
         delete userData.password;
     }
+
+    delete userData.password_hash;
 
     await user.update(userData);
 

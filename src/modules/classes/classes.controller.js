@@ -1,7 +1,7 @@
 const { GetClassData, SelectedClassData, CreateClassData, UpdateClassData, DeleteClassData } = require('./classes.service');
 const { ValidationCreateClass, ValidationUpdateClass } = require('./classes.validation')
 
-const GetClass = async (req, res) => {
+const GetClass = async (req, res, next) => {
     try {
         const classData = await GetClassData();
 
@@ -10,14 +10,11 @@ const GetClass = async (req, res) => {
                 data: classData
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const SelectClass = async (req, res) => {
+const SelectClass = async (req, res, next) => {
     try {
         const classData = await SelectedClassData(req.params.id);
 
@@ -26,14 +23,11 @@ const SelectClass = async (req, res) => {
                 data: classData
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const CreateClass = async (req, res) => {
+const CreateClass = async (req, res, next) => {
     try {
         const validation = ValidationCreateClass(req.body);
         if(!validation.success){
@@ -50,14 +44,11 @@ const CreateClass = async (req, res) => {
             data: classData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const UpdateClass = async (req, res) => {
+const UpdateClass = async (req, res, next) => {
     try {
         const validation = ValidationUpdateClass(req.body);
         if(!validation.success){
@@ -74,24 +65,18 @@ const UpdateClass = async (req, res) => {
             data: classData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const DeleteClass = async (req, res) => {
+const DeleteClass = async (req, res, next) => {
     try {
         const classData = await DeleteClassData(req.params.id);
         res.status(200).json({
                 message: 'Class deleted successfully!'
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 

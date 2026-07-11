@@ -1,7 +1,7 @@
 const { GetSubjectData, SelectedSubjectData, CreateSubjectData, UpdateSubjectData, DeleteSubjectData } = require('./subjects.service');
 const { ValidationCreateSubject, ValidationUpdateSubject } = require('./subjects.validation')
 
-const GetSubject = async (req, res) => {
+const GetSubject = async (req, res, next) => {
     try {
         const subjectData = await GetSubjectData();
 
@@ -10,14 +10,11 @@ const GetSubject = async (req, res) => {
                 data: subjectData
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const SelectSubject = async (req, res) => {
+const SelectSubject = async (req, res, next) => {
     try {
         const subjectData = await SelectedSubjectData(req.params.id);
 
@@ -26,14 +23,11 @@ const SelectSubject = async (req, res) => {
                 data: subjectData
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const CreateSubject = async (req, res) => {
+const CreateSubject = async (req, res, next) => {
     try {
         const validation = ValidationCreateSubject(req.body);
         if(!validation.success){
@@ -50,14 +44,11 @@ const CreateSubject = async (req, res) => {
             data: subjectData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const UpdateSubject = async (req, res) => {
+const UpdateSubject = async (req, res, next) => {
     try {
         const validation = ValidationUpdateSubject(req.body);
         if(!validation.success){
@@ -74,24 +65,18 @@ const UpdateSubject = async (req, res) => {
             data: subjectData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const DeleteSubject = async (req, res) => {
+const DeleteSubject = async (req, res, next) => {
     try {
         const subjectData = await DeleteSubjectData(req.params.id);
         res.status(200).json({
                 message: 'Subject deleted successfully!'
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 

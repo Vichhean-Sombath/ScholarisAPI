@@ -1,6 +1,6 @@
 const { GetStudentData, UpdateStudentData, SelectStudentData } = require('./students.service');
 
-const GetStudent = async (req, res) => {
+const GetStudent = async (req, res, next) => {
     try {
         const studentData = await GetStudentData();
         res.status(200).json({
@@ -8,14 +8,11 @@ const GetStudent = async (req, res) => {
             data: studentData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 };
 
-const SelectStudent = async (req, res) => {
+const SelectStudent = async (req, res, next) => {
     try {
         const selectedStudent = await SelectStudentData(req.params.id);
         res.status(200).json({
@@ -23,14 +20,11 @@ const SelectStudent = async (req, res) => {
             data: selectedStudent
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 };
 
-const UpdateStudent = async (req, res) => {
+const UpdateStudent = async (req, res, next) => {
     try {
         const studentData = await UpdateStudentData(req.params.id, req.body);
         res.status(200).json({
@@ -38,10 +32,7 @@ const UpdateStudent = async (req, res) => {
             data: studentData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 };
 

@@ -1,7 +1,7 @@
 const { GetInvoiceData, SelectedInvoiceData, CreateInvoiceData, UpdateInvoiceData, DeleteInvoiceData } = require('./invoices.service');
 const { ValidationCreateInvoice, ValidationUpdateInvoice } = require('./invoices.validation')
 
-const GetInvoice = async (req, res) => {
+const GetInvoice = async (req, res, next) => {
     try {
         const invoiceData = await GetInvoiceData();
 
@@ -10,14 +10,11 @@ const GetInvoice = async (req, res) => {
                 data: invoiceData
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const SelectInvoice = async (req, res) => {
+const SelectInvoice = async (req, res, next) => {
     try {
         const invoiceData = await SelectedInvoiceData(req.params.id);
 
@@ -26,14 +23,11 @@ const SelectInvoice = async (req, res) => {
                 data: invoiceData
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const CreateInvoice = async (req, res) => {
+const CreateInvoice = async (req, res, next) => {
     try {
         const validation = ValidationCreateInvoice(req.body);
         if(!validation.success){
@@ -50,14 +44,11 @@ const CreateInvoice = async (req, res) => {
             data: invoiceData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const UpdateInvoice = async (req, res) => {
+const UpdateInvoice = async (req, res, next) => {
     try {
         const validation = ValidationUpdateInvoice(req.body);
         if(!validation.success){
@@ -74,24 +65,18 @@ const UpdateInvoice = async (req, res) => {
             data: invoiceData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const DeleteInvoice = async (req, res) => {
+const DeleteInvoice = async (req, res, next) => {
     try {
         await DeleteInvoiceData(req.params.id);
         res.status(200).json({
                 message: 'Invoice deleted successfully!'
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 

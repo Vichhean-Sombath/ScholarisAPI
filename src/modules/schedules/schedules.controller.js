@@ -1,7 +1,7 @@
 const { GetScheduleData, SelectedScheduleData, CreateScheduleData, UpdateScheduleData, DeleteScheduleData } = require('./schedules.service');
 const { ValidationCreateSchedule, ValidationUpdateSchedule } = require('./schedules.validation')
 
-const GetSchedule = async (req, res) => {
+const GetSchedule = async (req, res, next) => {
     try {
         const scheduleData = await GetScheduleData(req.user);
 
@@ -10,14 +10,11 @@ const GetSchedule = async (req, res) => {
                 data: scheduleData
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const SelectSchedule = async (req, res) => {
+const SelectSchedule = async (req, res, next) => {
     try {
         const scheduleData = await SelectedScheduleData(req.params.id, req.user);
 
@@ -26,14 +23,11 @@ const SelectSchedule = async (req, res) => {
                 data: scheduleData
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const CreateSchedule = async (req, res) => {
+const CreateSchedule = async (req, res, next) => {
     try {
         const validation = ValidationCreateSchedule(req.body);
         if(!validation.success){
@@ -50,14 +44,11 @@ const CreateSchedule = async (req, res) => {
             data: scheduleData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const UpdateSchedule = async (req, res) => {
+const UpdateSchedule = async (req, res, next) => {
     try {
         const validation = ValidationUpdateSchedule(req.body);
         if(!validation.success){
@@ -74,24 +65,18 @@ const UpdateSchedule = async (req, res) => {
             data: scheduleData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const DeleteSchedule = async (req, res) => {
+const DeleteSchedule = async (req, res, next) => {
     try {
         await DeleteScheduleData(req.params.id, req.user);
         res.status(200).json({
                 message: 'Schedule deleted successfully!'
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 

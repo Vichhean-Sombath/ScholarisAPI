@@ -1,7 +1,7 @@
 const { GetFeeStructureData, SelectedFeeStructureData, CreateFeeStructureData, UpdateFeeStructureData, DeleteFeeStructureData } = require('./fee_structures.service');
 const { ValidationCreateFeeStructure, ValidationUpdateFeeStructure } = require('./fee_structures.validation')
 
-const GetFeeStructure = async (req, res) => {
+const GetFeeStructure = async (req, res, next) => {
     try {
         const feeStructureData = await GetFeeStructureData();
 
@@ -10,14 +10,11 @@ const GetFeeStructure = async (req, res) => {
                 data: feeStructureData
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const SelectFeeStructure = async (req, res) => {
+const SelectFeeStructure = async (req, res, next) => {
     try {
         const feeStructureData = await SelectedFeeStructureData(req.params.id);
 
@@ -26,14 +23,11 @@ const SelectFeeStructure = async (req, res) => {
                 data: feeStructureData
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const CreateFeeStructure = async (req, res) => {
+const CreateFeeStructure = async (req, res, next) => {
     try {
         const validation = ValidationCreateFeeStructure(req.body);
         if(!validation.success){
@@ -50,14 +44,11 @@ const CreateFeeStructure = async (req, res) => {
             data: feeStructureData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const UpdateFeeStructure = async (req, res) => {
+const UpdateFeeStructure = async (req, res, next) => {
     try {
         const validation = ValidationUpdateFeeStructure(req.body);
         if(!validation.success){
@@ -74,24 +65,18 @@ const UpdateFeeStructure = async (req, res) => {
             data: feeStructureData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const DeleteFeeStructure = async (req, res) => {
+const DeleteFeeStructure = async (req, res, next) => {
     try {
         await DeleteFeeStructureData(req.params.id);
         res.status(200).json({
                 message: 'Fee structure deleted successfully!'
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 

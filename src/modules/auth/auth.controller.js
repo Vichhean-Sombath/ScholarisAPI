@@ -2,7 +2,7 @@ const { ValidationLoginUser } = require('./auth.validation');
 const { LoginUserData, LogoutUserData } = require('./auth.service');
 
 // Login
-const LoginUser = async (req, res) => {
+const LoginUser = async (req, res, next) => {
     try {
         const validation = ValidationLoginUser(req.body);
 
@@ -18,23 +18,17 @@ const LoginUser = async (req, res) => {
         res.status(201).json(loginResult);
 
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 };
 
 // Logout
-const LogoutUser = async (req, res) => {
+const LogoutUser = async (req, res, next) => {
     try {
         const logoutResult = await LogoutUserData();
         res.status(200).json(logoutResult);
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 };
 

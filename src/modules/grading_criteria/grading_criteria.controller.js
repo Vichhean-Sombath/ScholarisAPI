@@ -1,7 +1,7 @@
 const { GetGradingCriteriaData, SelectedGradingCriteriaData, CreateGradingCriteriaData, UpdateGradingCriteriaData, DeleteGradingCriteriaData } = require('./grading_criteria.service');
 const { ValidationCreateGradingCriteria, ValidationUpdateGradingCriteria } = require('./grading_criteria.validation')
 
-const GetGradingCriteria = async (req, res) => {
+const GetGradingCriteria = async (req, res, next) => {
     try {
         const gradingCriteriaData = await GetGradingCriteriaData();
 
@@ -10,14 +10,11 @@ const GetGradingCriteria = async (req, res) => {
                 data: gradingCriteriaData
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const SelectGradingCriteria = async (req, res) => {
+const SelectGradingCriteria = async (req, res, next) => {
     try {
         const gradingCriteriaData = await SelectedGradingCriteriaData(req.params.id);
 
@@ -26,14 +23,11 @@ const SelectGradingCriteria = async (req, res) => {
                 data: gradingCriteriaData
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const CreateGradingCriteria = async (req, res) => {
+const CreateGradingCriteria = async (req, res, next) => {
     try {
         const validation = ValidationCreateGradingCriteria(req.body);
         if(!validation.success){
@@ -50,14 +44,11 @@ const CreateGradingCriteria = async (req, res) => {
             data: gradingCriteriaData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const UpdateGradingCriteria = async (req, res) => {
+const UpdateGradingCriteria = async (req, res, next) => {
     try {
         const validation = ValidationUpdateGradingCriteria(req.body);
         if(!validation.success){
@@ -74,24 +65,18 @@ const UpdateGradingCriteria = async (req, res) => {
             data: gradingCriteriaData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const DeleteGradingCriteria = async (req, res) => {
+const DeleteGradingCriteria = async (req, res, next) => {
     try {
         await DeleteGradingCriteriaData(req.params.id);
         res.status(200).json({
                 message: 'Grading criteria deleted successfully!'
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 

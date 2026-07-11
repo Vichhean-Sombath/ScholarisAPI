@@ -1,7 +1,7 @@
 const { GetFinalGradeData, SelectedFinalGradeData, CreateFinalGradeData, UpdateFinalGradeData, DeleteFinalGradeData } = require('./final_grades.service');
 const { ValidationCreateFinalGrade, ValidationUpdateFinalGrade } = require('./final_grades.validation')
 
-const GetFinalGrade = async (req, res) => {
+const GetFinalGrade = async (req, res, next) => {
     try {
         const finalGradeData = await GetFinalGradeData();
 
@@ -10,14 +10,11 @@ const GetFinalGrade = async (req, res) => {
                 data: finalGradeData
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const SelectFinalGrade = async (req, res) => {
+const SelectFinalGrade = async (req, res, next) => {
     try {
         const finalGradeData = await SelectedFinalGradeData(req.params.id);
 
@@ -26,14 +23,11 @@ const SelectFinalGrade = async (req, res) => {
                 data: finalGradeData
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const CreateFinalGrade = async (req, res) => {
+const CreateFinalGrade = async (req, res, next) => {
     try {
         const validation = ValidationCreateFinalGrade(req.body);
         if(!validation.success){
@@ -50,14 +44,11 @@ const CreateFinalGrade = async (req, res) => {
             data: finalGradeData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const UpdateFinalGrade = async (req, res) => {
+const UpdateFinalGrade = async (req, res, next) => {
     try {
         const validation = ValidationUpdateFinalGrade(req.body);
         if(!validation.success){
@@ -74,24 +65,18 @@ const UpdateFinalGrade = async (req, res) => {
             data: finalGradeData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const DeleteFinalGrade = async (req, res) => {
+const DeleteFinalGrade = async (req, res, next) => {
     try {
         await DeleteFinalGradeData(req.params.id);
         res.status(200).json({
                 message: 'Final grade deleted successfully!'
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 

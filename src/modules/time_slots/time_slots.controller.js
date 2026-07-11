@@ -1,7 +1,7 @@
 const { GetTimeSlotData, SelectedTimeSlotData, CreateTimeSlotData, UpdateTimeSlotData, DeleteTimeSlotData } = require('./time_slots.service');
 const { ValidationCreateTimeSlot, ValidationUpdateTimeSlot } = require('./time_slots.validation')
 
-const GetTimeSlot = async (req, res) => {
+const GetTimeSlot = async (req, res, next) => {
     try {
         const timeSlotData = await GetTimeSlotData();
 
@@ -10,14 +10,11 @@ const GetTimeSlot = async (req, res) => {
                 data: timeSlotData
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const SelectTimeSlot = async (req, res) => {
+const SelectTimeSlot = async (req, res, next) => {
     try {
         const timeSlotData = await SelectedTimeSlotData(req.params.id);
 
@@ -26,14 +23,11 @@ const SelectTimeSlot = async (req, res) => {
                 data: timeSlotData
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const CreateTimeSlot = async (req, res) => {
+const CreateTimeSlot = async (req, res, next) => {
     try {
         const validation = ValidationCreateTimeSlot(req.body);
         if(!validation.success){
@@ -50,14 +44,11 @@ const CreateTimeSlot = async (req, res) => {
             data: timeSlotData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const UpdateTimeSlot = async (req, res) => {
+const UpdateTimeSlot = async (req, res, next) => {
     try {
         const validation = ValidationUpdateTimeSlot(req.body);
         if(!validation.success){
@@ -74,24 +65,18 @@ const UpdateTimeSlot = async (req, res) => {
             data: timeSlotData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 
-const DeleteTimeSlot = async (req, res) => {
+const DeleteTimeSlot = async (req, res, next) => {
     try {
         await DeleteTimeSlotData(req.params.id);
         res.status(200).json({
                 message: 'Time slot deleted successfully!'
             });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 }
 

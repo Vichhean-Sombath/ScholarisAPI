@@ -7,7 +7,7 @@ const {
 } = require('./class_enrollments.service');
 const { ValidationCreateClassEnrollment, ValidationUpdateClassEnrollment } = require('./class_enrollments.validation');
 
-const GetClassEnrollment = async (req, res) => {
+const GetClassEnrollment = async (req, res, next) => {
     try {
         const enrollmentData = await GetClassEnrollmentData();
 
@@ -16,14 +16,11 @@ const GetClassEnrollment = async (req, res) => {
             data: enrollmentData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 };
 
-const SelectClassEnrollment = async (req, res) => {
+const SelectClassEnrollment = async (req, res, next) => {
     try {
         const enrollmentData = await SelectedClassEnrollmentData(req.params.id);
 
@@ -32,14 +29,11 @@ const SelectClassEnrollment = async (req, res) => {
             data: enrollmentData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 };
 
-const CreateClassEnrollment = async (req, res) => {
+const CreateClassEnrollment = async (req, res, next) => {
     try {
         const validation = ValidationCreateClassEnrollment(req.body);
         if (!validation.success) {
@@ -56,14 +50,11 @@ const CreateClassEnrollment = async (req, res) => {
             data: enrollmentData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 };
 
-const UpdateClassEnrollment = async (req, res) => {
+const UpdateClassEnrollment = async (req, res, next) => {
     try {
         const validation = ValidationUpdateClassEnrollment(req.body);
         if (!validation.success) {
@@ -80,14 +71,11 @@ const UpdateClassEnrollment = async (req, res) => {
             data: enrollmentData
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 };
 
-const DeleteClassEnrollment = async (req, res) => {
+const DeleteClassEnrollment = async (req, res, next) => {
     try {
         await DeleteClassEnrollmentData(req.params.id);
 
@@ -95,10 +83,7 @@ const DeleteClassEnrollment = async (req, res) => {
             message: 'Class enrollment deleted successfully!'
         });
     } catch (error) {
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({
-            message: error.message || 'Internal server error!'
-        });
+        next(error);
     }
 };
 
