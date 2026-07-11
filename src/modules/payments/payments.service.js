@@ -1,6 +1,38 @@
 const Payments = require('../../models/payments.model');
 const Invoices = require('../../models/invoices.model');
 const Users = require('../../models/users.model');
+const { sendPaymentNotification } = require('../../services/telegram.service');
+const { sendReceiptEmail } = require('../../services/email.service');
+const { buildPaymentContext } = require('../../services/payment.helpers');
+
+const normalizePaymentMethod = (method) => {
+    const map = {
+        stripe: 'Stripe',
+        bakongkhqr: 'BakongKHQR'
+    };
+    return map[method?.toLowerCase()] || method;
+};
+
+const getSystemUserId = async () => {
+    const systemUserId = process.env.SYSTEM_USER_ID;
+    if (systemUserId) return parseInt(systemUserId, 10);
+
+    let user = await Users.findOne({
+        where: { username: 'system_automation' }
+    });
+
+    if (!user) {
+        user = await Users.create({
+            username: 'system_automation',
+            email: 'system@scholaris.local',
+            password_hash: 'system_automation_not_for_login',
+            role: 'Admin',
+            status: 'Active'
+        });
+    }
+
+    return user.user_id;
+};
 
 const updateInvoiceAfterPaymentChange = async (invoice_id) => {
     const invoice = await Invoices.findByPk(invoice_id, {
@@ -14,6 +46,53 @@ const updateInvoiceAfterPaymentChange = async (invoice_id) => {
     else if (totalPaid > 0) status = 'Partial';
 
     await invoice.update({ amount_paid: totalPaid, status });
+};
+
+const notifyPaymentRecorded = async (invoice_id, payment) => {
+    try {
+        const context = await buildPaymentContext(invoice_id, payment);
+        if (!context) return;
+
+        await sendPaymentNotification(context);
+        await sendReceiptEmail(context);
+    } catch (error) {
+        console.error('Payment notification failed:', error.message);
+    }
+};
+
+const recordPaymentFromGateway = async ({ invoice_id, amount, payment_method, transaction_reference, receipt_url }) => {
+    if (transaction_reference) {
+        const existing = await Payments.findOne({ where: { transaction_reference } });
+        if (existing) {
+            console.log('Payment with transaction reference already recorded:', transaction_reference);
+            return existing;
+        }
+    }
+
+    const invoice = await Invoices.findByPk(invoice_id);
+    if (!invoice) {
+        const err = new Error('Invoice not found!');
+        err.statusCode = 404;
+        throw err;
+    }
+
+    const systemUserId = await getSystemUserId();
+
+    const payment = await Payments.create({
+        invoice_id,
+        payment_date: new Date(),
+        amount: parseFloat(amount),
+        payment_method: normalizePaymentMethod(payment_method),
+        transaction_reference,
+        receipt_url,
+        recorded_by: systemUserId,
+        notes: `Auto-recorded via ${payment_method} gateway`
+    });
+
+    await updateInvoiceAfterPaymentChange(invoice_id);
+    await notifyPaymentRecorded(invoice_id, payment);
+
+    return payment;
 };
 
 const GetPaymentData = async () => {
@@ -43,7 +122,7 @@ const SelectedPaymentData = async (payment_id) => {
 };
 
 const CreatePaymentData = async (paymentData) => {
-    const { invoice_id, payment_date, amount, payment_method, receipt_url, recorded_by, notes } = paymentData;
+    const { invoice_id, payment_date, amount, payment_method, receipt_url, recorded_by, notes, transaction_reference } = paymentData;
 
     const invoice = await Invoices.findByPk(invoice_id);
     if (!invoice) {
@@ -59,17 +138,28 @@ const CreatePaymentData = async (paymentData) => {
         throw err;
     }
 
+    if (transaction_reference) {
+        const existing = await Payments.findOne({ where: { transaction_reference } });
+        if (existing) {
+            const err = new Error('Transaction reference already exists!');
+            err.statusCode = 409;
+            throw err;
+        }
+    }
+
     const payment = await Payments.create({
         invoice_id,
         payment_date,
         amount,
-        payment_method,
+        payment_method: normalizePaymentMethod(payment_method),
         receipt_url,
+        transaction_reference,
         recorded_by,
         notes
     });
 
     await updateInvoiceAfterPaymentChange(invoice_id);
+    await notifyPaymentRecorded(invoice_id, payment);
 
     return payment;
 };
@@ -100,10 +190,15 @@ const UpdatePaymentData = async (payment_id, paymentData) => {
         }
     }
 
-    const originalInvoiceId = payment.invoice_id;
-    const newInvoiceId = paymentData.invoice_id || originalInvoiceId;
+    const normalizedData = { ...paymentData };
+    if (normalizedData.payment_method) {
+        normalizedData.payment_method = normalizePaymentMethod(normalizedData.payment_method);
+    }
 
-    await payment.update(paymentData);
+    const originalInvoiceId = payment.invoice_id;
+    const newInvoiceId = normalizedData.invoice_id || originalInvoiceId;
+
+    await payment.update(normalizedData);
 
     const invoicesToUpdate = newInvoiceId !== originalInvoiceId
         ? [originalInvoiceId, newInvoiceId]
@@ -134,5 +229,8 @@ module.exports = {
     SelectedPaymentData,
     CreatePaymentData,
     UpdatePaymentData,
-    DeletePaymentData
+    DeletePaymentData,
+    recordPaymentFromGateway,
+    normalizePaymentMethod,
+    getSystemUserId
 };

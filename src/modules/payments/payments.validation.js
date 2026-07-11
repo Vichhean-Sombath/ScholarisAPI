@@ -20,8 +20,8 @@ const ValidationCreatePayment = (data) => {
         error.push('Amount required and must be a positive number.');
     }
 
-    if (!payment_method || !['Cash', 'ABA', 'BankTransfer', 'Check'].includes(payment_method)) {
-        error.push('Payment method required and must be Cash, ABA, BankTransfer, or Check.');
+    if (!payment_method || !['stripe', 'bakongkhqr'].includes(payment_method)) {
+        error.push('Payment method required and must be stripe or bakongkhqr.');
     }
 
     if (recorded_by === undefined || recorded_by === null || isNaN(Number(recorded_by))) {
@@ -57,8 +57,8 @@ const ValidationUpdatePayment = (data) => {
         error.push('Amount must be a positive number.');
     }
 
-    if (payment_method !== undefined && !['Cash', 'ABA', 'BankTransfer', 'Check'].includes(payment_method)) {
-        error.push('Payment method must be Cash, ABA, BankTransfer, or Check.');
+    if (payment_method !== undefined && !['stripe', 'bakongkhqr'].includes(payment_method)) {
+        error.push('Payment method must be stripe or bakongkhqr.');
     }
 
     if (recorded_by !== undefined && isNaN(Number(recorded_by))) {

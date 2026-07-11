@@ -33,6 +33,10 @@ const Payments = sequelize.define(
             type: DataTypes.STRING(255),
             allowNull: true
         },
+        transaction_reference: {
+            type: DataTypes.STRING(255),
+            allowNull: true
+        },
         recorded_by: {
             type: DataTypes.INTEGER,
             allowNull: false,

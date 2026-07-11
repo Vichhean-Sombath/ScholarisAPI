@@ -56,9 +56,18 @@ const {
     LessonResources
 } = require('./src/models/mappingContext');
 
+const { StripeWebhook, BakongWebhook } = require('./src/modules/payments/payments.controller');
+
 const app = express();
-app.use(express.json());
 app.use(cors());
+
+// Stripe webhook must receive the raw body before express.json()
+app.post('/payment/stripe/webhook', express.raw({ type: 'application/json' }), StripeWebhook);
+
+app.use(express.json());
+
+// Bakong webhook is parsed as JSON
+app.post('/payment/bakong/webhook', BakongWebhook);
 
 // Routes
 UserController(app);

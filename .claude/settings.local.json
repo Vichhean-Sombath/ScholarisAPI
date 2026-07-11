@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node --check \"D:/Completed Project/Scholaris/src/services/payment.helpers.js\")",
+      "Bash(node --check \"D:/Completed Project/Scholaris/src/services/telegram.service.js\")",
+      "Bash(node --check \"D:/Completed Project/Scholaris/src/services/email.service.js\")",
+      "Bash(node --check \"D:/Completed Project/Scholaris/src/services/stripe.service.js\")",
+      "Bash(node --check \"D:/Completed Project/Scholaris/src/services/bakong.service.js\")",
+      "Bash(node *)",
+      "Bash(git check-ignore *)"
+    ]
+  }
+}
