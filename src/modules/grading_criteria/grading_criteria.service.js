@@ -39,13 +39,15 @@ const SelectedGradingCriteriaData = async (data) => {
 };
 
 const CreateGradingCriteriaData = async (gradingCriteriaData) => {
-    const { subject_id, class_id, component_name, weight_percentage } = gradingCriteriaData;
+    const { subject_id, class_id, component_name, weight_percentage, attempt_count } = gradingCriteriaData;
 
-    const subject = await Subjects.findByPk(subject_id);
-    if (!subject) {
-        const err = new Error('Subject not found!');
-        err.statusCode = 404;
-        throw err;
+    if (subject_id) {
+        const subject = await Subjects.findByPk(subject_id);
+        if (!subject) {
+            const err = new Error('Subject not found!');
+            err.statusCode = 404;
+            throw err;
+        }
     }
 
     if (class_id) {
@@ -61,7 +63,8 @@ const CreateGradingCriteriaData = async (gradingCriteriaData) => {
         subject_id,
         class_id,
         component_name,
-        weight_percentage
+        weight_percentage,
+        attempt_count
     });
 
     return createGradingCriteria;
@@ -79,15 +82,6 @@ const UpdateGradingCriteriaData = async (criteria_id, gradingCriteriaData) => {
         const subject = await Subjects.findByPk(gradingCriteriaData.subject_id);
         if (!subject) {
             const err = new Error('Subject not found!');
-            err.statusCode = 404;
-            throw err;
-        }
-    }
-
-    if (gradingCriteriaData.class_id) {
-        const relatedClass = await Classes.findByPk(gradingCriteriaData.class_id);
-        if (!relatedClass) {
-            const err = new Error('Class not found!');
             err.statusCode = 404;
             throw err;
         }

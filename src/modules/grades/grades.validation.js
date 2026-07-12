@@ -14,8 +14,8 @@ const ValidationCreateGrade = (data) => {
         error.push('Score required and must be 0 or greater!');
     }
 
-    if (entered_by === undefined || entered_by === null || isNaN(Number(entered_by))) {
-        error.push('Entered by (teacher ID) required and must be a number!');
+    if (entered_by !== undefined && entered_by !== null && isNaN(Number(entered_by))) {
+        error.push('Entered by must be a number!');
     }
 
     if (is_published !== undefined && typeof is_published !== 'boolean') {

@@ -1,5 +1,5 @@
-const { ValidationLoginUser } = require('./auth.validation');
-const { LoginUserData, LogoutUserData } = require('./auth.service');
+const { ValidationLoginUser, ValidationRegisterUser } = require('./auth.validation');
+const { LoginUserData, LogoutUserData, RegisterUserData } = require('./auth.service');
 
 // Login
 const LoginUser = async (req, res, next) => {
@@ -22,6 +22,27 @@ const LoginUser = async (req, res, next) => {
     }
 };
 
+// Register
+const RegisterUser = async (req, res, next) => {
+    try {
+        const validation = ValidationRegisterUser(req.body);
+
+        if(!validation.success){
+            return res.status(400).json({
+                message: 'Validation failed!',
+                errors: validation.error
+            });
+        }
+
+        const registerResult = await RegisterUserData(req.body);
+
+        res.status(201).json(registerResult);
+
+    } catch (error) {
+        next(error);
+    }
+};
+
 // Logout
 const LogoutUser = async (req, res, next) => {
     try {
@@ -34,5 +55,6 @@ const LogoutUser = async (req, res, next) => {
 
 module.exports = {
     LoginUser,
+    RegisterUser,
     LogoutUser
-}
+};

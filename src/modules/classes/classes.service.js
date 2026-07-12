@@ -2,15 +2,64 @@ const Classes = require('../../models/classes.model');
 const AcademicYears = require('../../models/academic_years.model');
 const Semesters = require('../../models/semesters.model');
 const Teachers = require('../../models/teachers.model');
+const Students = require('../../models/students.model');
+const Users = require('../../models/users.model');
+const Subjects = require('../../models/subjects.model');
+const TimeSlots = require('../../models/time_slots.model');
+const Schedules = require('../../models/schedules.model');
 require('../../models/mappingContext');
 const { Op } = require('sequelize');
 
-const GetClassData = async () => {
+const ClassEnrollments = require('../../models/class_enrollments.model');
+
+const GetClassData = async (currentUser) => {
+    let where = {};
+
+    if (currentUser && currentUser.role === 'Teacher' && currentUser.teacher_id) {
+        const scheduledClassIds = await Schedules.findAll({
+            where: { teacher_id: currentUser.teacher_id },
+            attributes: ['class_id'],
+            raw: true
+        }).then((rows) => rows.map((row) => row.class_id));
+
+        where = {
+            [Op.or]: [
+                { homeroom_teacher_id: currentUser.teacher_id },
+                { class_id: { [Op.in]: scheduledClassIds.length > 0 ? scheduledClassIds : [0] } }
+            ]
+        };
+    }
+
     return await Classes.findAll({
+        where,
         include: [
             { model: AcademicYears, attributes: ['academic_year_id', 'year_name'] },
             { model: Semesters, attributes: ['semester_id', 'semester_name'] },
-            { model: Teachers, as: 'HomeroomTeacher', attributes: ['teacher_id', 'first_name', 'last_name'] }
+            { model: Teachers, as: 'HomeroomTeacher', attributes: ['teacher_id', 'first_name', 'last_name'] },
+            {
+                model: Schedules,
+                attributes: ['schedule_id', 'room_number'],
+                include: [
+                    { model: Subjects, attributes: ['subject_id', 'subject_code', 'subject_name'] },
+                    { model: TimeSlots, attributes: ['time_slot_id', 'day_of_week', 'start_time', 'end_time'] }
+                ]
+            },
+            {
+                model: ClassEnrollments,
+                attributes: ['enrollment_id', 'student_id'],
+                include: [
+                    {
+                        model: Students,
+                        attributes: ['student_id', 'first_name', 'last_name', 'user_id'],
+                        include: [
+                            {
+                                model: Users,
+                                attributes: ['user_id', 'email']
+                            }
+                        ]
+                    }
+                ]
+            }
         ]
     });
 };
@@ -26,7 +75,31 @@ const SelectedClassData = async (data) => {
         include: [
             { model: AcademicYears, attributes: ['academic_year_id', 'year_name'] },
             { model: Semesters, attributes: ['semester_id', 'semester_name'] },
-            { model: Teachers, as: 'HomeroomTeacher', attributes: ['teacher_id', 'first_name', 'last_name'] }
+            { model: Teachers, as: 'HomeroomTeacher', attributes: ['teacher_id', 'first_name', 'last_name'] },
+            {
+                model: Schedules,
+                attributes: ['schedule_id', 'room_number'],
+                include: [
+                    { model: Subjects, attributes: ['subject_id', 'subject_code', 'subject_name'] },
+                    { model: TimeSlots, attributes: ['time_slot_id', 'day_of_week', 'start_time', 'end_time'] }
+                ]
+            },
+            {
+                model: ClassEnrollments,
+                attributes: ['enrollment_id', 'student_id'],
+                include: [
+                    {
+                        model: Students,
+                        attributes: ['student_id', 'first_name', 'last_name', 'user_id'],
+                        include: [
+                            {
+                                model: Users,
+                                attributes: ['user_id', 'email']
+                            }
+                        ]
+                    }
+                ]
+            }
         ]
     });
 

@@ -3,7 +3,8 @@ const { ValidationCreateGrade, ValidationUpdateGrade } = require('./grades.valid
 
 const GetGrade = async (req, res, next) => {
     try {
-        const gradeData = await GetGradeData(req.user);
+        const assessmentId = req.query.assessment_id ? parseInt(req.query.assessment_id, 10) : null;
+        const gradeData = await GetGradeData(req.user, assessmentId);
 
         res.status(200).json({
                 message: 'Grade retrieved successfully!',

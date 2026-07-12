@@ -14,12 +14,12 @@ const ValidationCreateAttendanceRecord = (data) => {
         error.push('Attendance date required and must be a valid date!');
     }
 
-    if (!status || !['Present', 'Absent', 'Late', 'Excused'].includes(status)) {
-        error.push('Status required and must be Present, Absent, Late, or Excused!');
+    if (!status || !['Present', 'Absent', 'Late'].includes(status)) {
+        error.push('Status required and must be Present, Absent, or Late!');
     }
 
-    if (marked_by === undefined || isNaN(Number(marked_by))) {
-        error.push('Marked by (teacher ID) required and must be a number!');
+    if (marked_by !== undefined && isNaN(Number(marked_by))) {
+        error.push('Marked by (teacher ID) must be a number!');
     }
 
     return error.length > 0
@@ -43,8 +43,8 @@ const ValidationUpdateAttendanceRecord = (data) => {
         error.push('Attendance date must be a valid date.');
     }
 
-    if (status !== undefined && !['Present', 'Absent', 'Late', 'Excused'].includes(status)) {
-        error.push('Status must be Present, Absent, Late, or Excused.');
+    if (status !== undefined && !['Present', 'Absent', 'Late'].includes(status)) {
+        error.push('Status must be Present, Absent, or Late.');
     }
 
     if (marked_by !== undefined && isNaN(Number(marked_by))) {

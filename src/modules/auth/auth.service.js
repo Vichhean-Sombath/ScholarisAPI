@@ -46,7 +46,84 @@ const LoginUserData = async (userData) => {
             username: user.username,
             email: user.email,
             role: user.role,
-            status: user.status
+            status: user.status,
+            teacher_id: teacher ? teacher.teacher_id : null,
+            student_id: student ? student.student_id : null
+        }
+    };
+};
+
+const RegisterUserData = async (userData) => {
+    const {
+        username,
+        email,
+        password,
+        first_name,
+        last_name,
+        gender,
+        dob,
+        contact_number,
+        address,
+        photo_url,
+        enrollment_date
+    } = userData;
+
+    const existingEmail = await Users.findOne({ where: { email } });
+    if (existingEmail) {
+        const err = new Error('This email already exists!');
+        err.statusCode = 409;
+        throw err;
+    }
+
+    const existingUsername = await Users.findOne({ where: { username } });
+    if (existingUsername) {
+        const err = new Error('This username already exists!');
+        err.statusCode = 409;
+        throw err;
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = await Users.create({
+        username,
+        email,
+        role: 'Student',
+        password_hash: hashedPassword
+    });
+
+    await Students.create({
+        user_id: newUser.user_id,
+        first_name,
+        last_name,
+        gender,
+        dob,
+        contact_number,
+        address,
+        photo_url,
+        enrollment_date
+    });
+
+    const token = jwt.sign(
+        {
+            user_id: newUser.user_id,
+            email: newUser.email,
+            role: newUser.role,
+            teacher_id: null,
+            student_id: null
+        },
+        process.env.SECRET_KEY,
+        { expiresIn: '2h' }
+    );
+
+    return {
+        message: 'Registration successful!',
+        token,
+        user: {
+            user_id: newUser.user_id,
+            username: newUser.username,
+            email: newUser.email,
+            role: newUser.role,
+            status: newUser.status
         }
     };
 };
@@ -59,5 +136,6 @@ const LogoutUserData = async () => {
 
 module.exports = {
     LoginUserData,
-    LogoutUserData
+    LogoutUserData,
+    RegisterUserData
 };

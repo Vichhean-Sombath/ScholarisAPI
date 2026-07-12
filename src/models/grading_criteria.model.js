@@ -11,7 +11,7 @@ const GradingCriteria = sequelize.define(
         },
         subject_id: {
             type: DataTypes.INTEGER,
-            allowNull: false,
+            allowNull: true,
             references: {
                 model: 'subjects',
                 key: 'subject_id'
@@ -32,6 +32,11 @@ const GradingCriteria = sequelize.define(
         weight_percentage: {
             type: DataTypes.DECIMAL(5, 2),
             allowNull: false
+        },
+        attempt_count: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: 1
         }
     },
     {

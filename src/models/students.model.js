@@ -9,6 +9,15 @@ const Students = sequelize.define(
             primaryKey: true,
             autoIncrement: true
         },
+        user_id: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            unique: true,
+            references: {
+                model: 'users',
+                key: 'user_id'
+            }
+        },
         first_name: {
             type: DataTypes.STRING(50),
             allowNull: false
@@ -45,11 +54,6 @@ const Students = sequelize.define(
             type: DataTypes.ENUM('Active', 'Inactive'),
             allowNull: false,
             defaultValue: 'Active'
-        },
-        user_id: {
-            type: DataTypes.INTEGER,
-            allowNull: true,
-            unique: true
         }
     },
     {

@@ -74,9 +74,6 @@ Schedules.belongsTo(Subjects, { foreignKey: 'subject_id' });
 Subjects.hasMany(GradingCriteria, { foreignKey: 'subject_id', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
 GradingCriteria.belongsTo(Subjects, { foreignKey: 'subject_id' });
 
-Subjects.hasMany(Assessments, { foreignKey: 'subject_id', onDelete: 'RESTRICT', onUpdate: 'CASCADE' });
-Assessments.belongsTo(Subjects, { foreignKey: 'subject_id' });
-
 Subjects.hasMany(FinalGrades, { foreignKey: 'subject_id', onDelete: 'RESTRICT', onUpdate: 'CASCADE' });
 FinalGrades.belongsTo(Subjects, { foreignKey: 'subject_id' });
 
@@ -88,9 +85,6 @@ Schedules.belongsTo(Teachers, { foreignKey: 'teacher_id' });
 
 Teachers.hasMany(AttendanceRecords, { foreignKey: 'marked_by', onDelete: 'RESTRICT', onUpdate: 'CASCADE' });
 AttendanceRecords.belongsTo(Teachers, { as: 'Marker', foreignKey: 'marked_by' });
-
-Teachers.hasMany(Assessments, { foreignKey: 'teacher_id', onDelete: 'RESTRICT', onUpdate: 'CASCADE' });
-Assessments.belongsTo(Teachers, { foreignKey: 'teacher_id' });
 
 Teachers.hasMany(Grades, { foreignKey: 'entered_by', onDelete: 'RESTRICT', onUpdate: 'CASCADE' });
 Grades.belongsTo(Teachers, { as: 'EnteredBy', foreignKey: 'entered_by' });
@@ -107,8 +101,7 @@ Schedules.belongsTo(Classes, { foreignKey: 'class_id' });
 Classes.hasMany(GradingCriteria, { foreignKey: 'class_id', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
 GradingCriteria.belongsTo(Classes, { foreignKey: 'class_id' });
 
-Classes.hasMany(Assessments, { foreignKey: 'class_id', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
-Assessments.belongsTo(Classes, { foreignKey: 'class_id' });
+Assessments.belongsTo(Schedules, { foreignKey: 'schedule_id' });
 
 Classes.hasMany(FinalGrades, { foreignKey: 'class_id', onDelete: 'RESTRICT', onUpdate: 'CASCADE' });
 FinalGrades.belongsTo(Classes, { foreignKey: 'class_id' });

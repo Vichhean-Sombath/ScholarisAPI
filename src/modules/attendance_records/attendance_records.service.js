@@ -63,6 +63,12 @@ const CreateAttendanceRecordData = async (recordData, currentUser) => {
         ? currentUser.teacher_id
         : recordData.marked_by;
 
+    if (currentUser.role !== 'Teacher' && (marked_by === undefined || marked_by === null)) {
+        const err = new Error('Marked by (teacher ID) required for non-teacher users!');
+        err.statusCode = 400;
+        throw err;
+    }
+
     const schedule = await Schedules.findByPk(schedule_id);
     if (!schedule) {
         const err = new Error('Schedule not found!');
@@ -163,8 +169,8 @@ const UpdateAttendanceRecordData = async (attendance_id, recordData, currentUser
         throw err;
     }
 
-    if (recordData.status !== undefined && !['Present', 'Absent', 'Late', 'Excused'].includes(recordData.status)) {
-        const err = new Error('Status must be Present, Absent, Late, or Excused!');
+    if (recordData.status !== undefined && !['Present', 'Absent', 'Late'].includes(recordData.status)) {
+        const err = new Error('Status must be Present, Absent, or Late!');
         err.statusCode = 400;
         throw err;
     }

@@ -1,21 +1,31 @@
 const Grades = require('../../models/grades.model');
 const Assessments = require('../../models/assessments.model');
+const Schedules = require('../../models/schedules.model');
 const Students = require('../../models/students.model');
 const Teachers = require('../../models/teachers.model');
 const { Op } = require('sequelize');
 
-const GetGradeData = async (currentUser) => {
+const GetGradeData = async (currentUser, assessmentId) => {
+    const where = assessmentId ? { assessment_id: assessmentId } : {};
+
     const includeOptions = [
         {
             model: Assessments,
             attributes: ['assessment_id', 'assessment_name', 'max_score'],
-            where: currentUser.role === 'Teacher' ? { teacher_id: currentUser.teacher_id } : {}
+            include: [
+                {
+                    model: Schedules,
+                    attributes: ['schedule_id', 'teacher_id'],
+                    where: currentUser.role === 'Teacher' ? { teacher_id: currentUser.teacher_id } : {}
+                }
+            ]
         },
         { model: Students, attributes: ['student_id', 'first_name', 'last_name'] },
         { model: Teachers, as: 'EnteredBy', attributes: ['teacher_id', 'first_name', 'last_name'] }
     ];
 
     return await Grades.findAll({
+        where,
         include: includeOptions
     });
 };
@@ -23,7 +33,11 @@ const GetGradeData = async (currentUser) => {
 const SelectedGradeData = async (data, currentUser) => {
     const selectedGrade = await Grades.findByPk(data, {
         include: [
-            { model: Assessments, attributes: ['assessment_id', 'assessment_name', 'max_score'] },
+            {
+                model: Assessments,
+                attributes: ['assessment_id', 'assessment_name', 'max_score'],
+                include: [{ model: Schedules, attributes: ['teacher_id'] }]
+            },
             { model: Students, attributes: ['student_id', 'first_name', 'last_name'] },
             { model: Teachers, as: 'EnteredBy', attributes: ['teacher_id', 'first_name', 'last_name'] }
         ]
@@ -35,7 +49,7 @@ const SelectedGradeData = async (data, currentUser) => {
         throw err;
     }
 
-    if (currentUser.role === 'Teacher' && selectedGrade.Assessment.teacher_id !== currentUser.teacher_id) {
+    if (currentUser.role === 'Teacher' && selectedGrade.Assessment.Schedule.teacher_id !== currentUser.teacher_id) {
         const err = new Error('Unauthorized!');
         err.statusCode = 403;
         throw err;
@@ -50,14 +64,16 @@ const CreateGradeData = async (gradeData, currentUser) => {
         ? currentUser.teacher_id
         : gradeData.entered_by;
 
-    const assessment = await Assessments.findByPk(assessment_id);
+    const assessment = await Assessments.findByPk(assessment_id, {
+        include: [{ model: Schedules, attributes: ['teacher_id'] }]
+    });
     if (!assessment) {
         const err = new Error('Assessment not found!');
         err.statusCode = 404;
         throw err;
     }
 
-    if (currentUser.role === 'Teacher' && assessment.teacher_id !== currentUser.teacher_id) {
+    if (currentUser.role === 'Teacher' && assessment.Schedule.teacher_id !== currentUser.teacher_id) {
         const err = new Error('Unauthorized!');
         err.statusCode = 403;
         throw err;
@@ -105,7 +121,13 @@ const CreateGradeData = async (gradeData, currentUser) => {
 
 const UpdateGradeData = async (grade_id, gradeData, currentUser) => {
     const selectedGrade = await Grades.findByPk(grade_id, {
-        include: [{ model: Assessments, attributes: ['teacher_id'] }]
+        include: [
+            {
+                model: Assessments,
+                attributes: ['assessment_id'],
+                include: [{ model: Schedules, attributes: ['teacher_id'] }]
+            }
+        ]
     });
     if (!selectedGrade) {
         const err = new Error('Grade not found!');
@@ -113,7 +135,7 @@ const UpdateGradeData = async (grade_id, gradeData, currentUser) => {
         throw err;
     }
 
-    if (currentUser.role === 'Teacher' && selectedGrade.Assessment.teacher_id !== currentUser.teacher_id) {
+    if (currentUser.role === 'Teacher' && selectedGrade.Assessment.Schedule.teacher_id !== currentUser.teacher_id) {
         const err = new Error('Unauthorized!');
         err.statusCode = 403;
         throw err;
@@ -183,7 +205,13 @@ const UpdateGradeData = async (grade_id, gradeData, currentUser) => {
 
 const DeleteGradeData = async (grade_id, currentUser) => {
     const selectedGrade = await Grades.findByPk(grade_id, {
-        include: [{ model: Assessments, attributes: ['teacher_id'] }]
+        include: [
+            {
+                model: Assessments,
+                attributes: ['assessment_id'],
+                include: [{ model: Schedules, attributes: ['teacher_id'] }]
+            }
+        ]
     });
     if (!selectedGrade) {
         const err = new Error('Grade not found!');
@@ -191,7 +219,7 @@ const DeleteGradeData = async (grade_id, currentUser) => {
         throw err;
     }
 
-    if (currentUser.role === 'Teacher' && selectedGrade.Assessment.teacher_id !== currentUser.teacher_id) {
+    if (currentUser.role === 'Teacher' && selectedGrade.Assessment.Schedule.teacher_id !== currentUser.teacher_id) {
         const err = new Error('Unauthorized!');
         err.statusCode = 403;
         throw err;

@@ -3,7 +3,7 @@ const { ValidationCreateClass, ValidationUpdateClass } = require('./classes.vali
 
 const GetClass = async (req, res, next) => {
     try {
-        const classData = await GetClassData();
+        const classData = await GetClassData(req.user);
 
         res.status(200).json({
                 message: 'Class retrieved successfully!',
