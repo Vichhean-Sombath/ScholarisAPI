@@ -1,6 +1,7 @@
 const LessonResources = require('../../models/lesson_resources.model');
 const Schedules = require('../../models/schedules.model');
 const Teachers = require('../../models/teachers.model');
+const TimeSlots = require('../../models/time_slots.model');
 
 const GetLessonResourceData = async (currentUser) => {
     const where = currentUser.role === 'Teacher'
@@ -10,7 +11,11 @@ const GetLessonResourceData = async (currentUser) => {
     return await LessonResources.findAll({
         where,
         include: [
-            { model: Schedules, attributes: ['schedule_id', 'day_of_week'] },
+            {
+                model: Schedules,
+                attributes: ['schedule_id'],
+                include: [{ model: TimeSlots, attributes: ['day_of_week', 'start_time', 'end_time'] }]
+            },
             { model: Teachers, attributes: ['teacher_id', 'first_name', 'last_name'] }
         ]
     });
@@ -19,7 +24,11 @@ const GetLessonResourceData = async (currentUser) => {
 const SelectedLessonResourceData = async (resource_id, currentUser) => {
     const lessonResource = await LessonResources.findByPk(resource_id, {
         include: [
-            { model: Schedules, attributes: ['schedule_id', 'day_of_week'] },
+            {
+                model: Schedules,
+                attributes: ['schedule_id'],
+                include: [{ model: TimeSlots, attributes: ['day_of_week', 'start_time', 'end_time'] }]
+            },
             { model: Teachers, attributes: ['teacher_id', 'first_name', 'last_name'] }
         ]
     });
@@ -61,14 +70,25 @@ const CreateLessonResourceData = async (resourceData, currentUser) => {
         }
     }
 
-    return await LessonResources.create({
+    const createLessonResource = await LessonResources.create({
         schedule_id,
         teacher_id,
         title,
         description,
         resource_type,
         file_url,
-        upload_date
+        upload_date: upload_date || new Date()
+    });
+
+    return await LessonResources.findByPk(createLessonResource.resource_id, {
+        include: [
+            {
+                model: Schedules,
+                attributes: ['schedule_id'],
+                include: [{ model: TimeSlots, attributes: ['day_of_week', 'start_time', 'end_time'] }]
+            },
+            { model: Teachers, attributes: ['teacher_id', 'first_name', 'last_name'] }
+        ]
     });
 };
 
@@ -110,9 +130,21 @@ const UpdateLessonResourceData = async (resource_id, resourceData, currentUser) 
         }
     }
 
-    await lessonResource.update(resourceData);
+    await lessonResource.update({
+        ...resourceData,
+        upload_date: resourceData.upload_date || lessonResource.upload_date || new Date()
+    });
 
-    return lessonResource;
+    return await LessonResources.findByPk(resource_id, {
+        include: [
+            {
+                model: Schedules,
+                attributes: ['schedule_id'],
+                include: [{ model: TimeSlots, attributes: ['day_of_week', 'start_time', 'end_time'] }]
+            },
+            { model: Teachers, attributes: ['teacher_id', 'first_name', 'last_name'] }
+        ]
+    });
 };
 
 const DeleteLessonResourceData = async (resource_id, currentUser) => {

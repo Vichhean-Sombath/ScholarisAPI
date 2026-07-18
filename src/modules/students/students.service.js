@@ -1,14 +1,21 @@
 const Students = require('../../models/students.model');
 const StudentEmergencyContacts = require('../../models/student_emergency_contacts.model');
+const Users = require('../../models/users.model');
 require('../../models/mappingContext');
 const { Op } = require('sequelize');
 
 const GetStudentData = async () => {
     return await Students.findAll({
-        include: {
-            model: StudentEmergencyContacts,
-            attributes: { exclude: ['student_id'] }
-        }
+        include: [
+            {
+                model: Users,
+                attributes: { exclude: ['password_hash'] }
+            },
+            {
+                model: StudentEmergencyContacts,
+                attributes: { exclude: ['student_id'] }
+            }
+        ]
     });
 };
 

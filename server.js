@@ -23,6 +23,8 @@ const FeeStructureController = require('./src/modules/fee_structures/fee_structu
 const InvoiceController = require('./src/modules/invoices/invoices.route');
 const PaymentController = require('./src/modules/payments/payments.route');
 const LessonResourceController = require('./src/modules/lesson_resources/lesson_resources.route');
+const DashboardController = require('./src/modules/dashboard/dashboard.route');
+const ReportsController = require('./src/modules/reports/reports.route');
 const errorHandler = require('./src/middleware/errorHandler');
 
 // Sync DB
@@ -92,6 +94,8 @@ FeeStructureController(app);
 InvoiceController(app);
 PaymentController(app);
 LessonResourceController(app);
+DashboardController(app);
+ReportsController(app);
 
 app.use(errorHandler);
 

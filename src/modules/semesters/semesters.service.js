@@ -44,13 +44,24 @@ const CreateSemesterData = async (semesterData) => {
         throw err;
     }
 
-    if (new Date(start_date) >= new Date(end_date)) {
+    const startDate = new Date(start_date);
+    const endDate = new Date(end_date);
+
+    if (startDate >= endDate) {
         const err = new Error('Start date must be earlier than end date!');
         err.statusCode = 400;
         throw err;
     }
 
-    if (new Date(start_date) < new Date(academicYear.start_date) || new Date(end_date) > new Date(academicYear.end_date)) {
+    const minEndDate = new Date(startDate);
+    minEndDate.setMonth(minEndDate.getMonth() + 3);
+    if (endDate < minEndDate) {
+        const err = new Error('Semester duration must be at least 3 months!');
+        err.statusCode = 400;
+        throw err;
+    }
+
+    if (startDate < new Date(academicYear.start_date) || endDate > new Date(academicYear.end_date)) {
         const err = new Error('Semester dates must be within the academic year range!');
         err.statusCode = 400;
         throw err;
@@ -94,16 +105,24 @@ const UpdateSemesterData = async (semester_id, semesterData) => {
         throw err;
     }
 
-    const newStart = semesterData.start_date || selectedSemester.start_date;
-    const newEnd = semesterData.end_date || selectedSemester.end_date;
+    const newStartDate = new Date(semesterData.start_date || selectedSemester.start_date);
+    const newEndDate = new Date(semesterData.end_date || selectedSemester.end_date);
 
-    if (new Date(newStart) >= new Date(newEnd)) {
+    if (newStartDate >= newEndDate) {
         const err = new Error('Start date must be earlier than end date!');
         err.statusCode = 400;
         throw err;
     }
 
-    if (new Date(newStart) < new Date(academicYear.start_date) || new Date(newEnd) > new Date(academicYear.end_date)) {
+    const minEndDate = new Date(newStartDate);
+    minEndDate.setMonth(minEndDate.getMonth() + 3);
+    if (newEndDate < minEndDate) {
+        const err = new Error('Semester duration must be at least 3 months!');
+        err.statusCode = 400;
+        throw err;
+    }
+
+    if (newStartDate < new Date(academicYear.start_date) || newEndDate > new Date(academicYear.end_date)) {
         const err = new Error('Semester dates must be within the academic year range!');
         err.statusCode = 400;
         throw err;

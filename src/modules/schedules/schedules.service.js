@@ -94,10 +94,17 @@ const CreateScheduleData = async (scheduleData, currentUser) => {
         subject_id,
         teacher_id,
         time_slot_id,
-        room_number
+        room_number: room_number || relatedClass.room_number || null
     });
 
-    return createSchedule;
+    return await Schedules.findByPk(createSchedule.schedule_id, {
+        include: [
+            { model: Classes, attributes: ['class_id', 'class_name'] },
+            { model: Subjects, attributes: ['subject_id', 'subject_code', 'subject_name'] },
+            { model: Teachers, attributes: ['teacher_id', 'first_name', 'last_name'] },
+            { model: TimeSlots, attributes: ['time_slot_id', 'day_of_week', 'start_time', 'end_time'] }
+        ]
+    });
 };
 
 const UpdateScheduleData = async (schedule_id, scheduleData, currentUser) => {
@@ -169,9 +176,19 @@ const UpdateScheduleData = async (schedule_id, scheduleData, currentUser) => {
         }
     }
 
-    await selectedSchedule.update(scheduleData);
+    await selectedSchedule.update({
+        ...scheduleData,
+        room_number: scheduleData.room_number || relatedClass.room_number || null
+    });
 
-    return selectedSchedule;
+    return await Schedules.findByPk(schedule_id, {
+        include: [
+            { model: Classes, attributes: ['class_id', 'class_name'] },
+            { model: Subjects, attributes: ['subject_id', 'subject_code', 'subject_name'] },
+            { model: Teachers, attributes: ['teacher_id', 'first_name', 'last_name'] },
+            { model: TimeSlots, attributes: ['time_slot_id', 'day_of_week', 'start_time', 'end_time'] }
+        ]
+    });
 };
 
 const DeleteScheduleData = async (schedule_id, currentUser) => {
