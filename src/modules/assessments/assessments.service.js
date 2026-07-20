@@ -73,7 +73,7 @@ const CreateAssessmentData = async (assessmentData, currentUser) => {
 
     const schedule = await Schedules.findByPk(schedule_id, {
         include: [
-            { model: Classes, attributes: ['class_id', 'class_name'] },
+            { model: Classes, attributes: ['class_id', 'class_name', 'semester_id'] },
             { model: Subjects, attributes: ['subject_id', 'subject_code', 'subject_name'] },
             { model: Teachers, attributes: ['teacher_id', 'first_name', 'last_name'] }
         ]

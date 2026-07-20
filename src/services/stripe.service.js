@@ -12,7 +12,7 @@ const getStripe = () => {
     return stripe;
 };
 
-const createCheckoutSession = async (invoice) => {
+const createCheckoutSession = async (invoice, options = {}) => {
     const stripe = getStripe();
     if (!stripe) {
         throw Object.assign(new Error('Stripe is not configured.'), { statusCode: 500 });
@@ -45,8 +45,8 @@ const createCheckoutSession = async (invoice) => {
             student_id: invoice.student_id,
             invoice_number: invoice.invoice_number
         },
-        success_url: `${serverUrl}/payment/stripe/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${serverUrl}/payment/stripe/cancel`
+        success_url: options.success_url || `${serverUrl}/payment/stripe/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: options.cancel_url || `${serverUrl}/payment/stripe/cancel`
     });
 
     return {

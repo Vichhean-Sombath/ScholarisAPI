@@ -18,12 +18,13 @@ const generateKHQR = async (invoice) => {
         throw Object.assign(new Error('Bakong merchant details are not configured.'), { statusCode: 500 });
     }
 
-    const amount = parseFloat(invoice.total_amount);
+    const amountUsd = parseFloat(invoice.total_amount);
+    const amount = amountUsd > 0 ? amountUsd * 4000 : undefined;
     const feeName = invoice.FeeStructure ? invoice.FeeStructure.fee_name : 'School fee';
 
     const optionalData = {
         currency: khqrData.currency.khr,
-        amount: amount > 0 ? amount : undefined,
+        amount,
         mobileNumber: merchantPhone,
         storeLabel: storeLabel || merchantName,
         terminalLabel: `Invoice ${invoice.invoice_number}`,

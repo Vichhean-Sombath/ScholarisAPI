@@ -2,6 +2,7 @@ const bcrypt = require('bcrypt');
 const Payments = require('../../models/payments.model');
 const Invoices = require('../../models/invoices.model');
 const Users = require('../../models/users.model');
+const FeeStructures = require('../../models/fee_structures.model');
 const { sendPaymentNotification } = require('../../services/telegram.service');
 const { sendReceiptEmail } = require('../../services/email.service');
 const { buildPaymentContext } = require('../../services/payment.helpers');
@@ -16,7 +17,11 @@ const normalizePaymentMethod = (method) => {
 
 const getSystemUserId = async () => {
     const systemUserId = process.env.SYSTEM_USER_ID;
-    if (systemUserId) return parseInt(systemUserId, 10);
+    if (systemUserId) {
+        const id = parseInt(systemUserId, 10);
+        const existing = await Users.findByPk(id);
+        if (existing) return id;
+    }
 
     let user = await Users.findOne({
         where: { username: 'system_automation' }
@@ -166,6 +171,55 @@ const CreatePaymentData = async (paymentData) => {
     return payment;
 };
 
+const RecordStudentPaymentData = async ({ invoice_id, payment_method = 'Stripe', user_id, transaction_reference }) => {
+    const invoice = await Invoices.findByPk(invoice_id, {
+        include: [{ model: FeeStructures, attributes: ['fee_id', 'fee_name', 'amount'] }]
+    });
+    if (!invoice) {
+        const err = new Error('Invoice not found!');
+        err.statusCode = 404;
+        throw err;
+    }
+
+    const user = await Users.findByPk(user_id);
+    if (!user) {
+        const err = new Error('User not found!');
+        err.statusCode = 404;
+        throw err;
+    }
+
+    const balance = parseFloat(invoice.total_amount) - parseFloat(invoice.amount_paid);
+    if (balance <= 0) {
+        const err = new Error('Invoice is already fully paid!');
+        err.statusCode = 400;
+        throw err;
+    }
+
+    const finalReference = transaction_reference || `student_${user_id}_${Date.now()}`;
+    const existing = await Payments.findOne({ where: { transaction_reference: finalReference } });
+    if (existing) {
+        const err = new Error('Transaction reference already exists!');
+        err.statusCode = 409;
+        throw err;
+    }
+
+    const payment = await Payments.create({
+        invoice_id,
+        payment_date: new Date(),
+        amount: balance,
+        payment_method: normalizePaymentMethod(payment_method),
+        transaction_reference: finalReference,
+        receipt_url: null,
+        recorded_by: user_id,
+        notes: `Recorded by ${user.role} via student portal`
+    });
+
+    await updateInvoiceAfterPaymentChange(invoice_id);
+    await notifyPaymentRecorded(invoice_id, payment);
+
+    return payment;
+};
+
 const UpdatePaymentData = async (payment_id, paymentData) => {
     const payment = await Payments.findByPk(payment_id);
     if (!payment) {
@@ -233,6 +287,7 @@ module.exports = {
     UpdatePaymentData,
     DeletePaymentData,
     recordPaymentFromGateway,
+    RecordStudentPaymentData,
     normalizePaymentMethod,
     getSystemUserId
 };

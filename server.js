@@ -25,6 +25,7 @@ const PaymentController = require('./src/modules/payments/payments.route');
 const LessonResourceController = require('./src/modules/lesson_resources/lesson_resources.route');
 const DashboardController = require('./src/modules/dashboard/dashboard.route');
 const ReportsController = require('./src/modules/reports/reports.route');
+const StudentPortalController = require('./src/modules/student_portal/student_portal.route');
 const errorHandler = require('./src/middleware/errorHandler');
 
 // Sync DB
@@ -96,6 +97,7 @@ PaymentController(app);
 LessonResourceController(app);
 DashboardController(app);
 ReportsController(app);
+StudentPortalController(app);
 
 app.use(errorHandler);
 

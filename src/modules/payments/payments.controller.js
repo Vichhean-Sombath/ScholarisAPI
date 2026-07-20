@@ -4,7 +4,8 @@ const {
     CreatePaymentData,
     UpdatePaymentData,
     DeletePaymentData,
-    recordPaymentFromGateway
+    recordPaymentFromGateway,
+    RecordStudentPaymentData
 } = require('./payments.service');
 const { ValidationCreatePayment, ValidationUpdatePayment } = require('./payments.validation');
 const { SelectedInvoiceData } = require('../invoices/invoices.service');
@@ -108,13 +109,17 @@ const StripeConfig = async (req, res, next) => {
 
 const StripeCheckout = async (req, res, next) => {
     try {
-        const { invoice_id } = req.body;
+        const { invoice_id, success_url, cancel_url } = req.body;
         if (!invoice_id) {
             return res.status(400).json({ message: 'Invoice ID is required.' });
         }
 
         const invoice = await SelectedInvoiceData(invoice_id);
-        const session = await createCheckoutSession(invoice);
+        if (req.user.role === 'Student' && invoice.student_id !== req.user.student_id) {
+            return res.status(403).json({ message: 'You are not authorized to pay this invoice.' });
+        }
+
+        const session = await createCheckoutSession(invoice, { success_url, cancel_url });
 
         res.status(200).json({
             message: 'Stripe checkout session created.',
@@ -141,6 +146,43 @@ const StripeSuccess = async (req, res, next) => {
                 status: session.payment_status,
                 invoice_id: session.metadata?.invoice_id
             }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const StripeVerify = async (req, res, next) => {
+    try {
+        const { session_id } = req.body;
+        if (!session_id) {
+            return res.status(400).json({ message: 'Session ID is required.' });
+        }
+
+        const session = await getSession(session_id);
+        const invoice_id = session.metadata?.invoice_id;
+
+        if (!invoice_id || session.payment_status !== 'paid') {
+            return res.status(400).json({ message: 'Payment not completed or invoice not found.' });
+        }
+
+        const invoice = await SelectedInvoiceData(invoice_id);
+        if (req.user.role === 'Student' && invoice.student_id !== req.user.student_id) {
+            return res.status(403).json({ message: 'You are not authorized to pay this invoice.' });
+        }
+
+        const amount = session.amount_total / 100;
+        const payment = await recordPaymentFromGateway({
+            invoice_id: parseInt(invoice_id, 10),
+            amount,
+            payment_method: 'Stripe',
+            transaction_reference: session.id,
+            receipt_url: session.receipt_url || null
+        });
+
+        res.status(200).json({
+            message: 'Payment verified and recorded successfully!',
+            data: payment
         });
     } catch (error) {
         next(error);
@@ -215,11 +257,42 @@ const BakongQR = async (req, res, next) => {
         }
 
         const invoice = await SelectedInvoiceData(invoice_id);
+        if (req.user.role === 'Student' && invoice.student_id !== req.user.student_id) {
+            return res.status(403).json({ message: 'You are not authorized to pay this invoice.' });
+        }
+
         const qr = await generateKHQR(invoice);
 
         res.status(200).json({
             message: 'Bakong KHQR generated.',
             data: qr
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const RecordStudentPayment = async (req, res, next) => {
+    try {
+        const { invoice_id } = req.body;
+        if (!invoice_id) {
+            return res.status(400).json({ message: 'Invoice ID is required.' });
+        }
+
+        const invoice = await SelectedInvoiceData(invoice_id);
+        if (req.user.role === 'Student' && invoice.student_id !== req.user.student_id) {
+            return res.status(403).json({ message: 'You are not authorized to pay this invoice.' });
+        }
+
+        const payment = await RecordStudentPaymentData({
+            invoice_id,
+            user_id: req.user.user_id,
+            payment_method: 'Stripe'
+        });
+
+        res.status(201).json({
+            message: 'Payment recorded successfully!',
+            data: payment
         });
     } catch (error) {
         next(error);
@@ -271,7 +344,9 @@ module.exports = {
     StripeSuccess,
     StripeCancel,
     StripeWebhook,
+    StripeVerify,
     BakongQR,
     CheckBakongAccount,
-    BakongWebhook
+    BakongWebhook,
+    RecordStudentPayment
 }

@@ -10,8 +10,10 @@ const {
     StripeCheckout,
     StripeSuccess,
     StripeCancel,
+    StripeVerify,
     BakongQR,
-    CheckBakongAccount
+    CheckBakongAccount,
+    RecordStudentPayment
 } = require('./payments.controller');
 
 const PaymentController = app => {
@@ -25,9 +27,12 @@ const PaymentController = app => {
     app.post('/payment/stripe/checkout', AccessToken, Authorize('Admin', 'Student'), StripeCheckout);
     app.get('/payment/stripe/success', StripeSuccess);
     app.get('/payment/stripe/cancel', StripeCancel);
+    app.post('/payment/stripe/verify', AccessToken, Authorize('Admin', 'Student'), StripeVerify);
 
     app.post('/payment/bakong/qr', AccessToken, Authorize('Admin', 'Student'), BakongQR);
     app.get('/payment/bakong/account', AccessToken, Authorize('Admin'), CheckBakongAccount);
+
+    app.post('/payment/stripe/record', AccessToken, Authorize('Admin', 'Student'), RecordStudentPayment);
 }
 
 module.exports = PaymentController;

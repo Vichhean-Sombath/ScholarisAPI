@@ -1,64 +1,58 @@
+const { validateEmail, validateUsername, validateDob, validatePhone } = require('../../utils/validationHelpers');
+
 const ValidationCreateUser = (data) => {
     const error = [];
     const {
         username,
         email,
         role,
-        password,
         first_name,
         last_name,
         gender,
-        dob
+        dob,
+        contact_number,
+        specialization,
+        hire_date
     } = data;
 
-    const isEmpty = (value) => !value || value.toString().trim() === '';
-    const emailFormat = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    validateUsername(username, error);
+    validateEmail(email, error);
 
-    if (!username || isEmpty(username)) {
-        error.push('Username required!');
-    } else if (username.length > 50) {
-        error.push('Username must not exceed 50 characters!');
-    }
-
-    if (!email || isEmpty(email)) {
-        error.push('Email required!');
-    } else if (!emailFormat.test(email)) {
-        error.push('Invalid email format!');
-    } else if (email.length > 100) {
-        error.push('Email must not exceed 100 characters!');
-    }
-
-    if (!password || isEmpty(password)) {
-        error.push('Password required!');
-    } else if (password.length < 8) {
-        error.push('Password must be at least 8 characters!');
-    } else if (!/[A-Z]/.test(password)) {
-        error.push('Password must contain at least one capital letter!');
-    } else if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-        error.push('Password must contain at least one special character!');
-    }
-
-    if (!role || isEmpty(role)) {
+    if (!role || (typeof role === 'string' && role.trim() === '')) {
         error.push('Role required!');
     } else if (!['Admin', 'Teacher', 'Student'].includes(role)) {
         error.push('Role must be Admin, Teacher, or Student!');
     }
 
+    if (role === 'Teacher' || role === 'Student') {
+        if (!first_name || (typeof first_name === 'string' && first_name.trim() === '')) {
+            error.push(`${role} first name required!`);
+        }
+        if (!last_name || (typeof last_name === 'string' && last_name.trim() === '')) {
+            error.push(`${role} last name required!`);
+        }
+    }
+
     if (role === 'Teacher') {
-        if (!first_name || isEmpty(first_name)) {
-            error.push('Teacher first name required!');
+        validateDob(dob, 25, error, 'Teacher');
+        if (!specialization || (typeof specialization === 'string' && specialization.trim() === '')) {
+            error.push('Teacher specialization required!');
         }
-        if (!last_name || isEmpty(last_name)) {
-            error.push('Teacher last name required!');
+        if (!hire_date || isNaN(Date.parse(hire_date))) {
+            error.push('Invalid hire date!');
         }
+    }
+
+    if (role === 'Student') {
+        validateDob(dob, 16, error, 'Student');
     }
 
     if (gender !== undefined && !['Male', 'Female', 'Other'].includes(gender)) {
         error.push('Gender must be Male, Female, or Other!');
     }
 
-    if (dob !== undefined && isNaN(Date.parse(dob))) {
-        error.push('Invalid date of birth format!');
+    if (role !== 'Admin') {
+        validatePhone(contact_number, error, role === 'Teacher' ? 'Teacher phone number' : 'Phone number');
     }
 
     return error.length > 0
@@ -71,10 +65,11 @@ const ValidationUpdateUser = (data) => {
     const {
         username,
         email,
-        password,
         status,
         gender,
-        dob
+        dob,
+        contact_number,
+        role
     } = data;
 
     if (username !== undefined && (typeof username !== 'string' || username.trim() === '')) {
@@ -83,10 +78,6 @@ const ValidationUpdateUser = (data) => {
 
     if (email !== undefined && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         error.push('Invalid email format.');
-    }
-
-    if (password !== undefined && (typeof password !== 'string' || password.length < 8)) {
-        error.push('Password must be at least 8 characters.');
     }
 
     if (status !== undefined && !['Active', 'Inactive'].includes(status)) {
@@ -99,6 +90,17 @@ const ValidationUpdateUser = (data) => {
 
     if (dob !== undefined && isNaN(Date.parse(dob))) {
         error.push('Invalid date of birth.');
+    }
+
+    if (contact_number !== undefined) {
+        const digits = String(contact_number).replace(/\D/g, '');
+        if (!/^\d{9,10}$/.test(digits)) {
+            error.push('Phone number must be 9-10 digits.');
+        }
+    }
+
+    if (role !== undefined && !['Admin', 'Teacher', 'Student'].includes(role)) {
+        error.push('Role must be Admin, Teacher, or Student.');
     }
 
     return error.length > 0

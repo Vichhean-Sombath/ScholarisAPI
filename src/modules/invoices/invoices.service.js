@@ -10,6 +10,11 @@ const computeInvoiceStatus = (total, paid) => {
     return 'Unpaid';
 };
 
+const generateInvoiceNumber = (feeId, studentId, index = 0) => {
+    const timestamp = Date.now();
+    return `INV-${feeId}-${studentId}-${timestamp}-${index}`;
+};
+
 const GetInvoiceData = async () => {
     return await Invoices.findAll({
         include: [
@@ -163,5 +168,6 @@ module.exports = {
     SelectedInvoiceData,
     CreateInvoiceData,
     UpdateInvoiceData,
-    DeleteInvoiceData
+    DeleteInvoiceData,
+    generateInvoiceNumber
 };

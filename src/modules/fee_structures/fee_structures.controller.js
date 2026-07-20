@@ -37,11 +37,16 @@ const CreateFeeStructure = async (req, res, next) => {
             });
         }
 
-        const feeStructureData = await CreateFeeStructureData(req.body);
+        const { feeStructure, invoicesGenerated } = await CreateFeeStructureData(req.body);
 
         res.status(201).json({
-            message: 'Fee structure created successfully!',
-            data: feeStructureData
+            message: invoicesGenerated > 0
+                ? `Fee structure created successfully! ${invoicesGenerated} invoice(s) generated.`
+                : 'Fee structure created successfully!',
+            data: {
+                ...feeStructure.toJSON(),
+                invoicesGenerated
+            }
         });
     } catch (error) {
         next(error);
@@ -58,11 +63,16 @@ const UpdateFeeStructure = async (req, res, next) => {
             });
         }
 
-        const feeStructureData = await UpdateFeeStructureData(req.params.id, req.body);
+        const { feeStructure, invoicesGenerated } = await UpdateFeeStructureData(req.params.id, req.body);
 
         res.status(200).json({
-            message: 'Fee structure updated successfully!',
-            data: feeStructureData
+            message: invoicesGenerated > 0
+                ? `Fee structure updated successfully! ${invoicesGenerated} invoice(s) generated.`
+                : 'Fee structure updated successfully!',
+            data: {
+                ...feeStructure.toJSON(),
+                invoicesGenerated
+            }
         });
     } catch (error) {
         next(error);

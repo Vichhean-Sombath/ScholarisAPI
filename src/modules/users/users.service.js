@@ -3,13 +3,13 @@ const Users = require('../../models/users.model');
 const Teachers = require('../../models/teachers.model');
 const Students = require('../../models/students.model');
 require('../../models/mappingContext');
+const { checkDuplicateEmail, checkDuplicatePhone, todayString } = require('../../utils/validationHelpers');
 
 const CreateUserData = async (userData) => {
     const {
         username,
         email,
         role,
-        password,
         first_name,
         last_name,
         gender,
@@ -17,13 +17,11 @@ const CreateUserData = async (userData) => {
         contact_number,
         specialization,
         bio,
-        hire_date,
-        enrollment_date,
         photo_url,
         address
     } = userData;
 
-    const existingEmail = await Users.findOne({ where: { email } });
+    const existingEmail = await checkDuplicateEmail(email);
     if (existingEmail) {
         const err = new Error('This email already exists!');
         err.statusCode = 409;
@@ -44,6 +42,7 @@ const CreateUserData = async (userData) => {
         throw err;
     }
 
+    const password = role === 'Teacher' ? 'Teacher123!' : role === 'Student' ? 'Student123!' : userData.password;
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = await Users.create({
@@ -54,9 +53,10 @@ const CreateUserData = async (userData) => {
     });
 
     if (role === 'Teacher') {
-        if (!first_name || !last_name) {
-            const err = new Error('Teacher first and last name are required!');
-            err.statusCode = 400;
+        const existingPhone = await checkDuplicatePhone(contact_number, newUser.user_id);
+        if (existingPhone) {
+            const err = new Error('This phone number already exists!');
+            err.statusCode = 409;
             throw err;
         }
 
@@ -69,26 +69,15 @@ const CreateUserData = async (userData) => {
             contact_number,
             specialization,
             bio,
-            hire_date
+            hire_date: todayString()
         });
     }
 
     if (role === 'Student') {
-        if (!first_name || !last_name || !enrollment_date) {
-            const err = new Error('Student first name, last name and enrollment date are required!');
-            err.statusCode = 400;
-            throw err;
-        }
-
-        if (isNaN(Date.parse(enrollment_date))) {
-            const err = new Error('Invalid enrollment date!');
-            err.statusCode = 400;
-            throw err;
-        }
-
-        if (dob !== undefined && isNaN(Date.parse(dob))) {
-            const err = new Error('Invalid date of birth!');
-            err.statusCode = 400;
+        const existingPhone = await checkDuplicatePhone(contact_number, newUser.user_id);
+        if (existingPhone) {
+            const err = new Error('This phone number already exists!');
+            err.statusCode = 409;
             throw err;
         }
 
@@ -101,7 +90,7 @@ const CreateUserData = async (userData) => {
             contact_number,
             address,
             photo_url,
-            enrollment_date
+            enrollment_date: todayString()
         });
     }
 
@@ -137,7 +126,7 @@ const UpdateUserData = async (user_id, userData, currentUser) => {
     }
 
     if (userData.email && userData.email !== user.email) {
-        const existingEmail = await Users.findOne({ where: { email: userData.email } });
+        const existingEmail = await checkDuplicateEmail(userData.email, user.user_id);
         if (existingEmail) {
             const err = new Error('This email already exists!');
             err.statusCode = 400;
@@ -149,6 +138,15 @@ const UpdateUserData = async (user_id, userData, currentUser) => {
         const existingUsername = await Users.findOne({ where: { username: userData.username } });
         if (existingUsername) {
             const err = new Error('This username already exists!');
+            err.statusCode = 400;
+            throw err;
+        }
+    }
+
+    if (userData.contact_number) {
+        const existingPhone = await checkDuplicatePhone(userData.contact_number, user.user_id);
+        if (existingPhone) {
+            const err = new Error('This phone number already exists!');
             err.statusCode = 400;
             throw err;
         }
@@ -170,6 +168,63 @@ const UpdateUserData = async (user_id, userData, currentUser) => {
         role: user.role,
         status: user.status,
         last_login_at: user.last_login_at
+    };
+};
+
+const ChangePasswordData = async (currentUser, { currentPassword, newPassword }) => {
+    if (!currentPassword || !newPassword) {
+        const err = new Error('Current password and new password are required!');
+        err.statusCode = 400;
+        throw err;
+    }
+
+    const user = await Users.findByPk(currentUser.user_id);
+    if (!user) {
+        const err = new Error('User not found!');
+        err.statusCode = 404;
+        throw err;
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!isMatch) {
+        const err = new Error('Current password is incorrect!');
+        err.statusCode = 401;
+        throw err;
+    }
+
+    if (newPassword.length < 8) {
+        const err = new Error('New password must be at least 8 characters!');
+        err.statusCode = 400;
+        throw err;
+    }
+    if (!/[A-Z]/.test(newPassword)) {
+        const err = new Error('New password must contain at least one uppercase letter!');
+        err.statusCode = 400;
+        throw err;
+    }
+    if (!/[a-z]/.test(newPassword)) {
+        const err = new Error('New password must contain at least one lowercase letter!');
+        err.statusCode = 400;
+        throw err;
+    }
+    if (!/\d/.test(newPassword)) {
+        const err = new Error('New password must contain at least one number!');
+        err.statusCode = 400;
+        throw err;
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) {
+        const err = new Error('New password must contain at least one special character!');
+        err.statusCode = 400;
+        throw err;
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await user.update({ password_hash: hashedPassword });
+
+    return {
+        user_id: user.user_id,
+        email: user.email,
+        role: user.role
     };
 };
 
@@ -250,6 +305,7 @@ const EnableUserData = async (user_id, currentUser) => {
 module.exports = {
     CreateUserData,
     UpdateUserData,
+    ChangePasswordData,
     DisableUserData,
     EnableUserData
 };

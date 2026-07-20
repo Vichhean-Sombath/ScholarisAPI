@@ -1,6 +1,5 @@
-const jwt = require('jsonwebtoken');
 const { ValidationCreateUser, ValidationUpdateUser } = require('./users.validation');
-const { CreateUserData, UpdateUserData, DisableUserData, EnableUserData } = require('./users.service');
+const { CreateUserData, UpdateUserData, ChangePasswordData, DisableUserData, EnableUserData } = require('./users.service');
 
 // Create
 const CreateUser = async (req, res, next) => {
@@ -51,6 +50,28 @@ const UpdateUser = async (req, res, next) => {
     }
 }
 
+// Change own password
+const ChangePassword = async (req, res, next) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({
+                message: 'Validation failed!',
+                errors: ['Current password and new password are required.']
+            });
+        }
+
+        const result = await ChangePasswordData(req.user, { currentPassword, newPassword });
+
+        res.status(200).json({
+            message: 'Password changed successfully!',
+            data: result
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 // Disable
 const DisableUser = async (req, res, next) => {
     try {
@@ -82,6 +103,7 @@ const EnableUser = async (req, res, next) => {
 module.exports = {
     CreateUser,
     UpdateUser,
+    ChangePassword,
     DisableUser,
     EnableUser
 }

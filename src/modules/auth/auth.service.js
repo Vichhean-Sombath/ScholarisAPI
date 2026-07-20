@@ -53,22 +53,22 @@ const LoginUserData = async (userData) => {
     };
 };
 
+const { checkDuplicateEmail, checkDuplicatePhone, todayString } = require('../../utils/validationHelpers');
+
 const RegisterUserData = async (userData) => {
     const {
         username,
         email,
-        password,
         first_name,
         last_name,
         gender,
         dob,
         contact_number,
         address,
-        photo_url,
-        enrollment_date
+        photo_url
     } = userData;
 
-    const existingEmail = await Users.findOne({ where: { email } });
+    const existingEmail = await checkDuplicateEmail(email);
     if (existingEmail) {
         const err = new Error('This email already exists!');
         err.statusCode = 409;
@@ -82,6 +82,14 @@ const RegisterUserData = async (userData) => {
         throw err;
     }
 
+    const existingPhone = await checkDuplicatePhone(contact_number);
+    if (existingPhone) {
+        const err = new Error('This phone number already exists!');
+        err.statusCode = 409;
+        throw err;
+    }
+
+    const password = 'Student123!';
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = await Users.create({
@@ -91,7 +99,7 @@ const RegisterUserData = async (userData) => {
         password_hash: hashedPassword
     });
 
-    await Students.create({
+    const newStudent = await Students.create({
         user_id: newUser.user_id,
         first_name,
         last_name,
@@ -100,7 +108,7 @@ const RegisterUserData = async (userData) => {
         contact_number,
         address,
         photo_url,
-        enrollment_date
+        enrollment_date: todayString()
     });
 
     const token = jwt.sign(
@@ -109,7 +117,7 @@ const RegisterUserData = async (userData) => {
             email: newUser.email,
             role: newUser.role,
             teacher_id: null,
-            student_id: null
+            student_id: newStudent.student_id
         },
         process.env.SECRET_KEY,
         { expiresIn: '2h' }
@@ -123,7 +131,9 @@ const RegisterUserData = async (userData) => {
             username: newUser.username,
             email: newUser.email,
             role: newUser.role,
-            status: newUser.status
+            status: newUser.status,
+            teacher_id: null,
+            student_id: newStudent.student_id
         }
     };
 };
