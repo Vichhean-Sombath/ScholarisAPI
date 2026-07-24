@@ -59,14 +59,26 @@ const RegisterUserData = async (userData) => {
     const {
         username,
         email,
+        password,
+        role,
         first_name,
         last_name,
         gender,
         dob,
         contact_number,
         address,
-        photo_url
+        photo_url,
+        specialization,
+        bio,
+        enrollment_date
     } = userData;
+
+    const allowedRoles = ['Teacher', 'Student'];
+    if (!allowedRoles.includes(role)) {
+        const err = new Error('Role must be Teacher or Student!');
+        err.statusCode = 400;
+        throw err;
+    }
 
     const existingEmail = await checkDuplicateEmail(email);
     if (existingEmail) {
@@ -89,35 +101,56 @@ const RegisterUserData = async (userData) => {
         throw err;
     }
 
-    const password = 'Student123!';
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = await Users.create({
         username,
         email,
-        role: 'Student',
+        role,
         password_hash: hashedPassword
     });
 
-    const newStudent = await Students.create({
-        user_id: newUser.user_id,
-        first_name,
-        last_name,
-        gender,
-        dob,
-        contact_number,
-        address,
-        photo_url,
-        enrollment_date: todayString()
-    });
+    let teacherId = null;
+    let studentId = null;
+
+    if (role === 'Teacher') {
+        const newTeacher = await Teachers.create({
+            user_id: newUser.user_id,
+            first_name,
+            last_name,
+            gender,
+            dob,
+            contact_number,
+            photo_url,
+            specialization,
+            bio,
+            hire_date: todayString()
+        });
+        teacherId = newTeacher.teacher_id;
+    }
+
+    if (role === 'Student') {
+        const newStudent = await Students.create({
+            user_id: newUser.user_id,
+            first_name,
+            last_name,
+            gender,
+            dob,
+            contact_number,
+            address,
+            photo_url,
+            enrollment_date: enrollment_date || todayString()
+        });
+        studentId = newStudent.student_id;
+    }
 
     const token = jwt.sign(
         {
             user_id: newUser.user_id,
             email: newUser.email,
             role: newUser.role,
-            teacher_id: null,
-            student_id: newStudent.student_id
+            teacher_id: teacherId,
+            student_id: studentId
         },
         process.env.SECRET_KEY,
         { expiresIn: '2h' }
@@ -132,8 +165,8 @@ const RegisterUserData = async (userData) => {
             email: newUser.email,
             role: newUser.role,
             status: newUser.status,
-            teacher_id: null,
-            student_id: newStudent.student_id
+            teacher_id: teacherId,
+            student_id: studentId
         }
     };
 };

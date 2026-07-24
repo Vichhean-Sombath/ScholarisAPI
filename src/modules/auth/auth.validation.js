@@ -27,6 +27,8 @@ const ValidationRegisterUser = (data) => {
     const {
         username,
         email,
+        password,
+        role,
         first_name,
         last_name,
         gender,
@@ -36,22 +38,33 @@ const ValidationRegisterUser = (data) => {
 
     validateUsername(username, error);
     validateEmail(email, error);
+    validatePassword(password, error, 'Password');
+
+    if (!role || (typeof role === 'string' && role.trim() === '')) {
+        error.push('Role required!');
+    } else if (!['Teacher', 'Student'].includes(role)) {
+        error.push('Role must be Teacher or Student!');
+    }
 
     if (!first_name || (typeof first_name === 'string' && first_name.trim() === '')) {
-        error.push('First name required!');
+        error.push(`${role || 'User'} first name required!`);
     }
 
     if (!last_name || (typeof last_name === 'string' && last_name.trim() === '')) {
-        error.push('Last name required!');
+        error.push(`${role || 'User'} last name required!`);
     }
 
-    validateDob(dob, 16, error, 'Student');
+    if (role === 'Teacher') {
+        validateDob(dob, 25, error, 'Teacher');
+    } else if (role === 'Student') {
+        validateDob(dob, 16, error, 'Student');
+    }
 
     if (gender !== undefined && !['Male', 'Female', 'Other'].includes(gender)) {
         error.push('Gender must be Male, Female, or Other!');
     }
 
-    validatePhone(contact_number, error, 'Phone number');
+    validatePhone(contact_number, error, role === 'Teacher' ? 'Teacher phone number' : 'Phone number');
 
     return error.length > 0
         ? { success: false, error }
