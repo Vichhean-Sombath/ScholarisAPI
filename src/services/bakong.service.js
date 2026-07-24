@@ -1,12 +1,17 @@
 const { BakongKHQR, khqrData, IndividualInfo } = require('bakong-khqr');
 
-const merchantPhone = process.env.MERCHANT_PHONE;
-const bakongAccountId = process.env.BAKONG_ACCOUNT_ID;
-const merchantName = process.env.MERCHANT_NAME;
-const merchantCity = process.env.MERCHANT_CITY;
-const storeLabel = process.env.STORE_LABEL;
-const apiUrl = process.env.BAKONG_API_URL;
-const apiToken = process.env.BAKONG_API_TOKEN;
+const sanitizeEnv = (value) => {
+    if (!value) return value;
+    return String(value).replace(/[\r\n\t]/g, ' ').trim();
+};
+
+const merchantPhone = sanitizeEnv(process.env.MERCHANT_PHONE);
+const bakongAccountId = sanitizeEnv(process.env.BAKONG_ACCOUNT_ID);
+const merchantName = sanitizeEnv(process.env.MERCHANT_NAME);
+const merchantCity = sanitizeEnv(process.env.MERCHANT_CITY);
+const storeLabel = sanitizeEnv(process.env.STORE_LABEL);
+const apiUrl = sanitizeEnv(process.env.BAKONG_API_URL);
+const apiToken = sanitizeEnv(process.env.BAKONG_API_TOKEN);
 const apiEnabled = process.env.BAKONG_API_ENABLED === 'true';
 
 const isConfigured = () => {
@@ -46,7 +51,6 @@ const generateKHQR = async (invoice) => {
 
     const individualInfo = new IndividualInfo(
         bakongAccountId,
-        khqrData.currency.khr,
         truncate(merchantName, 15),
         truncate(merchantCity, 15),
         optionalData
@@ -69,6 +73,14 @@ const generateKHQR = async (invoice) => {
         );
     }
 
+    const verifyResult = BakongKHQR.verify(response.data.qr);
+    if (!verifyResult.isValid) {
+        throw Object.assign(
+            new Error('Generated KHQR failed internal validation.'),
+            { statusCode: 500 }
+        );
+    }
+
     return {
         qr_string: response.data.qr,
         md5: response.data.md5,
@@ -76,7 +88,8 @@ const generateKHQR = async (invoice) => {
         currency: 'KHR',
         invoice_id: invoice.invoice_id,
         invoice_number: invoice.invoice_number,
-        expiration_timestamp: optionalData.expirationTimestamp
+        expiration_timestamp: optionalData.expirationTimestamp,
+        verified: true
     };
 };
 
