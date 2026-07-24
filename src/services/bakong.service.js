@@ -34,19 +34,15 @@ const generateKHQR = async (invoice) => {
         throw Object.assign(new Error('Invoice amount must be greater than zero to generate a KHQR.'), { statusCode: 400 });
     }
     const amount = Math.round(amountUsd * 4000);
-    const feeName = invoice.FeeStructure ? invoice.FeeStructure.fee_name : 'School fee';
 
     const optionalData = {
         currency: khqrData.currency.khr,
         amount,
         mobileNumber: merchantPhone,
         storeLabel: truncate(storeLabel || merchantName, 25),
-        terminalLabel: truncate(`Invoice ${invoice.invoice_number}`, 25),
         expirationTimestamp: Date.now() + (30 * 60 * 1000),
         merchantCategoryCode: '8299',
         billNumber: truncate(invoice.invoice_number, 25),
-        reference1: truncate(`inv_${invoice.invoice_id}`, 25),
-        purposeOfTransaction: truncate(feeName, 25)
     };
 
     const individualInfo = new IndividualInfo(
