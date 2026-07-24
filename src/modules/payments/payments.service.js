@@ -57,20 +57,25 @@ const updateInvoiceAfterPaymentChange = async (invoice_id) => {
 
 const notifyPaymentRecorded = async (invoice_id, payment) => {
     try {
+        console.log('Building payment notification context for invoice:', invoice_id);
         const context = await buildPaymentContext(invoice_id, payment);
         if (!context) {
             console.warn('Payment notification skipped: could not build payment context.');
             return;
         }
 
+        console.log('Sending payment notifications for invoice:', invoice_id);
         await sendPaymentNotification(context);
         await sendReceiptEmail(context);
+        console.log('Payment notifications completed for invoice:', invoice_id);
     } catch (error) {
         console.error('Payment notification failed:', error.message);
     }
 };
 
 const recordPaymentFromGateway = async ({ invoice_id, amount, payment_method, transaction_reference, receipt_url }) => {
+    console.log(`Recording ${payment_method} payment for invoice ${invoice_id}, ref=${transaction_reference}, amount=${amount}`);
+
     if (transaction_reference) {
         const existing = await Payments.findOne({ where: { transaction_reference } });
         if (existing) {

@@ -1,11 +1,16 @@
 const nodemailer = require('nodemailer');
 
-const senderAddress = process.env.EMAIL_SENDER_ADDRESS;
-const appPassword = process.env.EMAIL_APP_PASSWORD;
-
 let transporter = null;
+let configuredSender = null;
 
 const getTransporter = () => {
+    const senderAddress = process.env.EMAIL_SENDER_ADDRESS;
+    const appPassword = process.env.EMAIL_APP_PASSWORD;
+
+    if (transporter && senderAddress !== configuredSender) {
+        transporter = null;
+    }
+
     if (!transporter && senderAddress && appPassword) {
         transporter = nodemailer.createTransport({
             service: 'gmail',
@@ -14,6 +19,7 @@ const getTransporter = () => {
                 pass: appPassword
             }
         });
+        configuredSender = senderAddress;
     }
     return transporter;
 };

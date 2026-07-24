@@ -22,12 +22,18 @@ const sendPaymentNotification = async (context) => {
     const bot = getBot();
     const chatId = process.env.TELEGRAM_BOT_ID;
 
+    console.log('Preparing Telegram payment notification. Chat ID:', chatId);
+
     if (!process.env.TELEGRAM_BOT_TOKEN) {
         console.warn('TELEGRAM_BOT_TOKEN not set. Skipping payment notification.');
         return;
     }
     if (!chatId) {
         console.warn('TELEGRAM_BOT_ID not set. Skipping payment notification.');
+        return;
+    }
+    if (!bot) {
+        console.warn('Telegram bot could not be initialized. Skipping payment notification.');
         return;
     }
 
