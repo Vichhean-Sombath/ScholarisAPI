@@ -1,10 +1,4 @@
-const {
-    GetClassEnrollmentData,
-    SelectedClassEnrollmentData,
-    CreateClassEnrollmentData,
-    UpdateClassEnrollmentData,
-    DeleteClassEnrollmentData
-} = require('./class_enrollments.service');
+const { GetClassEnrollmentData, SelectedClassEnrollmentData, CreateClassEnrollmentData, UpdateClassEnrollmentData, DeleteClassEnrollmentData } = require('./class_enrollments.service');
 const { ValidationCreateClassEnrollment, ValidationUpdateClassEnrollment } = require('./class_enrollments.validation');
 
 const GetClassEnrollment = async (req, res, next) => {

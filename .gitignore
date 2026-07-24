@@ -118,4 +118,5 @@ dist
 .pnp.*
 
 seed_data.sql
+database/
 # End of https://mrkandreev.name/snippets/gitignore-generator/#Node
