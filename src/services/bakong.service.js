@@ -25,7 +25,10 @@ const generateKHQR = async (invoice) => {
     }
 
     const amountUsd = parseFloat(invoice.total_amount);
-    const amount = amountUsd > 0 ? Math.round(amountUsd * 4000) : undefined;
+    if (!amountUsd || amountUsd <= 0) {
+        throw Object.assign(new Error('Invoice amount must be greater than zero to generate a KHQR.'), { statusCode: 400 });
+    }
+    const amount = Math.round(amountUsd * 4000);
     const feeName = invoice.FeeStructure ? invoice.FeeStructure.fee_name : 'School fee';
 
     const optionalData = {
@@ -43,7 +46,8 @@ const generateKHQR = async (invoice) => {
 
     const individualInfo = new IndividualInfo(
         bakongAccountId,
-        truncate(merchantName, 25),
+        khqrData.currency.khr,
+        truncate(merchantName, 15),
         truncate(merchantCity, 15),
         optionalData
     );
