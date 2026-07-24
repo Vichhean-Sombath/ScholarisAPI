@@ -1,3 +1,6 @@
+// Load env first so every module sees process.env values
+require('dotenv').config();
+
 // Dependencies
 const express = require('express');
 const cors = require('cors');

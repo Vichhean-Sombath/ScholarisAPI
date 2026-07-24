@@ -1,13 +1,27 @@
 const Stripe = require('stripe');
 
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 const serverUrl = process.env.SERVER_URL;
 
 let stripe = null;
+let configuredKey = null;
 
 const getStripe = () => {
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+
+    // Re-initialize if the key changes (e.g. after dotenv loads)
+    if (stripe && stripeSecretKey !== configuredKey) {
+        stripe = null;
+    }
+
     if (!stripe && stripeSecretKey) {
+        if (!stripeSecretKey.startsWith('sk_')) {
+            throw Object.assign(
+                new Error('STRIPE_SECRET_KEY must be a secret key (sk_...), not a publishable key.'),
+                { statusCode: 500 }
+            );
+        }
         stripe = Stripe(stripeSecretKey);
+        configuredKey = stripeSecretKey;
     }
     return stripe;
 };
