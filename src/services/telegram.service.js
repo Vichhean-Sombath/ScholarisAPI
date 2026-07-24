@@ -1,21 +1,33 @@
 const TelegramBot = require('node-telegram-bot-api');
 
-const botToken = process.env.TELEGRAM_BOT_TOKEN;
-const chatId = process.env.TELEGRAM_BOT_ID;
-
 let bot = null;
+let configuredToken = null;
 
 const getBot = () => {
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+
+    // Re-initialize if the token changes (e.g. after dotenv loads)
+    if (bot && botToken !== configuredToken) {
+        bot = null;
+    }
+
     if (!bot && botToken) {
         bot = new TelegramBot(botToken, { polling: false });
+        configuredToken = botToken;
     }
     return bot;
 };
 
 const sendPaymentNotification = async (context) => {
     const bot = getBot();
-    if (!bot || !chatId) {
-        console.warn('Telegram bot not configured. Skipping payment notification.');
+    const chatId = process.env.TELEGRAM_BOT_ID;
+
+    if (!process.env.TELEGRAM_BOT_TOKEN) {
+        console.warn('TELEGRAM_BOT_TOKEN not set. Skipping payment notification.');
+        return;
+    }
+    if (!chatId) {
+        console.warn('TELEGRAM_BOT_ID not set. Skipping payment notification.');
         return;
     }
 

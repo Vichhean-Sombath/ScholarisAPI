@@ -58,7 +58,10 @@ const updateInvoiceAfterPaymentChange = async (invoice_id) => {
 const notifyPaymentRecorded = async (invoice_id, payment) => {
     try {
         const context = await buildPaymentContext(invoice_id, payment);
-        if (!context) return;
+        if (!context) {
+            console.warn('Payment notification skipped: could not build payment context.');
+            return;
+        }
 
         await sendPaymentNotification(context);
         await sendReceiptEmail(context);
