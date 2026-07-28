@@ -10,7 +10,7 @@ const {
 const { ValidationCreatePayment, ValidationUpdatePayment } = require('./payments.validation');
 const { SelectedInvoiceData } = require('../invoices/invoices.service');
 const { createCheckoutSession, getSession, verifyWebhookSignature } = require('../../services/stripe.service');
-const { generateKHQR, checkBakongAccount, KHR_PER_USD } = require('../../services/bakong.service');
+const { generateKHQR, checkBakongAccount, checkTransactionByMd5, KHR_PER_USD } = require('../../services/bakong.service');
 const BakongQRRequests = require('../../models/bakong_qr_requests.model');
 
 const GetPayment = async (req, res, next) => {
@@ -289,18 +289,68 @@ const BakongVerify = async (req, res, next) => {
             await qrRequest.update({ status: 'Expired' });
         }
 
+        let bakongStatus = null;
+        let paymentId = null;
+
+        // Poll Bakong's API while the local request is still pending.
+        if (qrRequest.status === 'Pending') {
+            try {
+                const bakongResult = await checkTransactionByMd5(md5);
+                console.log('Bakong check_transaction_by_md5 response:', JSON.stringify(bakongResult));
+                bakongStatus = bakongResult;
+
+                if (bakongResult?.responseCode === 0 && bakongResult?.data) {
+                    const tx = bakongResult.data;
+                    const currency = String(tx.currency || 'KHR').toUpperCase();
+                    const rawAmount = parseFloat(tx.amount);
+                    const expectedKhr = parseFloat(qrRequest.amount_khr);
+                    const expectedUsd = parseFloat(qrRequest.amount_usd);
+                    let amountUsd;
+                    let amountMatched;
+
+                    if (currency === 'USD') {
+                        amountUsd = rawAmount;
+                        amountMatched = Math.abs(rawAmount - expectedUsd) <= 0.01;
+                    } else {
+                        amountUsd = rawAmount / KHR_PER_USD;
+                        amountMatched = Math.abs(rawAmount - expectedKhr) <= 1;
+                    }
+
+                    if (!isNaN(rawAmount) && amountMatched) {
+                        const payment = await recordPaymentFromGateway({
+                            invoice_id: qrRequest.invoice_id,
+                            amount: amountUsd,
+                            payment_method: 'BakongKHQR',
+                            transaction_reference: tx.hash || md5,
+                            receipt_url: tx.receiptUrl || null
+                        });
+
+                        await qrRequest.update({ status: 'Paid', paid_at: new Date() });
+                        paymentId = payment.payment_id;
+                    }
+                }
+            } catch (error) {
+                console.error('Bakong transaction check failed:', error.message);
+                bakongStatus = { error: error.message };
+            }
+        }
+
+        const refreshed = await BakongQRRequests.findOne({ where: { md5 } });
+
         res.status(200).json({
             message: 'Bakong QR status retrieved.',
             data: {
-                md5: qrRequest.md5,
-                invoice_id: qrRequest.invoice_id,
-                status: qrRequest.status,
-                paid: qrRequest.status === 'Paid',
-                expired: qrRequest.status === 'Expired',
-                amount_khr: parseFloat(qrRequest.amount_khr),
-                amount_usd: parseFloat(qrRequest.amount_usd),
-                expires_at: qrRequest.expires_at,
-                paid_at: qrRequest.paid_at
+                md5: refreshed.md5,
+                invoice_id: refreshed.invoice_id,
+                status: refreshed.status,
+                paid: refreshed.status === 'Paid',
+                expired: refreshed.status === 'Expired',
+                amount_khr: parseFloat(refreshed.amount_khr),
+                amount_usd: parseFloat(refreshed.amount_usd),
+                expires_at: refreshed.expires_at,
+                paid_at: refreshed.paid_at,
+                payment_id: paymentId,
+                bakong_status: bakongStatus
             }
         });
     } catch (error) {

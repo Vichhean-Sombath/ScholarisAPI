@@ -1,4 +1,5 @@
 const { BakongKHQR, khqrData, IndividualInfo } = require('bakong-khqr');
+const https = require('https');
 const BakongQRRequests = require('../models/bakong_qr_requests.model');
 
 const KHR_PER_USD = 4000;
@@ -115,9 +116,51 @@ const checkBakongAccount = async () => {
     }
 };
 
+const checkTransactionByMd5 = async (md5) => {
+    if (!apiEnabled || !apiUrl || !apiToken) {
+        throw Object.assign(new Error('Bakong API is not enabled or not configured.'), { statusCode: 500 });
+    }
+
+    const baseUrl = String(apiUrl).replace(/\/+$/, '');
+    const url = new URL(`${baseUrl}/v1/check_transaction_by_md5`);
+    const body = JSON.stringify({ md5 });
+
+    const options = {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${apiToken}`,
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(body)
+        },
+        timeout: 15000
+    };
+
+    return new Promise((resolve, reject) => {
+        const req = https.request(url, options, (res) => {
+            let data = '';
+            res.setEncoding('utf8');
+            res.on('data', (chunk) => { data += chunk; });
+            res.on('end', () => {
+                try {
+                    const parsed = data ? JSON.parse(data) : {};
+                    resolve(parsed);
+                } catch (error) {
+                    resolve({ raw: data });
+                }
+            });
+        });
+
+        req.on('error', (error) => reject(error));
+        req.on('timeout', () => reject(new Error('Bakong API request timed out')));
+        req.write(body);
+        req.end();
+    });
+};
+
 module.exports = {
     generateKHQR,
     checkBakongAccount,
+    checkTransactionByMd5,
     isConfigured,
     KHR_PER_USD
 };
