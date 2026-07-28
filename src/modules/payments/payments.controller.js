@@ -10,7 +10,8 @@ const {
 const { ValidationCreatePayment, ValidationUpdatePayment } = require('./payments.validation');
 const { SelectedInvoiceData } = require('../invoices/invoices.service');
 const { createCheckoutSession, getSession, verifyWebhookSignature } = require('../../services/stripe.service');
-const { generateKHQR, checkBakongAccount } = require('../../services/bakong.service');
+const { generateKHQR, checkBakongAccount, KHR_PER_USD } = require('../../services/bakong.service');
+const BakongQRRequests = require('../../models/bakong_qr_requests.model');
 
 const GetPayment = async (req, res, next) => {
     try {
@@ -272,6 +273,41 @@ const BakongQR = async (req, res, next) => {
     }
 };
 
+const BakongVerify = async (req, res, next) => {
+    try {
+        const { md5 } = req.body;
+        if (!md5) {
+            return res.status(400).json({ message: 'md5 is required.' });
+        }
+
+        const qrRequest = await BakongQRRequests.findOne({ where: { md5 } });
+        if (!qrRequest) {
+            return res.status(404).json({ message: 'QR request not found.' });
+        }
+
+        if (qrRequest.status === 'Pending' && new Date() > new Date(qrRequest.expires_at)) {
+            await qrRequest.update({ status: 'Expired' });
+        }
+
+        res.status(200).json({
+            message: 'Bakong QR status retrieved.',
+            data: {
+                md5: qrRequest.md5,
+                invoice_id: qrRequest.invoice_id,
+                status: qrRequest.status,
+                paid: qrRequest.status === 'Paid',
+                expired: qrRequest.status === 'Expired',
+                amount_khr: parseFloat(qrRequest.amount_khr),
+                amount_usd: parseFloat(qrRequest.amount_usd),
+                expires_at: qrRequest.expires_at,
+                paid_at: qrRequest.paid_at
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 const RecordStudentPayment = async (req, res, next) => {
     try {
         const { invoice_id } = req.body;
@@ -304,27 +340,65 @@ const BakongWebhook = async (req, res, next) => {
         const payload = req.body;
         console.log('Bakong webhook received:', JSON.stringify(payload));
 
-        const invoice_id = payload.invoice_id ||
-            (payload.reference1 ? parseInt(payload.reference1.replace('inv_', ''), 10) : null) ||
-            (payload.description ? parseInt(payload.description.replace(/\D/g, ''), 10) : null);
+        // Bakong callbacks identify the QR by its md5 hash, not by invoice_id/reference1.
+        const md5 = payload.md5 || payload.data?.md5 || null;
+        const currency = (payload.currency || payload.data?.currency || 'KHR').toString().toUpperCase();
+        const rawAmount = parseFloat(payload.amount ?? payload.data?.amount);
+        const transaction_reference = payload.hash || payload.transactionHash || payload.data?.hash || md5;
 
-        const amount = parseFloat(payload.amount);
-        const transaction_reference = payload.transactionId || payload.transactionReference || payload.referenceId || null;
+        if (!md5 || isNaN(rawAmount) || !transaction_reference) {
+            console.warn('Bakong webhook could not extract md5, amount, or transaction_reference.', { md5, rawAmount, transaction_reference });
+            return res.status(200).json({ received: true });
+        }
 
-        if (invoice_id && !isNaN(amount) && transaction_reference) {
-            try {
-                await recordPaymentFromGateway({
-                    invoice_id,
-                    amount,
-                    payment_method: 'BakongKHQR',
-                    transaction_reference,
-                    receipt_url: payload.receiptUrl || null
-                });
-            } catch (error) {
-                console.error('Bakong webhook payment recording failed:', error.message);
-            }
+        const qrRequest = await BakongQRRequests.findOne({
+            where: { md5, status: 'Pending' }
+        });
+
+        if (!qrRequest) {
+            console.warn('Bakong webhook: no pending QR request found for md5:', md5);
+            return res.status(200).json({ received: true });
+        }
+
+        if (new Date() > new Date(qrRequest.expires_at)) {
+            await qrRequest.update({ status: 'Expired' });
+            console.warn('Bakong webhook: QR request expired for md5:', md5);
+            return res.status(200).json({ received: true });
+        }
+
+        const expectedKhr = parseFloat(qrRequest.amount_khr);
+        const expectedUsd = parseFloat(qrRequest.amount_usd);
+        let amountUsd;
+        let amountMatched;
+
+        if (currency === 'USD') {
+            amountUsd = rawAmount;
+            amountMatched = Math.abs(rawAmount - expectedUsd) <= 0.01;
         } else {
-            console.warn('Bakong webhook could not extract invoice_id, amount, or transaction_reference.');
+            // Bakong QR was generated in KHR; assume callback amount is in KHR.
+            amountUsd = rawAmount / KHR_PER_USD;
+            amountMatched = Math.abs(rawAmount - expectedKhr) <= 1;
+        }
+
+        if (!amountMatched) {
+            console.warn(`Bakong webhook: amount mismatch for md5 ${md5}. currency=${currency}, expectedKhr=${expectedKhr}, expectedUsd=${expectedUsd}, received=${rawAmount}`);
+            await qrRequest.update({ status: 'Failed' });
+            return res.status(200).json({ received: true });
+        }
+
+        try {
+            await recordPaymentFromGateway({
+                invoice_id: qrRequest.invoice_id,
+                amount: amountUsd,
+                payment_method: 'BakongKHQR',
+                transaction_reference,
+                receipt_url: payload.receiptUrl || payload.data?.receiptUrl || null
+            });
+
+            await qrRequest.update({ status: 'Paid', paid_at: new Date() });
+            console.log('Bakong webhook: payment recorded for invoice', qrRequest.invoice_id);
+        } catch (error) {
+            console.error('Bakong webhook payment recording failed:', error.message);
         }
 
         res.status(200).json({ received: true });
@@ -346,6 +420,7 @@ module.exports = {
     StripeWebhook,
     StripeVerify,
     BakongQR,
+    BakongVerify,
     CheckBakongAccount,
     BakongWebhook,
     RecordStudentPayment

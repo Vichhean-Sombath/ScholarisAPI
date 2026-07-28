@@ -1,4 +1,7 @@
 const { BakongKHQR, khqrData, IndividualInfo } = require('bakong-khqr');
+const BakongQRRequests = require('../models/bakong_qr_requests.model');
+
+const KHR_PER_USD = 4000;
 
 const sanitizeEnv = (value) => {
     if (!value) return value;
@@ -33,7 +36,7 @@ const generateKHQR = async (invoice) => {
     if (!amountUsd || amountUsd <= 0) {
         throw Object.assign(new Error('Invoice amount must be greater than zero to generate a KHQR.'), { statusCode: 400 });
     }
-    const amount = Math.round(amountUsd * 4000);
+    const amount = Math.round(amountUsd * KHR_PER_USD);
 
     const optionalData = {
         currency: khqrData.currency.khr,
@@ -77,9 +80,19 @@ const generateKHQR = async (invoice) => {
         );
     }
 
+    const qrRequest = await BakongQRRequests.create({
+        invoice_id: invoice.invoice_id,
+        md5: response.data.md5,
+        amount_khr: amount,
+        amount_usd: amountUsd,
+        status: 'Pending',
+        expires_at: new Date(optionalData.expirationTimestamp)
+    });
+
     return {
         qr_string: response.data.qr,
         md5: response.data.md5,
+        qr_id: qrRequest.qr_id,
         amount,
         currency: 'KHR',
         invoice_id: invoice.invoice_id,
@@ -105,5 +118,6 @@ const checkBakongAccount = async () => {
 module.exports = {
     generateKHQR,
     checkBakongAccount,
-    isConfigured
+    isConfigured,
+    KHR_PER_USD
 };

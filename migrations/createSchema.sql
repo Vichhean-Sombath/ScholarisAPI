@@ -281,6 +281,23 @@ CREATE TABLE IF NOT EXISTS payments (
     CONSTRAINT payments_recorded_by_fk FOREIGN KEY (recorded_by) REFERENCES users(user_id) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS bakong_qr_requests (
+    qr_id INT NOT NULL AUTO_INCREMENT,
+    invoice_id INT NOT NULL,
+    md5 VARCHAR(64) NOT NULL,
+    amount_khr DECIMAL(15, 2) NOT NULL,
+    amount_usd DECIMAL(10, 2) NOT NULL,
+    status ENUM('Pending', 'Paid', 'Expired', 'Failed') NOT NULL DEFAULT 'Pending',
+    expires_at DATETIME NOT NULL,
+    paid_at DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (qr_id),
+    UNIQUE KEY bakong_qr_requests_md5 (md5),
+    KEY idx_bakong_qr_invoice (invoice_id),
+    KEY idx_bakong_qr_status (status),
+    CONSTRAINT bakong_qr_requests_invoice_id_fk FOREIGN KEY (invoice_id) REFERENCES invoices(invoice_id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS certificates (
     certificate_id INT NOT NULL AUTO_INCREMENT,
     student_id INT NOT NULL,

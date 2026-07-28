@@ -58,6 +58,7 @@ const {
     FeeStructures,
     Invoices,
     Payments,
+    BakongQRRequests,
     Certificates,
     LessonResources
 } = require('./src/models/mappingContext');

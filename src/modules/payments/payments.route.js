@@ -12,6 +12,7 @@ const {
     StripeCancel,
     StripeVerify,
     BakongQR,
+    BakongVerify,
     CheckBakongAccount,
     RecordStudentPayment
 } = require('./payments.controller');
@@ -30,6 +31,7 @@ const PaymentController = app => {
     app.post('/payment/stripe/verify', AccessToken, Authorize('Admin', 'Student'), StripeVerify);
 
     app.post('/payment/bakong/qr', AccessToken, Authorize('Admin', 'Student'), BakongQR);
+    app.post('/payment/bakong/verify', AccessToken, Authorize('Admin', 'Student'), BakongVerify);
     app.get('/payment/bakong/account', AccessToken, Authorize('Admin'), CheckBakongAccount);
 
     app.post('/payment/stripe/record', AccessToken, Authorize('Admin', 'Student'), RecordStudentPayment);

@@ -17,6 +17,7 @@ const FinalGrades = require('./final_grades.model');
 const FeeStructures = require('./fee_structures.model');
 const Invoices = require('./invoices.model');
 const Payments = require('./payments.model');
+const BakongQRRequests = require('./bakong_qr_requests.model');
 const Certificates = require('./certificates.model');
 const LessonResources = require('./lesson_resources.model');
 
@@ -156,6 +157,9 @@ Invoices.belongsTo(FeeStructures, { foreignKey: 'fee_id' });
 Invoices.hasMany(Payments, { foreignKey: 'invoice_id', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
 Payments.belongsTo(Invoices, { foreignKey: 'invoice_id' });
 
+Invoices.hasMany(BakongQRRequests, { foreignKey: 'invoice_id', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
+BakongQRRequests.belongsTo(Invoices, { foreignKey: 'invoice_id' });
+
 module.exports = {
     Users,
     Teachers,
@@ -176,6 +180,7 @@ module.exports = {
     FeeStructures,
     Invoices,
     Payments,
+    BakongQRRequests,
     Certificates,
     LessonResources
 };
