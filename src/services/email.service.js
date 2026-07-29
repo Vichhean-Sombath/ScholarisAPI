@@ -57,6 +57,8 @@ const sendReceiptEmail = async (context) => {
         .filter(Boolean)
         .join('\n');
 
+    const senderAddress = process.env.EMAIL_SENDER_ADDRESS;
+
     try {
         await transport.sendMail({
             from: `"Scholaris" <${senderAddress}>`,

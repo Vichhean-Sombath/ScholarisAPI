@@ -1,4 +1,4 @@
-const TelegramBot = require('node-telegram-bot-api');
+const { TelegramBot } = require('node-telegram-bot-api');
 
 let bot = null;
 let configuredToken = null;
@@ -37,23 +37,44 @@ const sendPaymentNotification = async (context) => {
         return;
     }
 
-    const message = [
-        'New payment received',
+    const escapeHtml = (value) =>
+        String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+
+    const label = (text) => `<b>${escapeHtml(text)}</b>`;
+    const value = (text) => escapeHtml(text);
+    const formattedAmount = parseFloat(context.amount || 0).toFixed(2);
+    const formattedDate = new Date(context.payment_date).toLocaleString('en-US', {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    const lines = [
+        `<b>New Payment Received</b>`,
         '',
-        `Student: ${context.student}`,
-        `Invoice: ${context.invoice_number}`,
-        `Fee: ${context.fee_name}`,
-        context.semester_name ? `Semester: ${context.semester_name}` : null,
-        `Amount: $${context.amount}`,
-        `Method: ${context.payment_method}`,
-        `Date: ${new Date(context.payment_date).toLocaleString()}`,
-        context.transaction_reference ? `Reference: ${context.transaction_reference}` : null
-    ]
-        .filter(Boolean)
-        .join('\n');
+        `${label('Student:')} ${value(context.student)}`,
+        `${label('Invoice:')} ${value(context.invoice_number)}`,
+        `${label('Fee:')} ${value(context.fee_name)}`,
+        context.semester_name ? `${label('Semester:')} ${value(context.semester_name)}` : null,
+        '',
+        `${label('Amount:')} $${value(formattedAmount)}`,
+        `${label('Method:')} ${value(context.payment_method)}`,
+        `${label('Date:')} ${value(formattedDate)}`,
+        context.transaction_reference ? `${label('Reference:')} ${value(context.transaction_reference)}` : null,
+        context.receipt_url ? `${label('Receipt:')} <a href="${escapeHtml(context.receipt_url)}">View receipt</a>` : null
+    ].filter(Boolean);
+
+    const message = lines.join('\n');
 
     try {
-        await bot.sendMessage(chatId, message);
+        await bot.sendMessage(chatId, message, { parse_mode: 'HTML' });
         console.log('Telegram payment notification sent.');
     } catch (error) {
         console.error('Failed to send Telegram payment notification:', error.message);
