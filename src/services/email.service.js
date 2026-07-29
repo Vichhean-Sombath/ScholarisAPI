@@ -13,10 +13,18 @@ const getTransporter = () => {
 
     if (!transporter && senderAddress && appPassword) {
         transporter = nodemailer.createTransport({
-            service: 'gmail',
+            host: 'smtp.gmail.com',
+            port: 587,
+            secure: false,
             auth: {
                 user: senderAddress,
                 pass: appPassword
+            },
+            tls: {
+                rejectUnauthorized: false
+            },
+            connection: {
+                family: 4
             }
         });
         configuredSender = senderAddress;
