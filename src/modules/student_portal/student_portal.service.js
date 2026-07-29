@@ -50,7 +50,12 @@ const checkInAttendance = async (studentId, payload) => {
         throw err;
     }
 
-    const expectedToken = process.env.ATTENDANCE_CHECKIN_TOKEN || 'scholaris-attendance-token';
+    const expectedToken = process.env.ATTENDANCE_CHECKIN_TOKEN;
+    if (!expectedToken) {
+        const err = new Error('ATTENDANCE_CHECKIN_TOKEN is not configured.');
+        err.statusCode = 500;
+        throw err;
+    }
     if (token !== expectedToken) {
         const err = new Error('Invalid check-in token!');
         err.statusCode = 403;

@@ -42,8 +42,13 @@ const CreateUserData = async (userData) => {
         throw err;
     }
 
-    const password = role === 'Teacher' ? 'Teacher123!' : role === 'Student' ? 'Student123!' : userData.password;
-    const hashedPassword = await bcrypt.hash(password, 10);
+    if (!userData.password) {
+        const err = new Error('Password is required.');
+        err.statusCode = 400;
+        throw err;
+    }
+
+    const hashedPassword = await bcrypt.hash(userData.password, 10);
 
     const newUser = await Users.create({
         username,
