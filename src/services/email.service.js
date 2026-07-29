@@ -22,9 +22,6 @@ const getTransporter = () => {
             },
             tls: {
                 rejectUnauthorized: false
-            },
-            connection: {
-                family: 4
             }
         });
         configuredSender = senderAddress;
