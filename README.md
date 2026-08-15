@@ -7,7 +7,7 @@ Backend API server for the Scholaris school management platform.
 
 ## Related Projects
 
-- **ScholarisPage** — Role-based React web application for admins, teachers, and students. (https://github.com/rezio23/ScholarisClient.git)
+- **ScholarisPage** — Role-based React web application for admins, teachers, and students. (https://github.com/rezio23/ScholarisEdu.git)
 - **ScholarisMobile** — Native Android app for students to scan attendance QR codes. (https://github.com/rezio23/ScholarisMobile.git)
 
 ## Overview
