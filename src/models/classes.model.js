@@ -1,69 +1,37 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/db');
+const mongoose = require('mongoose');
 
-const Classes = sequelize.define(
-    'Classes',
+const ClassesSchema = new mongoose.Schema(
     {
         class_id: {
-            type: DataTypes.INTEGER,
-            primaryKey: true,
-            autoIncrement: true
+            type: Number,
+            unique: true
         },
         class_name: {
-            type: DataTypes.STRING(50),
-            allowNull: false
+            type: String,
+            required: true
         },
         academic_year_id: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            references: {
-                model: 'academic_years',
-                key: 'academic_year_id'
-            }
+            type: Number,
+            required: true
         },
         semester_id: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            references: {
-                model: 'semesters',
-                key: 'semester_id'
-            }
+            type: Number,
+            required: true
         },
         room_number: {
-            type: DataTypes.STRING(20),
-            allowNull: true
+            type: String
         },
         max_capacity: {
-            type: DataTypes.INTEGER,
-            allowNull: true
+            type: Number
         },
         homeroom_teacher_id: {
-            type: DataTypes.INTEGER,
-            allowNull: true,
-            references: {
-                model: 'teachers',
-                key: 'teacher_id'
-            }
+            type: Number
         }
     },
     {
-        tableName: 'classes',
-        timestamps: false,
-        indexes: [
-            {
-                name: 'idx_classes_year',
-                fields: ['academic_year_id']
-            },
-            {
-                name: 'idx_classes_semester',
-                fields: ['semester_id']
-            },
-            {
-                name: 'idx_classes_homeroom',
-                fields: ['homeroom_teacher_id']
-            }
-        ]
+        collection: 'classes',
+        timestamps: false
     }
 );
 
-module.exports = Classes;
+module.exports = mongoose.model('Classes', ClassesSchema);

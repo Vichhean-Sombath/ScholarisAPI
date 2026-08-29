@@ -1,58 +1,35 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/db');
+const mongoose = require('mongoose');
 
-const GradingCriteria = sequelize.define(
-    'GradingCriteria',
+const GradingCriteriaSchema = new mongoose.Schema(
     {
         criteria_id: {
-            type: DataTypes.INTEGER,
-            primaryKey: true,
-            autoIncrement: true
+            type: Number,
+            unique: true
         },
         subject_id: {
-            type: DataTypes.INTEGER,
-            allowNull: true,
-            references: {
-                model: 'subjects',
-                key: 'subject_id'
-            }
+            type: Number
         },
         class_id: {
-            type: DataTypes.INTEGER,
-            allowNull: true,
-            references: {
-                model: 'classes',
-                key: 'class_id'
-            }
+            type: Number
         },
         component_name: {
-            type: DataTypes.STRING(50),
-            allowNull: false
+            type: String,
+            required: true
         },
         weight_percentage: {
-            type: DataTypes.DECIMAL(5, 2),
-            allowNull: false
+            type: Number,
+            required: true
         },
         attempt_count: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            defaultValue: 1
+            type: Number,
+            required: true,
+            default: 1
         }
     },
     {
-        tableName: 'grading_criteria',
-        timestamps: false,
-        indexes: [
-            {
-                name: 'idx_criteria_subject',
-                fields: ['subject_id']
-            },
-            {
-                name: 'idx_criteria_class',
-                fields: ['class_id']
-            }
-        ]
+        collection: 'grading_criteria',
+        timestamps: false
     }
 );
 
-module.exports = GradingCriteria;
+module.exports = mongoose.model('GradingCriteria', GradingCriteriaSchema);

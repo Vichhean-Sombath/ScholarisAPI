@@ -1,57 +1,34 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/db');
+const mongoose = require('mongoose');
 
-const FeeStructures = sequelize.define(
-    'FeeStructures',
+const FeeStructuresSchema = new mongoose.Schema(
     {
         fee_id: {
-            type: DataTypes.INTEGER,
-            primaryKey: true,
-            autoIncrement: true
+            type: Number,
+            unique: true
         },
         class_id: {
-            type: DataTypes.INTEGER,
-            allowNull: true,
-            references: {
-                model: 'classes',
-                key: 'class_id'
-            }
+            type: Number
         },
         semester_id: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            references: {
-                model: 'semesters',
-                key: 'semester_id'
-            }
+            type: Number,
+            required: true
         },
         fee_name: {
-            type: DataTypes.STRING(100),
-            allowNull: false
+            type: String,
+            required: true
         },
         amount: {
-            type: DataTypes.DECIMAL(10, 2),
-            allowNull: false
+            type: Number,
+            required: true
         },
         due_date: {
-            type: DataTypes.DATE,
-            allowNull: true
+            type: Date
         }
     },
     {
-        tableName: 'fee_structures',
-        timestamps: false,
-        indexes: [
-            {
-                name: 'idx_fee_structures_class',
-                fields: ['class_id']
-            },
-            {
-                name: 'idx_fee_structures_semester',
-                fields: ['semester_id']
-            }
-        ]
+        collection: 'fee_structures',
+        timestamps: false
     }
 );
 
-module.exports = FeeStructures;
+module.exports = mongoose.model('FeeStructures', FeeStructuresSchema);

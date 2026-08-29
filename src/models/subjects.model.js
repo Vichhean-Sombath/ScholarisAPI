@@ -1,46 +1,31 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/db');
+const mongoose = require('mongoose');
 
-const Subjects = sequelize.define(
-    'Subjects',
+const SubjectsSchema = new mongoose.Schema(
     {
         subject_id: {
-            type: DataTypes.INTEGER,
-            primaryKey: true,
-            autoIncrement: true
+            type: Number,
+            unique: true
         },
         subject_code: {
-            type: DataTypes.STRING(20),
-            allowNull: false,
+            type: String,
+            required: true,
             unique: true
         },
         subject_name: {
-            type: DataTypes.STRING(100),
-            allowNull: false
+            type: String,
+            required: true
         },
         description: {
-            type: DataTypes.TEXT,
-            allowNull: true
+            type: String
         },
         prerequisite_subject_id: {
-            type: DataTypes.INTEGER,
-            allowNull: true,
-            references: {
-                model: 'subjects',
-                key: 'subject_id'
-            }
+            type: Number
         }
     },
     {
-        tableName: 'subjects',
-        timestamps: false,
-        indexes: [
-            {
-                name: 'idx_subjects_prerequisite',
-                fields: ['prerequisite_subject_id']
-            }
-        ]
+        collection: 'subjects',
+        timestamps: false
     }
 );
 
-module.exports = Subjects;
+module.exports = mongoose.model('Subjects', SubjectsSchema);

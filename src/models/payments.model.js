@@ -1,69 +1,46 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/db');
+const mongoose = require('mongoose');
 
-const Payments = sequelize.define(
-    'Payments',
+const PaymentsSchema = new mongoose.Schema(
     {
         payment_id: {
-            type: DataTypes.INTEGER,
-            primaryKey: true,
-            autoIncrement: true
+            type: Number,
+            unique: true
         },
         invoice_id: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            references: {
-                model: 'invoices',
-                key: 'invoice_id'
-            }
+            type: Number,
+            required: true
         },
         payment_date: {
-            type: DataTypes.DATE,
-            allowNull: false
+            type: Date,
+            required: true
         },
         amount: {
-            type: DataTypes.DECIMAL(10, 2),
-            allowNull: false
+            type: Number,
+            required: true
         },
         payment_method: {
-            type: DataTypes.ENUM('Stripe', 'BakongKHQR'),
-            allowNull: false
+            type: String,
+            enum: ['Stripe', 'BakongKHQR'],
+            required: true
         },
         receipt_url: {
-            type: DataTypes.STRING(255),
-            allowNull: true
+            type: String
         },
         transaction_reference: {
-            type: DataTypes.STRING(255),
-            allowNull: true
+            type: String
         },
         recorded_by: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            references: {
-                model: 'users',
-                key: 'user_id'
-            }
+            type: Number,
+            required: true
         },
         notes: {
-            type: DataTypes.STRING(255),
-            allowNull: true
+            type: String
         }
     },
     {
-        tableName: 'payments',
-        timestamps: false,
-        indexes: [
-            {
-                name: 'idx_payments_invoice',
-                fields: ['invoice_id']
-            },
-            {
-                name: 'idx_payments_recorded_by',
-                fields: ['recorded_by']
-            }
-        ]
+        collection: 'payments',
+        timestamps: false
     }
 );
 
-module.exports = Payments;
+module.exports = mongoose.model('Payments', PaymentsSchema);

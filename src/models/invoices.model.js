@@ -1,86 +1,59 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/db');
+const mongoose = require('mongoose');
 
-const Invoices = sequelize.define(
-    'Invoices',
+const InvoicesSchema = new mongoose.Schema(
     {
         invoice_id: {
-            type: DataTypes.INTEGER,
-            primaryKey: true,
-            autoIncrement: true
+            type: Number,
+            unique: true
         },
         invoice_number: {
-            type: DataTypes.STRING(30),
-            allowNull: false,
+            type: String,
+            required: true,
             unique: true
         },
         student_id: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            references: {
-                model: 'students',
-                key: 'student_id'
-            }
+            type: Number,
+            required: true
         },
         fee_id: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            references: {
-                model: 'fee_structures',
-                key: 'fee_id'
-            }
+            type: Number,
+            required: true
         },
         semester_id: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            references: {
-                model: 'semesters',
-                key: 'semester_id'
-            }
+            type: Number,
+            required: true
         },
         issue_date: {
-            type: DataTypes.DATE,
-            allowNull: false
+            type: Date,
+            required: true
         },
         due_date: {
-            type: DataTypes.DATE,
-            allowNull: false
+            type: Date,
+            required: true
         },
         total_amount: {
-            type: DataTypes.DECIMAL(10, 2),
-            allowNull: false
+            type: Number,
+            required: true
         },
         amount_paid: {
-            type: DataTypes.DECIMAL(10, 2),
-            allowNull: false,
-            defaultValue: 0
+            type: Number,
+            required: true,
+            default: 0
         },
         status: {
-            type: DataTypes.ENUM('Unpaid', 'Partial', 'Paid', 'Overdue'),
-            allowNull: false,
-            defaultValue: 'Unpaid'
+            type: String,
+            enum: ['Unpaid', 'Partial', 'Paid', 'Overdue'],
+            required: true,
+            default: 'Unpaid'
         }
     },
     {
-        tableName: 'invoices',
-        timestamps: true,
-        createdAt: 'created_at',
-        updatedAt: false,
-        indexes: [
-            {
-                name: 'idx_invoices_student',
-                fields: ['student_id']
-            },
-            {
-                name: 'idx_invoices_fee',
-                fields: ['fee_id']
-            },
-            {
-                name: 'idx_invoices_semester',
-                fields: ['semester_id']
-            }
-        ]
+        collection: 'invoices',
+        timestamps: {
+            createdAt: 'created_at',
+            updatedAt: false
+        }
     }
 );
 
-module.exports = Invoices;
+module.exports = mongoose.model('Invoices', InvoicesSchema);

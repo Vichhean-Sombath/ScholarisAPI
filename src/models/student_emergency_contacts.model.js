@@ -1,49 +1,34 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/db');
+const mongoose = require('mongoose');
 
-const StudentEmergencyContacts = sequelize.define(
-    'StudentEmergencyContacts',
+const StudentEmergencyContactsSchema = new mongoose.Schema(
     {
         contact_id: {
-            type: DataTypes.INTEGER,
-            primaryKey: true,
-            autoIncrement: true
+            type: Number,
+            unique: true
         },
         student_id: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            references: {
-                model: 'students',
-                key: 'student_id'
-            }
+            type: Number,
+            required: true
         },
         contact_name: {
-            type: DataTypes.STRING(100),
-            allowNull: false
+            type: String,
+            required: true
         },
         relationship: {
-            type: DataTypes.STRING(50),
-            allowNull: true
+            type: String
         },
         phone_number: {
-            type: DataTypes.STRING(20),
-            allowNull: false
+            type: String,
+            required: true
         },
         email: {
-            type: DataTypes.STRING(100),
-            allowNull: true
+            type: String
         }
     },
     {
-        tableName: 'student_emergency_contacts',
-        timestamps: false,
-        indexes: [
-            {
-                name: 'idx_sec_student',
-                fields: ['student_id']
-            }
-        ]
+        collection: 'student_emergency_contacts',
+        timestamps: false
     }
 );
 
-module.exports = StudentEmergencyContacts;
+module.exports = mongoose.model('StudentEmergencyContacts', StudentEmergencyContactsSchema);

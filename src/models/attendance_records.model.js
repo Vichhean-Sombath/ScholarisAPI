@@ -1,78 +1,45 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/db');
+const mongoose = require('mongoose');
 
-const AttendanceRecords = sequelize.define(
-    'AttendanceRecords',
+const AttendanceRecordsSchema = new mongoose.Schema(
     {
         attendance_id: {
-            type: DataTypes.INTEGER,
-            primaryKey: true,
-            autoIncrement: true
+            type: Number,
+            unique: true
         },
         schedule_id: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            references: {
-                model: 'schedules',
-                key: 'schedule_id'
-            }
+            type: Number,
+            required: true
         },
         student_id: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            references: {
-                model: 'students',
-                key: 'student_id'
-            }
+            type: Number,
+            required: true
         },
         attendance_date: {
-            type: DataTypes.DATE,
-            allowNull: false
+            type: Date,
+            required: true
         },
         status: {
-            type: DataTypes.ENUM('Present', 'Absent', 'Late', 'Excused'),
-            allowNull: false
+            type: String,
+            enum: ['Present', 'Absent', 'Late', 'Excused'],
+            required: true
         },
         marked_by: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            references: {
-                model: 'teachers',
-                key: 'teacher_id'
-            }
+            type: Number,
+            required: true
         },
         marked_at: {
-            type: DataTypes.DATE,
-            allowNull: false,
-            defaultValue: DataTypes.NOW
+            type: Date,
+            required: true,
+            default: Date.now
         },
         last_edited_at: {
-            type: DataTypes.DATE,
-            allowNull: true
+            type: Date
         }
     },
     {
-        tableName: 'attendance_records',
-        timestamps: false,
-        indexes: [
-            {
-                unique: true,
-                fields: ['schedule_id', 'student_id', 'attendance_date']
-            },
-            {
-                name: 'idx_attendance_student',
-                fields: ['student_id']
-            },
-            {
-                name: 'idx_attendance_marked_by',
-                fields: ['marked_by']
-            },
-            {
-                name: 'idx_attendance_date',
-                fields: ['attendance_date']
-            }
-        ]
+        collection: 'attendance_records',
+        timestamps: false
     }
 );
 
-module.exports = AttendanceRecords;
+module.exports = mongoose.model('AttendanceRecords', AttendanceRecordsSchema);

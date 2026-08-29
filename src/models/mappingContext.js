@@ -22,143 +22,160 @@ const Certificates = require('./certificates.model');
 const LessonResources = require('./lesson_resources.model');
 
 // ============================================================
-// MODULE: Identity & Users
+// MOCK SEQUELIZE METHODS FOR MONGOOSE COMPATIBILITY
 // ============================================================
+const mockSequelizeAssociations = (model) => {
+    model.hasOne = function () { return this; };
+    model.belongsTo = function () { return this; };
+    model.hasMany = function () { return this; };
+    model.belongsToMany = function () { return this; };
+};
 
-Users.hasOne(Teachers, { foreignKey: 'user_id', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
-Teachers.belongsTo(Users, { foreignKey: 'user_id' });
+const models = [
+    Users, Teachers, Students, StudentEmergencyContacts, AcademicYears, Semesters,
+    Subjects, Classes, ClassEnrollments, TimeSlots, Schedules, AttendanceRecords,
+    GradingCriteria, Assessments, Grades, FinalGrades, FeeStructures, Invoices,
+    Payments, BakongQRRequests, Certificates, LessonResources
+];
 
-Users.hasOne(Students, { foreignKey: 'user_id', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
-Students.belongsTo(Users, { foreignKey: 'user_id' });
-
-Users.hasMany(Payments, { foreignKey: 'recorded_by', onDelete: 'RESTRICT', onUpdate: 'CASCADE' });
-Payments.belongsTo(Users, { foreignKey: 'recorded_by' });
-
-Users.hasMany(Certificates, { foreignKey: 'issued_by', onDelete: 'RESTRICT', onUpdate: 'CASCADE' });
-Certificates.belongsTo(Users, { foreignKey: 'issued_by' });
-
-Students.hasMany(StudentEmergencyContacts, { foreignKey: 'student_id', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
-StudentEmergencyContacts.belongsTo(Students, { foreignKey: 'student_id' });
-
-// ============================================================
-// MODULE: Academic Calendar
-// ============================================================
-
-AcademicYears.hasMany(Semesters, { foreignKey: 'academic_year_id', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
-Semesters.belongsTo(AcademicYears, { foreignKey: 'academic_year_id' });
-
-AcademicYears.hasMany(Classes, { foreignKey: 'academic_year_id', onDelete: 'RESTRICT', onUpdate: 'CASCADE' });
-Classes.belongsTo(AcademicYears, { foreignKey: 'academic_year_id' });
-
-Semesters.hasMany(Classes, { foreignKey: 'semester_id', onDelete: 'RESTRICT', onUpdate: 'CASCADE' });
-Classes.belongsTo(Semesters, { foreignKey: 'semester_id' });
-
-Semesters.hasMany(FeeStructures, { foreignKey: 'semester_id', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
-FeeStructures.belongsTo(Semesters, { foreignKey: 'semester_id' });
-
-Semesters.hasMany(Invoices, { foreignKey: 'semester_id', onDelete: 'RESTRICT', onUpdate: 'CASCADE' });
-Invoices.belongsTo(Semesters, { foreignKey: 'semester_id' });
-
-Semesters.hasMany(FinalGrades, { foreignKey: 'semester_id', onDelete: 'RESTRICT', onUpdate: 'CASCADE' });
-FinalGrades.belongsTo(Semesters, { foreignKey: 'semester_id' });
+models.forEach(mockSequelizeAssociations);
 
 // ============================================================
-// MODULE: Academic Structure
+// MODULE: Identity & Users (Virtuals)
 // ============================================================
 
-Subjects.belongsTo(Subjects, { as: 'Prerequisite', foreignKey: 'prerequisite_subject_id', onDelete: 'SET NULL', onUpdate: 'CASCADE' });
-Subjects.hasMany(Subjects, { as: 'DependentSubjects', foreignKey: 'prerequisite_subject_id', onDelete: 'SET NULL', onUpdate: 'CASCADE' });
+Users.schema.virtual('teacher', { ref: 'Teachers', localField: 'user_id', foreignField: 'user_id', justOne: true });
+Teachers.schema.virtual('user', { ref: 'Users', localField: 'user_id', foreignField: 'user_id', justOne: true });
 
-Subjects.hasMany(Schedules, { foreignKey: 'subject_id', onDelete: 'RESTRICT', onUpdate: 'CASCADE' });
-Schedules.belongsTo(Subjects, { foreignKey: 'subject_id' });
+Users.schema.virtual('student', { ref: 'Students', localField: 'user_id', foreignField: 'user_id', justOne: true });
+Students.schema.virtual('user', { ref: 'Users', localField: 'user_id', foreignField: 'user_id', justOne: true });
 
-Subjects.hasMany(GradingCriteria, { foreignKey: 'subject_id', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
-GradingCriteria.belongsTo(Subjects, { foreignKey: 'subject_id' });
+Users.schema.virtual('payments', { ref: 'Payments', localField: 'user_id', foreignField: 'recorded_by' });
+Payments.schema.virtual('recordedBy', { ref: 'Users', localField: 'recorded_by', foreignField: 'user_id', justOne: true });
 
-Subjects.hasMany(FinalGrades, { foreignKey: 'subject_id', onDelete: 'RESTRICT', onUpdate: 'CASCADE' });
-FinalGrades.belongsTo(Subjects, { foreignKey: 'subject_id' });
+Users.schema.virtual('certificates', { ref: 'Certificates', localField: 'user_id', foreignField: 'issued_by' });
+Certificates.schema.virtual('issuedBy', { ref: 'Users', localField: 'issued_by', foreignField: 'user_id', justOne: true });
 
-Teachers.hasMany(Classes, { foreignKey: 'homeroom_teacher_id', onDelete: 'SET NULL', onUpdate: 'CASCADE' });
-Classes.belongsTo(Teachers, { as: 'HomeroomTeacher', foreignKey: 'homeroom_teacher_id' });
-
-Teachers.hasMany(Schedules, { foreignKey: 'teacher_id', onDelete: 'RESTRICT', onUpdate: 'CASCADE' });
-Schedules.belongsTo(Teachers, { foreignKey: 'teacher_id' });
-
-Teachers.hasMany(AttendanceRecords, { foreignKey: 'marked_by', onDelete: 'RESTRICT', onUpdate: 'CASCADE' });
-AttendanceRecords.belongsTo(Teachers, { as: 'Marker', foreignKey: 'marked_by' });
-
-Teachers.hasMany(Grades, { foreignKey: 'entered_by', onDelete: 'RESTRICT', onUpdate: 'CASCADE' });
-Grades.belongsTo(Teachers, { as: 'EnteredBy', foreignKey: 'entered_by' });
-
-Teachers.hasMany(LessonResources, { foreignKey: 'teacher_id', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
-LessonResources.belongsTo(Teachers, { foreignKey: 'teacher_id' });
-
-Classes.hasMany(ClassEnrollments, { foreignKey: 'class_id', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
-ClassEnrollments.belongsTo(Classes, { foreignKey: 'class_id' });
-
-Classes.hasMany(Schedules, { foreignKey: 'class_id', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
-Schedules.belongsTo(Classes, { foreignKey: 'class_id' });
-
-Classes.hasMany(GradingCriteria, { foreignKey: 'class_id', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
-GradingCriteria.belongsTo(Classes, { foreignKey: 'class_id' });
-
-Assessments.belongsTo(Schedules, { foreignKey: 'schedule_id' });
-
-Classes.hasMany(FinalGrades, { foreignKey: 'class_id', onDelete: 'RESTRICT', onUpdate: 'CASCADE' });
-FinalGrades.belongsTo(Classes, { foreignKey: 'class_id' });
-
-Classes.hasMany(FeeStructures, { foreignKey: 'class_id', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
-FeeStructures.belongsTo(Classes, { foreignKey: 'class_id' });
-
-Students.hasMany(ClassEnrollments, { foreignKey: 'student_id', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
-ClassEnrollments.belongsTo(Students, { foreignKey: 'student_id' });
-
-Students.hasMany(AttendanceRecords, { foreignKey: 'student_id', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
-AttendanceRecords.belongsTo(Students, { foreignKey: 'student_id' });
-
-Students.hasMany(Grades, { foreignKey: 'student_id', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
-Grades.belongsTo(Students, { foreignKey: 'student_id' });
-
-Students.hasMany(FinalGrades, { foreignKey: 'student_id', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
-FinalGrades.belongsTo(Students, { foreignKey: 'student_id' });
-
-Students.hasMany(Invoices, { foreignKey: 'student_id', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
-Invoices.belongsTo(Students, { foreignKey: 'student_id' });
-
-Students.hasMany(Certificates, { foreignKey: 'student_id', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
-Certificates.belongsTo(Students, { foreignKey: 'student_id' });
-
-TimeSlots.hasMany(Schedules, { foreignKey: 'time_slot_id', onDelete: 'RESTRICT', onUpdate: 'CASCADE' });
-Schedules.belongsTo(TimeSlots, { foreignKey: 'time_slot_id' });
-
-Schedules.hasMany(AttendanceRecords, { foreignKey: 'schedule_id', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
-AttendanceRecords.belongsTo(Schedules, { foreignKey: 'schedule_id' });
-
-Schedules.hasMany(LessonResources, { foreignKey: 'schedule_id', onDelete: 'SET NULL', onUpdate: 'CASCADE' });
-LessonResources.belongsTo(Schedules, { foreignKey: 'schedule_id' });
+Students.schema.virtual('emergencyContacts', { ref: 'StudentEmergencyContacts', localField: 'student_id', foreignField: 'student_id' });
+StudentEmergencyContacts.schema.virtual('student', { ref: 'Students', localField: 'student_id', foreignField: 'student_id', justOne: true });
 
 // ============================================================
-// MODULE: Grading
+// MODULE: Academic Calendar (Virtuals)
 // ============================================================
 
-GradingCriteria.hasMany(Assessments, { foreignKey: 'criteria_id', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
-Assessments.belongsTo(GradingCriteria, { foreignKey: 'criteria_id' });
+AcademicYears.schema.virtual('semesters', { ref: 'Semesters', localField: 'academic_year_id', foreignField: 'academic_year_id' });
+Semesters.schema.virtual('academicYear', { ref: 'AcademicYears', localField: 'academic_year_id', foreignField: 'academic_year_id', justOne: true });
 
-Assessments.hasMany(Grades, { foreignKey: 'assessment_id', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
-Grades.belongsTo(Assessments, { foreignKey: 'assessment_id' });
+AcademicYears.schema.virtual('classes', { ref: 'Classes', localField: 'academic_year_id', foreignField: 'academic_year_id' });
+Classes.schema.virtual('academicYear', { ref: 'AcademicYears', localField: 'academic_year_id', foreignField: 'academic_year_id', justOne: true });
+
+Semesters.schema.virtual('classes', { ref: 'Classes', localField: 'semester_id', foreignField: 'semester_id' });
+Classes.schema.virtual('semester', { ref: 'Semesters', localField: 'semester_id', foreignField: 'semester_id', justOne: true });
+
+Semesters.schema.virtual('feeStructures', { ref: 'FeeStructures', localField: 'semester_id', foreignField: 'semester_id' });
+FeeStructures.schema.virtual('semester', { ref: 'Semesters', localField: 'semester_id', foreignField: 'semester_id', justOne: true });
+
+Semesters.schema.virtual('invoices', { ref: 'Invoices', localField: 'semester_id', foreignField: 'semester_id' });
+Invoices.schema.virtual('semester', { ref: 'Semesters', localField: 'semester_id', foreignField: 'semester_id', justOne: true });
+
+Semesters.schema.virtual('finalGrades', { ref: 'FinalGrades', localField: 'semester_id', foreignField: 'semester_id' });
+FinalGrades.schema.virtual('semester', { ref: 'Semesters', localField: 'semester_id', foreignField: 'semester_id', justOne: true });
 
 // ============================================================
-// MODULE: Billing
+// MODULE: Academic Structure (Virtuals)
 // ============================================================
 
-FeeStructures.hasMany(Invoices, { foreignKey: 'fee_id', onDelete: 'RESTRICT', onUpdate: 'CASCADE' });
-Invoices.belongsTo(FeeStructures, { foreignKey: 'fee_id' });
+Subjects.schema.virtual('prerequisite', { ref: 'Subjects', localField: 'prerequisite_subject_id', foreignField: 'subject_id', justOne: true });
+Subjects.schema.virtual('dependentSubjects', { ref: 'Subjects', localField: 'subject_id', foreignField: 'prerequisite_subject_id' });
 
-Invoices.hasMany(Payments, { foreignKey: 'invoice_id', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
-Payments.belongsTo(Invoices, { foreignKey: 'invoice_id' });
+Subjects.schema.virtual('schedules', { ref: 'Schedules', localField: 'subject_id', foreignField: 'subject_id' });
+Schedules.schema.virtual('subject', { ref: 'Subjects', localField: 'subject_id', foreignField: 'subject_id', justOne: true });
 
-Invoices.hasMany(BakongQRRequests, { foreignKey: 'invoice_id', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
-BakongQRRequests.belongsTo(Invoices, { foreignKey: 'invoice_id' });
+Subjects.schema.virtual('gradingCriteria', { ref: 'GradingCriteria', localField: 'subject_id', foreignField: 'subject_id' });
+GradingCriteria.schema.virtual('subject', { ref: 'Subjects', localField: 'subject_id', foreignField: 'subject_id', justOne: true });
+
+Subjects.schema.virtual('finalGrades', { ref: 'FinalGrades', localField: 'subject_id', foreignField: 'subject_id' });
+FinalGrades.schema.virtual('subject', { ref: 'Subjects', localField: 'subject_id', foreignField: 'subject_id', justOne: true });
+
+Teachers.schema.virtual('classes', { ref: 'Classes', localField: 'teacher_id', foreignField: 'homeroom_teacher_id' });
+Classes.schema.virtual('homeroomTeacher', { ref: 'Teachers', localField: 'homeroom_teacher_id', foreignField: 'teacher_id', justOne: true });
+
+Teachers.schema.virtual('schedules', { ref: 'Schedules', localField: 'teacher_id', foreignField: 'teacher_id' });
+Schedules.schema.virtual('teacher', { ref: 'Teachers', localField: 'teacher_id', foreignField: 'teacher_id', justOne: true });
+
+Teachers.schema.virtual('markedAttendances', { ref: 'AttendanceRecords', localField: 'teacher_id', foreignField: 'marked_by' });
+AttendanceRecords.schema.virtual('marker', { ref: 'Teachers', localField: 'marked_by', foreignField: 'teacher_id', justOne: true });
+
+Teachers.schema.virtual('enteredGrades', { ref: 'Grades', localField: 'teacher_id', foreignField: 'entered_by' });
+Grades.schema.virtual('enteredBy', { ref: 'Teachers', localField: 'entered_by', foreignField: 'teacher_id', justOne: true });
+
+Teachers.schema.virtual('lessonResources', { ref: 'LessonResources', localField: 'teacher_id', foreignField: 'teacher_id' });
+LessonResources.schema.virtual('teacher', { ref: 'Teachers', localField: 'teacher_id', foreignField: 'teacher_id', justOne: true });
+
+Classes.schema.virtual('classEnrollments', { ref: 'ClassEnrollments', localField: 'class_id', foreignField: 'class_id' });
+ClassEnrollments.schema.virtual('class', { ref: 'Classes', localField: 'class_id', foreignField: 'class_id', justOne: true });
+
+Classes.schema.virtual('schedules', { ref: 'Schedules', localField: 'class_id', foreignField: 'class_id' });
+Schedules.schema.virtual('class', { ref: 'Classes', localField: 'class_id', foreignField: 'class_id', justOne: true });
+
+Classes.schema.virtual('gradingCriteria', { ref: 'GradingCriteria', localField: 'class_id', foreignField: 'class_id' });
+GradingCriteria.schema.virtual('class', { ref: 'Classes', localField: 'class_id', foreignField: 'class_id', justOne: true });
+
+Classes.schema.virtual('finalGrades', { ref: 'FinalGrades', localField: 'class_id', foreignField: 'class_id' });
+FinalGrades.schema.virtual('class', { ref: 'Classes', localField: 'class_id', foreignField: 'class_id', justOne: true });
+
+Classes.schema.virtual('feeStructures', { ref: 'FeeStructures', localField: 'class_id', foreignField: 'class_id' });
+FeeStructures.schema.virtual('class', { ref: 'Classes', localField: 'class_id', foreignField: 'class_id', justOne: true });
+
+Students.schema.virtual('classEnrollments', { ref: 'ClassEnrollments', localField: 'student_id', foreignField: 'student_id' });
+ClassEnrollments.schema.virtual('student', { ref: 'Students', localField: 'student_id', foreignField: 'student_id', justOne: true });
+
+Students.schema.virtual('attendanceRecords', { ref: 'AttendanceRecords', localField: 'student_id', foreignField: 'student_id' });
+AttendanceRecords.schema.virtual('student', { ref: 'Students', localField: 'student_id', foreignField: 'student_id', justOne: true });
+
+Students.schema.virtual('grades', { ref: 'Grades', localField: 'student_id', foreignField: 'student_id' });
+Grades.schema.virtual('student', { ref: 'Students', localField: 'student_id', foreignField: 'student_id', justOne: true });
+
+Students.schema.virtual('finalGrades', { ref: 'FinalGrades', localField: 'student_id', foreignField: 'student_id' });
+FinalGrades.schema.virtual('student', { ref: 'Students', localField: 'student_id', foreignField: 'student_id', justOne: true });
+
+Students.schema.virtual('invoices', { ref: 'Invoices', localField: 'student_id', foreignField: 'student_id' });
+Invoices.schema.virtual('student', { ref: 'Students', localField: 'student_id', foreignField: 'student_id', justOne: true });
+
+Students.schema.virtual('certificates', { ref: 'Certificates', localField: 'student_id', foreignField: 'student_id' });
+Certificates.schema.virtual('student', { ref: 'Students', localField: 'student_id', foreignField: 'student_id', justOne: true });
+
+TimeSlots.schema.virtual('schedules', { ref: 'Schedules', localField: 'time_slot_id', foreignField: 'time_slot_id' });
+Schedules.schema.virtual('timeSlot', { ref: 'TimeSlots', localField: 'time_slot_id', foreignField: 'time_slot_id', justOne: true });
+
+Schedules.schema.virtual('attendanceRecords', { ref: 'AttendanceRecords', localField: 'schedule_id', foreignField: 'schedule_id' });
+AttendanceRecords.schema.virtual('schedule', { ref: 'Schedules', localField: 'schedule_id', foreignField: 'schedule_id', justOne: true });
+
+Schedules.schema.virtual('lessonResources', { ref: 'LessonResources', localField: 'schedule_id', foreignField: 'schedule_id' });
+LessonResources.schema.virtual('schedule', { ref: 'Schedules', localField: 'schedule_id', foreignField: 'schedule_id', justOne: true });
+
+// ============================================================
+// MODULE: Grading (Virtuals)
+// ============================================================
+
+GradingCriteria.schema.virtual('assessments', { ref: 'Assessments', localField: 'criteria_id', foreignField: 'criteria_id' });
+Assessments.schema.virtual('criteria', { ref: 'GradingCriteria', localField: 'criteria_id', foreignField: 'criteria_id', justOne: true });
+
+Assessments.schema.virtual('grades', { ref: 'Grades', localField: 'assessment_id', foreignField: 'assessment_id' });
+Grades.schema.virtual('assessment', { ref: 'Assessments', localField: 'assessment_id', foreignField: 'assessment_id', justOne: true });
+
+// ============================================================
+// MODULE: Billing (Virtuals)
+// ============================================================
+
+FeeStructures.schema.virtual('invoices', { ref: 'Invoices', localField: 'fee_id', foreignField: 'fee_id' });
+Invoices.schema.virtual('feeStructure', { ref: 'FeeStructures', localField: 'fee_id', foreignField: 'fee_id', justOne: true });
+
+Invoices.schema.virtual('payments', { ref: 'Payments', localField: 'invoice_id', foreignField: 'invoice_id' });
+Payments.schema.virtual('invoice', { ref: 'Invoices', localField: 'invoice_id', foreignField: 'invoice_id', justOne: true });
+
+Invoices.schema.virtual('bakongQrRequests', { ref: 'BakongQRRequests', localField: 'invoice_id', foreignField: 'invoice_id' });
+BakongQRRequests.schema.virtual('invoice', { ref: 'Invoices', localField: 'invoice_id', foreignField: 'invoice_id', justOne: true });
 
 module.exports = {
     Users,

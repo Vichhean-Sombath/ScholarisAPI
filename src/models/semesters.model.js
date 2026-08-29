@@ -1,45 +1,32 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/db');
+const mongoose = require('mongoose');
 
-const Semesters = sequelize.define(
-    'Semesters',
+const SemestersSchema = new mongoose.Schema(
     {
         semester_id: {
-            type: DataTypes.INTEGER,
-            primaryKey: true,
-            autoIncrement: true
+            type: Number,
+            unique: true
         },
         academic_year_id: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            references: {
-                model: 'academic_years',
-                key: 'academic_year_id'
-            }
+            type: Number,
+            required: true
         },
         semester_name: {
-            type: DataTypes.STRING(30),
-            allowNull: false
+            type: String,
+            required: true
         },
         start_date: {
-            type: DataTypes.DATE,
-            allowNull: false
+            type: Date,
+            required: true
         },
         end_date: {
-            type: DataTypes.DATE,
-            allowNull: false
+            type: Date,
+            required: true
         }
     },
     {
-        tableName: 'semesters',
-        timestamps: false,
-        indexes: [
-            {
-                name: 'idx_semesters_year',
-                fields: ['academic_year_id']
-            }
-        ]
+        collection: 'semesters',
+        timestamps: false
     }
 );
 
-module.exports = Semesters;
+module.exports = mongoose.model('Semesters', SemestersSchema);

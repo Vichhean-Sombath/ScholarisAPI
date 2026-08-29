@@ -1,66 +1,43 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/db');
+const mongoose = require('mongoose');
 
-const LessonResources = sequelize.define(
-    'LessonResources',
+const LessonResourcesSchema = new mongoose.Schema(
     {
         resource_id: {
-            type: DataTypes.INTEGER,
-            primaryKey: true,
-            autoIncrement: true
+            type: Number,
+            unique: true
         },
         schedule_id: {
-            type: DataTypes.INTEGER,
-            allowNull: true,
-            references: {
-                model: 'schedules',
-                key: 'schedule_id'
-            }
+            type: Number
         },
         teacher_id: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            references: {
-                model: 'teachers',
-                key: 'teacher_id'
-            }
+            type: Number,
+            required: true
         },
         title: {
-            type: DataTypes.STRING(150),
-            allowNull: false
+            type: String,
+            required: true
         },
         description: {
-            type: DataTypes.TEXT,
-            allowNull: true
+            type: String
         },
         resource_type: {
-            type: DataTypes.ENUM('LessonPlan', 'Homework', 'Syllabus', 'Other'),
-            allowNull: false
+            type: String,
+            enum: ['LessonPlan', 'Homework', 'Syllabus', 'Other'],
+            required: true
         },
         file_url: {
-            type: DataTypes.STRING(255),
-            allowNull: true
+            type: String
         },
         upload_date: {
-            type: DataTypes.DATE,
-            allowNull: false,
-            defaultValue: DataTypes.NOW
+            type: Date,
+            required: true,
+            default: Date.now
         }
     },
     {
-        tableName: 'lesson_resources',
-        timestamps: false,
-        indexes: [
-            {
-                name: 'idx_lesson_resources_schedule',
-                fields: ['schedule_id']
-            },
-            {
-                name: 'idx_lesson_resources_teacher',
-                fields: ['teacher_id']
-            }
-        ]
+        collection: 'lesson_resources',
+        timestamps: false
     }
 );
 
-module.exports = LessonResources;
+module.exports = mongoose.model('LessonResources', LessonResourcesSchema);

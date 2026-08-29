@@ -1,61 +1,39 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/db');
+const mongoose = require('mongoose');
 
-const Certificates = sequelize.define(
-    'Certificates',
+const CertificatesSchema = new mongoose.Schema(
     {
         certificate_id: {
-            type: DataTypes.INTEGER,
-            primaryKey: true,
-            autoIncrement: true
+            type: Number,
+            unique: true
         },
         student_id: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            references: {
-                model: 'students',
-                key: 'student_id'
-            }
+            type: Number,
+            required: true
         },
         certificate_type: {
-            type: DataTypes.ENUM('Completion', 'Transcript', 'Recommendation'),
-            allowNull: false
+            type: String,
+            enum: ['Completion', 'Transcript', 'Recommendation'],
+            required: true
         },
         template_used: {
-            type: DataTypes.STRING(100),
-            allowNull: true
+            type: String
         },
         issue_date: {
-            type: DataTypes.DATE,
-            allowNull: false
+            type: Date,
+            required: true
         },
         generated_file_url: {
-            type: DataTypes.STRING(255),
-            allowNull: true
+            type: String
         },
         issued_by: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            references: {
-                model: 'users',
-                key: 'user_id'
-            }
+            type: Number,
+            required: true
         }
     },
     {
-        tableName: 'certificates',
-        timestamps: false,
-        indexes: [
-            {
-                name: 'idx_certificates_student',
-                fields: ['student_id']
-            },
-            {
-                name: 'idx_certificates_issued_by',
-                fields: ['issued_by']
-            }
-        ]
+        collection: 'certificates',
+        timestamps: false
     }
 );
 
-module.exports = Certificates;
+module.exports = mongoose.model('Certificates', CertificatesSchema);

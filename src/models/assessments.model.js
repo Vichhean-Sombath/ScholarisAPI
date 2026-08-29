@@ -1,57 +1,35 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/db');
+const mongoose = require('mongoose');
 
-const Assessments = sequelize.define(
-    'Assessments',
+const AssessmentsSchema = new mongoose.Schema(
     {
         assessment_id: {
-            type: DataTypes.INTEGER,
-            primaryKey: true,
-            autoIncrement: true
+            type: Number,
+            unique: true
         },
         schedule_id: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            references: {
-                model: 'schedules',
-                key: 'schedule_id'
-            }
+            type: Number,
+            required: true
         },
         criteria_id: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            references: {
-                model: 'grading_criteria',
-                key: 'criteria_id'
-            }
+            type: Number,
+            required: true
         },
         assessment_name: {
-            type: DataTypes.STRING(100),
-            allowNull: false
+            type: String,
+            required: true
         },
         max_score: {
-            type: DataTypes.DECIMAL(6, 2),
-            allowNull: false
+            type: Number,
+            required: true
         },
         assessment_date: {
-            type: DataTypes.DATE,
-            allowNull: true
+            type: Date
         }
     },
     {
-        tableName: 'assessments',
-        timestamps: false,
-        indexes: [
-            {
-                name: 'idx_assessments_schedule',
-                fields: ['schedule_id']
-            },
-            {
-                name: 'idx_assessments_criteria',
-                fields: ['criteria_id']
-            }
-        ]
+        collection: 'assessments',
+        timestamps: false
     }
 );
 
-module.exports = Assessments;
+module.exports = mongoose.model('Assessments', AssessmentsSchema);

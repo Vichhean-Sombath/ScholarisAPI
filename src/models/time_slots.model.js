@@ -1,37 +1,29 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/db');
+const mongoose = require('mongoose');
 
-const TimeSlots = sequelize.define(
-    'TimeSlots',
+const TimeSlotsSchema = new mongoose.Schema(
     {
         time_slot_id: {
-            type: DataTypes.INTEGER,
-            primaryKey: true,
-            autoIncrement: true
+            type: Number,
+            unique: true
         },
         day_of_week: {
-            type: DataTypes.ENUM('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'),
-            allowNull: false
+            type: String,
+            enum: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            required: true
         },
         start_time: {
-            type: DataTypes.TIME,
-            allowNull: false
+            type: String,
+            required: true
         },
         end_time: {
-            type: DataTypes.TIME,
-            allowNull: false
+            type: String,
+            required: true
         }
     },
     {
-        tableName: 'time_slots',
-        timestamps: false,
-        indexes: [
-            {
-                unique: true,
-                fields: ['day_of_week', 'start_time']
-            }
-        ]
+        collection: 'time_slots',
+        timestamps: false
     }
 );
 
-module.exports = TimeSlots;
+module.exports = mongoose.model('TimeSlots', TimeSlotsSchema);

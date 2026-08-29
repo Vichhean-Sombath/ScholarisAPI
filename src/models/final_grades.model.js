@@ -1,86 +1,47 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/db');
+const mongoose = require('mongoose');
 
-const FinalGrades = sequelize.define(
-    'FinalGrades',
+const FinalGradesSchema = new mongoose.Schema(
     {
         final_grade_id: {
-            type: DataTypes.INTEGER,
-            primaryKey: true,
-            autoIncrement: true
+            type: Number,
+            unique: true
         },
         student_id: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            references: {
-                model: 'students',
-                key: 'student_id'
-            }
+            type: Number,
+            required: true
         },
         subject_id: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            references: {
-                model: 'subjects',
-                key: 'subject_id'
-            }
+            type: Number,
+            required: true
         },
         class_id: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            references: {
-                model: 'classes',
-                key: 'class_id'
-            }
+            type: Number,
+            required: true
         },
         semester_id: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            references: {
-                model: 'semesters',
-                key: 'semester_id'
-            }
+            type: Number,
+            required: true
         },
         final_score: {
-            type: DataTypes.DECIMAL(6, 2),
-            allowNull: false
+            type: Number,
+            required: true
         },
         letter_grade: {
-            type: DataTypes.STRING(2),
-            allowNull: true
+            type: String
         },
         gpa_points: {
-            type: DataTypes.DECIMAL(3, 2),
-            allowNull: true
+            type: Number
         },
         computed_at: {
-            type: DataTypes.DATE,
-            allowNull: false,
-            defaultValue: DataTypes.NOW
+            type: Date,
+            required: true,
+            default: Date.now
         }
     },
     {
-        tableName: 'final_grades',
-        timestamps: false,
-        indexes: [
-            {
-                unique: true,
-                fields: ['student_id', 'subject_id', 'semester_id']
-            },
-            {
-                name: 'idx_final_grades_subject',
-                fields: ['subject_id']
-            },
-            {
-                name: 'idx_final_grades_class',
-                fields: ['class_id']
-            },
-            {
-                name: 'idx_final_grades_semester',
-                fields: ['semester_id']
-            }
-        ]
+        collection: 'final_grades',
+        timestamps: false
     }
 );
 
-module.exports = FinalGrades;
+module.exports = mongoose.model('FinalGrades', FinalGradesSchema);

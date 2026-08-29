@@ -1,37 +1,35 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/db');
+const mongoose = require('mongoose');
 
-const AcademicYears = sequelize.define(
-    'AcademicYears',
+const AcademicYearsSchema = new mongoose.Schema(
     {
         academic_year_id: {
-            type: DataTypes.INTEGER,
-            primaryKey: true,
-            autoIncrement: true
+            type: Number,
+            unique: true
         },
         year_name: {
-            type: DataTypes.STRING(20),
-            allowNull: false,
+            type: String,
+            required: true,
             unique: true
         },
         start_date: {
-            type: DataTypes.DATE,
-            allowNull: false
+            type: Date,
+            required: true
         },
         end_date: {
-            type: DataTypes.DATE,
-            allowNull: false
+            type: Date,
+            required: true
         },
         status: {
-            type: DataTypes.ENUM('Active', 'Closed'),
-            allowNull: false,
-            defaultValue: 'Active'
+            type: String,
+            enum: ['Active', 'Closed'],
+            required: true,
+            default: 'Active'
         }
     },
     {
-        tableName: 'academic_years',
+        collection: 'academic_years',
         timestamps: false
     }
 );
 
-module.exports = AcademicYears;
+module.exports = mongoose.model('AcademicYears', AcademicYearsSchema);

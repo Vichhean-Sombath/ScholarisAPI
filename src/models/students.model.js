@@ -1,67 +1,58 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/db');
+const mongoose = require('mongoose');
 
-const Students = sequelize.define(
-    'Students',
+const StudentsSchema = new mongoose.Schema(
     {
         student_id: {
-            type: DataTypes.INTEGER,
-            primaryKey: true,
-            autoIncrement: true
+            type: Number,
+            unique: true
         },
         user_id: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            unique: true,
-            references: {
-                model: 'users',
-                key: 'user_id'
-            }
+            type: Number,
+            required: true,
+            unique: true
         },
         first_name: {
-            type: DataTypes.STRING(50),
-            allowNull: false
+            type: String,
+            required: true
         },
         last_name: {
-            type: DataTypes.STRING(50),
-            allowNull: false
+            type: String,
+            required: true
         },
         dob: {
-            type: DataTypes.DATE,
-            allowNull: true
+            type: Date
         },
         gender: {
-            type: DataTypes.ENUM('Male', 'Female', 'Other'),
-            allowNull: true
+            type: String,
+            enum: ['Male', 'Female', 'Other']
         },
         photo_url: {
-            type: DataTypes.STRING(255),
-            allowNull: true
+            type: String
         },
         contact_number: {
-            type: DataTypes.STRING(20),
-            allowNull: true
+            type: String
         },
         address: {
-            type: DataTypes.STRING(255),
-            allowNull: true
+            type: String
         },
         enrollment_date: {
-            type: DataTypes.DATE,
-            allowNull: false
+            type: Date,
+            required: true
         },
         status: {
-            type: DataTypes.ENUM('Active', 'Inactive'),
-            allowNull: false,
-            defaultValue: 'Active'
+            type: String,
+            enum: ['Active', 'Inactive'],
+            required: true,
+            default: 'Active'
         }
     },
     {
-        tableName: 'students',
-        timestamps: true,
-        createdAt: 'created_at',
-        updatedAt: false
+        collection: 'students',
+        timestamps: {
+            createdAt: 'created_at',
+            updatedAt: false
+        }
     }
 );
 
-module.exports = Students;
+module.exports = mongoose.model('Students', StudentsSchema);

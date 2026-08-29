@@ -1,69 +1,57 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/db');
+const mongoose = require('mongoose');
 
-const Teachers = sequelize.define(
-    'Teachers',
+const TeachersSchema = new mongoose.Schema(
     {
         teacher_id: {
-            type: DataTypes.INTEGER,
-            primaryKey: true,
-            autoIncrement: true
+            type: Number,
+            unique: true
         },
         user_id: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            unique: true,
-            references: {
-                model: 'users',
-                key: 'user_id'
-            }
+            type: Number,
+            required: true,
+            unique: true
         },
         first_name: {
-            type: DataTypes.STRING(50),
-            allowNull: false
+            type: String,
+            required: true
         },
         last_name: {
-            type: DataTypes.STRING(50),
-            allowNull: false
+            type: String,
+            required: true
         },
         gender: {
-            type: DataTypes.ENUM('Male', 'Female', 'Other'),
-            allowNull: true
+            type: String,
+            enum: ['Male', 'Female', 'Other']
         },
         dob: {
-            type: DataTypes.DATE,
-            allowNull: true
+            type: Date
         },
         photo_url: {
-            type: DataTypes.STRING(255),
-            allowNull: true
+            type: String
         },
         contact_number: {
-            type: DataTypes.STRING(20),
-            allowNull: true
+            type: String
         },
         specialization: {
-            type: DataTypes.STRING(100),
-            allowNull: true
+            type: String
         },
         bio: {
-            type: DataTypes.TEXT,
-            allowNull: true
+            type: String
         },
         hire_date: {
-            type: DataTypes.DATE,
-            allowNull: true
+            type: Date
         },
         status: {
-            type: DataTypes.ENUM('Active', 'Inactive'),
-            allowNull: false,
-            defaultValue: 'Active'
+            type: String,
+            enum: ['Active', 'Inactive'],
+            required: true,
+            default: 'Active'
         }
     },
     {
-        tableName: 'teachers',
+        collection: 'teachers',
         timestamps: false
     }
 );
 
-module.exports = Teachers;
+module.exports = mongoose.model('Teachers', TeachersSchema);

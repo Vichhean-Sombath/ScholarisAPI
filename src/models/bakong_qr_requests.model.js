@@ -1,69 +1,49 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/db');
+const mongoose = require('mongoose');
 
-const BakongQRRequests = sequelize.define(
-    'BakongQRRequests',
+const BakongQRRequestsSchema = new mongoose.Schema(
     {
         qr_id: {
-            type: DataTypes.INTEGER,
-            primaryKey: true,
-            autoIncrement: true
+            type: Number,
+            unique: true
         },
         invoice_id: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            references: {
-                model: 'invoices',
-                key: 'invoice_id'
-            }
+            type: Number,
+            required: true
         },
         md5: {
-            type: DataTypes.STRING(64),
-            allowNull: false,
+            type: String,
+            required: true,
             unique: true
         },
         amount_khr: {
-            type: DataTypes.DECIMAL(15, 2),
-            allowNull: false
+            type: Number,
+            required: true
         },
         amount_usd: {
-            type: DataTypes.DECIMAL(10, 2),
-            allowNull: false
+            type: Number,
+            required: true
         },
         status: {
-            type: DataTypes.ENUM('Pending', 'Paid', 'Expired', 'Failed'),
-            allowNull: false,
-            defaultValue: 'Pending'
+            type: String,
+            enum: ['Pending', 'Paid', 'Expired', 'Failed'],
+            required: true,
+            default: 'Pending'
         },
         expires_at: {
-            type: DataTypes.DATE,
-            allowNull: false
+            type: Date,
+            required: true
         },
         paid_at: {
-            type: DataTypes.DATE,
-            allowNull: true
+            type: Date
         }
     },
     {
-        tableName: 'bakong_qr_requests',
-        timestamps: true,
-        createdAt: 'created_at',
-        updatedAt: false,
-        indexes: [
-            {
-                name: 'idx_bakong_qr_invoice',
-                fields: ['invoice_id']
-            },
-            {
-                name: 'idx_bakong_qr_md5',
-                fields: ['md5']
-            },
-            {
-                name: 'idx_bakong_qr_status',
-                fields: ['status']
-            }
-        ]
+        collection: 'bakong_qr_requests',
+        timestamps: {
+            createdAt: 'created_at',
+            updatedAt: false
+        }
     }
 );
 
-module.exports = BakongQRRequests;
+module.exports = mongoose.model('BakongQRRequests', BakongQRRequestsSchema);
