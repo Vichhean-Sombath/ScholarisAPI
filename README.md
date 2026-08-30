@@ -12,7 +12,7 @@ Backend API server for the Scholaris school management platform.
 
 ## Overview
 
-Scholaris is a Node.js/Express REST API that powers the Scholaris ecosystem. It provides role-based authentication and all core domain services for administrators, teachers, and students, including enrollment, scheduling, attendance, grading, invoicing, payments, certificates, and lesson resources.
+Scholaris is the backend of a MERN-stack school management platform — a Node.js/Express REST API backed by MongoDB that powers the Scholaris ecosystem. It provides role-based authentication and all core domain services for administrators, teachers, and students, including enrollment, scheduling, attendance, grading, invoicing, payments, certificates, and lesson resources.
 
 ## Features
 
@@ -31,8 +31,8 @@ Scholaris is a Node.js/Express REST API that powers the Scholaris ecosystem. It 
 
 - Node.js
 - Express.js
-- Sequelize ORM
-- MySQL
+- MongoDB
+- Mongoose ODM
 - JSON Web Tokens (JWT)
 - bcrypt
 - Stripe & Bakong QR payment integrations
@@ -46,15 +46,20 @@ Scholaris is a Node.js/Express REST API that powers the Scholaris ecosystem. It 
 ```
 Scholaris/
 ├── migrations/
-│   └── createSchema.sql       # Initial database schema
+│   └── createSchema.sql       # Legacy SQL schema (pre-MongoDB)
 ├── src/
 │   ├── config/
-│   │   └── db.js              # Sequelize database connection
+│   │   └── db.js              # Mongoose connection to MongoDB
 │   ├── database/              # DB helpers / scripts
+│   │   ├── create_tables.sql  # Legacy SQL schema (pre-MongoDB)
+│   │   └── seed-test-data.js  # Test data seeder
 │   ├── middleware/
+│   │   ├── authenticate.js    # JWT authentication
+│   │   ├── authorize.js       # Role-based authorization
 │   │   └── errorHandler.js    # Global error handler
 │   ├── models/
-│   │   └── mappingContext.js  # Sequelize model registry and associations
+│   │   ├── *.model.js         # One Mongoose model per collection
+│   │   └── mappingContext.js  # Model registry and virtual associations
 │   ├── modules/               # One folder per domain/route group
 │   │   ├── academic_years
 │   │   ├── assessments
@@ -105,13 +110,15 @@ Scholaris/
    cp .env.example .env
    ```
 
-3. Create the MySQL database and run the initial schema:
-
-   ```bash
-   mysql -u your_db_user -p your_db_name < migrations/createSchema.sql
-   ```
+3. Start a MongoDB instance (local or MongoDB Atlas) and set its connection string in `.env`.
 
 4. Fill in the required environment variables in `.env` (see the table below).
+
+5. (Optional) Seed the database with test data:
+
+   ```bash
+   node src/database/seed-test-data.js
+   ```
 
 ## Development
 
@@ -133,7 +140,7 @@ npm start
 
 For production deployments it is recommended to:
 
-- Run migrations explicitly instead of relying on `sequelize.sync({ alter: true })`.
+- Use a managed MongoDB service (e.g. MongoDB Atlas) with proper access controls.
 - Keep `SECRET_KEY`, database credentials, and payment webhook secrets secure.
 - Configure a reverse proxy (e.g. Nginx) and HTTPS termination.
 
@@ -142,11 +149,7 @@ For production deployments it is recommended to:
 | Variable | Description | Example |
 |----------|-------------|---------|
 | `SECRET_KEY` | JWT signing secret | `super-secret-key` |
-| `DB_NAME` | MySQL database name | `scholaris_db` |
-| `DB_USER` | MySQL username | `root` |
-| `DB_PASSWORD` | MySQL password | `password` |
-| `DB_HOST` | MySQL host | `localhost` |
-| `DB_PORT` | MySQL port | `3306` |
+| `MONGODB_URI` | MongoDB connection string | `mongodb://localhost:27017/scholaris_db` |
 | `SERVER_URL` | Public URL of this API | `https://api.scholaris.edu` |
 | `EMAIL_SENDER_ADDRESS` | SMTP sender address | `noreply@scholaris.edu` |
 | `EMAIL_APP_PASSWORD` | SMTP/app password | `abcd efgh ijkl mnop` |
@@ -180,7 +183,7 @@ For production deployments it is recommended to:
 
 ## Notes
 
-- The server uses `sequelize.sync({ alter: true })` on startup to keep models in sync during development.
+- The server connects to MongoDB via Mongoose on startup and logs a confirmation once the connection is open.
 - Stripe webhooks must be sent to `/payment/stripe/webhook` with the raw request body.
 - Bakong webhooks are sent to `/payment/bakong/webhook` as JSON.
 - Some features (Telegram, email, Stripe, Bakong) are optional and only activate when their environment variables are set.
