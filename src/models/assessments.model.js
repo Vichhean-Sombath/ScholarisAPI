@@ -28,7 +28,9 @@ const AssessmentsSchema = new mongoose.Schema(
     },
     {
         collection: 'assessments',
-        timestamps: false
+        timestamps: false,
+        toJSON: { virtuals: true },
+        toObject: { virtuals: true }
     }
 );
 

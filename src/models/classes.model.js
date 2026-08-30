@@ -30,7 +30,9 @@ const ClassesSchema = new mongoose.Schema(
     },
     {
         collection: 'classes',
-        timestamps: false
+        timestamps: false,
+        toJSON: { virtuals: true },
+        toObject: { virtuals: true }
     }
 );
 

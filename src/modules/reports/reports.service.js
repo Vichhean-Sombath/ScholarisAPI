@@ -1,4 +1,3 @@
-const { Op, Sequelize, fn, col, literal } = require('sequelize');
 const {
     Payments,
     Invoices,
@@ -12,7 +11,6 @@ const {
     Schedules,
     TimeSlots,
     AttendanceRecords,
-    Grades,
     FinalGrades,
 } = require('../../models/mappingContext');
 
@@ -43,6 +41,14 @@ const dayKey = (date) => {
 
 const monthKey = (date) =>
     `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+
+const sumAmount = async (model, query = {}, field = 'amount') => {
+    const result = await model.aggregate([
+        { $match: query },
+        { $group: { _id: null, total: { $sum: `$${field}` } } }
+    ]);
+    return result.length > 0 ? result[0].total : 0;
+};
 
 const getRevenueTrend = async (range = 'monthly', filters = {}) => {
     const now = new Date();
@@ -92,25 +98,35 @@ const getRevenueTrend = async (range = 'monthly', filters = {}) => {
         }
     }
 
-    const where = { payment_date: { [Op.gte]: since } };
+    const where = { payment_date: { $gte: since } };
     if (filters.semesterId) {
-        where.semester_id = filters.semesterId;
+        where.semester_id = Number(filters.semesterId);
     }
 
-    const rows = await Payments.findAll({
-        attributes: [
-            [fn('DATE_FORMAT', col('payment_date'), dbGroupFormat), 'period'],
-            [fn('SUM', col('amount')), 'total'],
-        ],
-        where,
-        group: [literal('period')],
-        order: [[literal('period'), 'ASC']],
-        raw: true,
-    });
+    const rows = await Payments.aggregate([
+        { $match: where },
+        {
+            $group: {
+                _id: {
+                    $dateToString: {
+                        format: dbGroupFormat,
+                        date: '$payment_date'
+                    }
+                },
+                total: { $sum: '$amount' }
+            }
+        },
+        { $sort: { _id: 1 } }
+    ]);
+
+    const mappedRows = rows.map(r => ({
+        period: r._id,
+        total: r.total
+    }));
 
     const labels = periods.map((p) => formatLabel(p.date));
     const data = periods.map((p) => {
-        const row = rows.find((r) => r.period === p.key);
+        const row = mappedRows.find((r) => r.period === p.key);
         return Number(row?.total || 0);
     });
 
@@ -124,18 +140,26 @@ const getNewStudentsTrend = async () => {
     since.setDate(1);
     since.setHours(0, 0, 0, 0);
 
-    const rows = await Students.findAll({
-        attributes: [
-            [fn('DATE_FORMAT', col('enrollment_date'), '%Y-%m'), 'month'],
-            [fn('COUNT', col('student_id')), 'count'],
-        ],
-        where: {
-            enrollment_date: { [Op.gte]: since },
+    const rows = await Students.aggregate([
+        { $match: { enrollment_date: { $gte: since } } },
+        {
+            $group: {
+                _id: {
+                    $dateToString: {
+                        format: '%Y-%m',
+                        date: '$enrollment_date'
+                    }
+                },
+                count: { $sum: 1 }
+            }
         },
-        group: [literal('month')],
-        order: [[literal('month'), 'ASC']],
-        raw: true,
-    });
+        { $sort: { _id: 1 } }
+    ]);
+
+    const mappedRows = rows.map(r => ({
+        month: r._id,
+        count: r.count
+    }));
 
     const labels = [];
     const data = [];
@@ -144,7 +168,7 @@ const getNewStudentsTrend = async () => {
         d.setMonth(d.getMonth() - i);
         d.setDate(1);
         const key = monthKey(d);
-        const row = rows.find((r) => r.month === key);
+        const row = mappedRows.find((r) => r.month === key);
         labels.push(formatMonthLabel(d));
         data.push(Number(row?.count || 0));
     }
@@ -156,39 +180,36 @@ const getFinancialReports = async (range, filters) => {
     const invoiceWhere = {};
     const paymentWhere = {};
     if (filters.semesterId) {
-        invoiceWhere.semester_id = filters.semesterId;
-        paymentWhere.semester_id = filters.semesterId;
+        invoiceWhere.semester_id = Number(filters.semesterId);
+        paymentWhere.semester_id = Number(filters.semesterId);
     }
 
-    const [totalRevenue, totalBilled, totalPaid, outstandingCount, revenueTrend, paymentMethods, outstandingRows] = await Promise.all([
-        Payments.sum('amount', { where: paymentWhere }),
-        Invoices.sum('total_amount', { where: invoiceWhere }),
-        Invoices.sum('amount_paid', { where: invoiceWhere }),
-        Invoices.count({
-            where: {
-                ...invoiceWhere,
-                status: { [Op.in]: ['Unpaid', 'Partial', 'Overdue'] },
-            },
+    const [totalRevenue, totalBilled, totalPaid, outstandingCount, revenueTrend, rawPaymentMethods, outstandingRows] = await Promise.all([
+        sumAmount(Payments, paymentWhere, 'amount'),
+        sumAmount(Invoices, invoiceWhere, 'total_amount'),
+        sumAmount(Invoices, invoiceWhere, 'amount_paid'),
+        Invoices.countDocuments({
+            ...invoiceWhere,
+            status: { $in: ['Unpaid', 'Partial', 'Overdue'] },
         }),
         getRevenueTrend(range, filters),
-        Payments.findAll({
-            attributes: ['payment_method', [fn('SUM', col('amount')), 'total']],
-            where: paymentWhere,
-            group: ['payment_method'],
-            raw: true,
-        }),
-        Invoices.findAll({
-            attributes: ['invoice_id', 'invoice_number', 'issue_date', 'due_date', 'total_amount', 'amount_paid', 'status'],
-            where: {
-                ...invoiceWhere,
-                status: { [Op.in]: ['Unpaid', 'Partial', 'Overdue'] },
-            },
-            include: [{ model: Students, attributes: ['first_name', 'last_name'] }],
-            order: [['due_date', 'DESC']],
-            limit: 50,
-            raw: true,
-            nest: true,
-        }),
+        Payments.aggregate([
+            { $match: paymentWhere },
+            {
+                $group: {
+                    _id: '$payment_method',
+                    total: { $sum: '$amount' }
+                }
+            }
+        ]),
+        Invoices.find({
+            ...invoiceWhere,
+            status: { $in: ['Unpaid', 'Partial', 'Overdue'] },
+        })
+        .populate({ path: 'student', select: 'first_name last_name' })
+        .sort({ due_date: -1 })
+        .limit(50)
+        .lean(),
     ]);
 
     const revenue = Number(totalRevenue || 0);
@@ -198,7 +219,7 @@ const getFinancialReports = async (range, filters) => {
     const collectionRate = billed > 0 ? Number(((paid / billed) * 100).toFixed(1)) : 0;
 
     const formattedOutstandingRows = outstandingRows.map((r) => {
-        const student = r.Student || {};
+        const student = r.student || {};
         const balance = Number(r.total_amount || 0) - Number(r.amount_paid || 0);
         return {
             invoiceId: r.invoice_id,
@@ -221,7 +242,7 @@ const getFinancialReports = async (range, filters) => {
         collectionRate,
         outstandingInvoicesCount: outstandingCount,
         revenueTrend,
-        paymentMethods: paymentMethods.map((m) => ({ name: m.payment_method || 'Other', value: Number(m.total || 0) })),
+        paymentMethods: rawPaymentMethods.map((m) => ({ name: m._id || 'Other', value: Number(m.total || 0) })),
         outstandingInvoices: {
             totalCount: outstandingCount,
             totalAmount: outstanding,
@@ -232,52 +253,41 @@ const getFinancialReports = async (range, filters) => {
 };
 
 const getEnrollmentReports = async (filters) => {
-    const studentWhere = {};
     const classWhere = {};
     if (filters.semesterId) {
-        classWhere.semester_id = filters.semesterId;
+        classWhere.semester_id = Number(filters.semesterId);
     }
     if (filters.academicYearId) {
-        classWhere.academic_year_id = filters.academicYearId;
+        classWhere.academic_year_id = Number(filters.academicYearId);
     }
 
     const [totalStudents, activeStudents, inactiveStudents, newStudentsTrend, statusRows, genderRows, classes] = await Promise.all([
-        Students.count(),
-        Students.count({ where: { status: 'Active' } }),
-        Students.count({ where: { status: 'Inactive' } }),
+        Students.countDocuments(),
+        Students.countDocuments({ status: 'Active' }),
+        Students.countDocuments({ status: 'Inactive' }),
         getNewStudentsTrend(),
-        Students.findAll({
-            attributes: ['status', [fn('COUNT', col('student_id')), 'count']],
-            group: ['status'],
-            raw: true,
-        }),
-        Students.findAll({
-            attributes: ['gender', [fn('COUNT', col('student_id')), 'count']],
-            where: { gender: { [Op.ne]: '' } },
-            group: ['gender'],
-            raw: true,
-        }),
-        Classes.findAll({
-            where: classWhere,
-            attributes: ['class_id', 'class_name', 'max_capacity', 'academic_year_id', 'semester_id'],
-            include: [
-                { model: AcademicYears, attributes: ['year_name'] },
-                { model: Semesters, attributes: ['semester_name'] },
-                { model: ClassEnrollments, attributes: ['enrollment_id'], where: { status: 'Active' }, required: false },
-            ],
-            raw: true,
-            nest: true,
-        }),
+        Students.aggregate([
+            { $group: { _id: '$status', count: { $sum: 1 } } }
+        ]),
+        Students.aggregate([
+            { $match: { gender: { $ne: '' } } },
+            { $group: { _id: '$gender', count: { $sum: 1 } } }
+        ]),
+        Classes.find(classWhere)
+            .populate({ path: 'academicYear', select: 'year_name' })
+            .populate({ path: 'semester', select: 'semester_name' })
+            .populate({ path: 'classEnrollments', match: { status: 'Active' } })
+            .lean(),
     ]);
 
     const classCapacity = classes.map((c) => {
-        const enrolled = Array.isArray(c.ClassEnrollments) ? c.ClassEnrollments.length : 0;
+        const enrolled = Array.isArray(c.classEnrollments) ? c.classEnrollments.length : 0;
         const max = Number(c.max_capacity || 0);
         return {
             classId: c.class_id,
             className: c.class_name,
-            academicYearName: c.AcademicYear?.year_name || '—',
-            semesterName: c.Semester?.semester_name || '—',
+            academicYearName: c.academicYear?.year_name || '—',
+            semesterName: c.semester?.semester_name || '—',
             maxCapacity: max,
             enrolled,
             available: max > 0 ? max - enrolled : 0,
@@ -294,8 +304,8 @@ const getEnrollmentReports = async (filters) => {
         activeStudents,
         inactiveStudents,
         newStudentsTrend,
-        statusDistribution: statusRows.map((r) => ({ name: r.status || 'Unknown', value: Number(r.count || 0) })),
-        genderDistribution: genderRows.map((r) => ({ name: r.gender || 'Unknown', value: Number(r.count || 0) })),
+        statusDistribution: statusRows.map((r) => ({ name: r._id || 'Unknown', value: Number(r.count || 0) })),
+        genderDistribution: genderRows.map((r) => ({ name: r._id || 'Unknown', value: Number(r.count || 0) })),
         classCapacity,
         averageUtilization: avgUtilization,
     };
@@ -305,67 +315,97 @@ const getAcademicReports = async (filters) => {
     const scheduleWhere = {};
     const finalGradeWhere = {};
     if (filters.semesterId) {
-        scheduleWhere.semester_id = filters.semesterId;
-        finalGradeWhere.semester_id = filters.semesterId;
+        scheduleWhere.semester_id = Number(filters.semesterId);
+        finalGradeWhere.semester_id = Number(filters.semesterId);
     }
     if (filters.academicYearId) {
-        scheduleWhere.academic_year_id = filters.academicYearId;
+        scheduleWhere.academic_year_id = Number(filters.academicYearId);
     }
 
     const [attendanceRows, attendanceByClassRows, gradeRows, finalGradeRows, totalGraded] = await Promise.all([
-        AttendanceRecords.findAll({
-            attributes: ['status', [fn('COUNT', col('attendance_id')), 'count']],
-            group: ['status'],
-            raw: true,
-        }),
-        AttendanceRecords.findAll({
-            attributes: [
-                [col('Schedule.class_id'), 'class_id'],
-                [col('Schedule.Class.class_name'), 'class_name'],
-                'status',
-                [fn('COUNT', col('attendance_id')), 'count'],
-            ],
-            include: [
-                {
-                    model: Schedules,
-                    attributes: [],
-                    where: scheduleWhere,
-                    include: [{ model: Classes, attributes: [] }],
-                },
-            ],
-            group: ['Schedule.class_id', 'status'],
-            raw: true,
-        }),
-        FinalGrades.findAll({
-            attributes: [
-                [col('Class.class_id'), 'class_id'],
-                [col('Class.class_name'), 'class_name'],
-                [col('Subject.subject_id'), 'subject_id'],
-                [col('Subject.subject_name'), 'subject_name'],
-                [fn('AVG', col('final_score')), 'average_score'],
-                [fn('COUNT', col('final_grade_id')), 'student_count'],
-            ],
-            where: finalGradeWhere,
-            include: [
-                { model: Classes, attributes: [] },
-                { model: Subjects, attributes: [] },
-            ],
-            group: ['Class.class_id', 'Subject.subject_id'],
-            raw: true,
-        }),
-        FinalGrades.findAll({
-            attributes: ['letter_grade', [fn('COUNT', col('final_grade_id')), 'count']],
-            where: finalGradeWhere,
-            group: ['letter_grade'],
-            raw: true,
-        }),
-        FinalGrades.count({ where: finalGradeWhere }),
+        AttendanceRecords.aggregate([
+            { $group: { _id: '$status', count: { $sum: 1 } } }
+        ]),
+        AttendanceRecords.aggregate([
+            {
+                $lookup: {
+                    from: 'schedules',
+                    localField: 'schedule_id',
+                    foreignField: 'schedule_id',
+                    as: 'schedule'
+                }
+            },
+            { $unwind: '$schedule' },
+            {
+                $match: Object.keys(scheduleWhere).reduce((acc, k) => {
+                    acc[`schedule.${k}`] = scheduleWhere[k];
+                    return acc;
+                }, {})
+            },
+            {
+                $lookup: {
+                    from: 'classes',
+                    localField: 'schedule.class_id',
+                    foreignField: 'class_id',
+                    as: 'class'
+                }
+            },
+            { $unwind: '$class' },
+            {
+                $group: {
+                    _id: {
+                        class_id: '$schedule.class_id',
+                        class_name: '$class.class_name',
+                        status: '$status'
+                    },
+                    count: { $sum: 1 }
+                }
+            }
+        ]),
+        FinalGrades.aggregate([
+            { $match: finalGradeWhere },
+            {
+                $lookup: {
+                    from: 'classes',
+                    localField: 'class_id',
+                    foreignField: 'class_id',
+                    as: 'class'
+                }
+            },
+            { $unwind: '$class' },
+            {
+                $lookup: {
+                    from: 'subjects',
+                    localField: 'subject_id',
+                    foreignField: 'subject_id',
+                    as: 'subject'
+                }
+            },
+            { $unwind: '$subject' },
+            {
+                $group: {
+                    _id: {
+                        class_id: '$class_id',
+                        class_name: '$class.class_name',
+                        subject_id: '$subject_id',
+                        subject_name: '$subject.subject_name'
+                    },
+                    average_score: { $avg: '$final_score' },
+                    student_count: { $sum: 1 }
+                }
+            }
+        ]),
+        FinalGrades.aggregate([
+            { $match: finalGradeWhere },
+            { $group: { _id: '$letter_grade', count: { $sum: 1 } } }
+        ]),
+        FinalGrades.countDocuments(finalGradeWhere),
     ]);
 
     const statusCounts = { Present: 0, Absent: 0, Late: 0, Excused: 0 };
     let totalAttendance = 0;
     attendanceRows.forEach((r) => {
-        const status = r.status;
+        const status = r._id;
         const count = Number(r.count || 0);
         if (statusCounts[status] !== undefined) {
             statusCounts[status] = count;
@@ -378,13 +418,13 @@ const getAcademicReports = async (filters) => {
 
     const classAttendanceMap = {};
     attendanceByClassRows.forEach((r) => {
-        const id = r.class_id;
+        const id = r._id.class_id;
         if (!classAttendanceMap[id]) {
-            classAttendanceMap[id] = { classId: id, className: r.class_name || '—', Present: 0, Absent: 0, Late: 0, Excused: 0, total: 0 };
+            classAttendanceMap[id] = { classId: id, className: r._id.class_name || '—', Present: 0, Absent: 0, Late: 0, Excused: 0, total: 0 };
         }
         const count = Number(r.count || 0);
-        if (classAttendanceMap[id][r.status] !== undefined) {
-            classAttendanceMap[id][r.status] += count;
+        if (classAttendanceMap[id][r._id.status] !== undefined) {
+            classAttendanceMap[id][r._id.status] += count;
         }
         classAttendanceMap[id].total += count;
     });
@@ -393,11 +433,20 @@ const getAcademicReports = async (filters) => {
         presentRate: c.total > 0 ? Number(((c.Present / c.total) * 100).toFixed(1)) : 0,
     }));
 
-    const avgScore = gradeRows.length > 0
-        ? Number((gradeRows.reduce((sum, r) => sum + Number(r.average_score || 0), 0) / gradeRows.length).toFixed(2))
+    const gradeRowsMapped = gradeRows.map(r => ({
+        class_id: r._id.class_id,
+        class_name: r._id.class_name,
+        subject_id: r._id.subject_id,
+        subject_name: r._id.subject_name,
+        average_score: r.average_score,
+        student_count: r.student_count
+    }));
+
+    const avgScore = gradeRowsMapped.length > 0
+        ? Number((gradeRowsMapped.reduce((sum, r) => sum + Number(r.average_score || 0), 0) / gradeRowsMapped.length).toFixed(2))
         : 0;
 
-    const gradesByClassSubject = gradeRows.map((r) => ({
+    const gradesByClassSubject = gradeRowsMapped.map((r) => ({
         classId: r.class_id,
         className: r.class_name,
         subjectId: r.subject_id,
@@ -408,7 +457,7 @@ const getAcademicReports = async (filters) => {
 
     const gradeOrder = ['A', 'B', 'C', 'D', 'F'];
     const finalGradeDistribution = gradeOrder.map((grade) => {
-        const row = finalGradeRows.find((r) => r.letter_grade === grade);
+        const row = finalGradeRows.find((r) => r._id === grade);
         return { name: grade, value: Number(row?.count || 0) };
     });
 
@@ -434,54 +483,101 @@ const getTeacherWorkloadReports = async (filters) => {
     const classWhere = {};
     const scheduleWhere = {};
     if (filters.semesterId) {
-        classWhere.semester_id = filters.semesterId;
-        scheduleWhere.semester_id = filters.semesterId;
+        classWhere.semester_id = Number(filters.semesterId);
+        scheduleWhere.semester_id = Number(filters.semesterId);
     }
     if (filters.academicYearId) {
-        classWhere.academic_year_id = filters.academicYearId;
-        scheduleWhere.academic_year_id = filters.academicYearId;
+        classWhere.academic_year_id = Number(filters.academicYearId);
+        scheduleWhere.academic_year_id = Number(filters.academicYearId);
     }
 
-    const [totalTeachers, homeroomRows, scheduleRows, subjectRows] = await Promise.all([
-        Teachers.count({ include: [{ model: require('../../models/users.model'), where: { status: 'Active' } }] }),
-        Classes.findAll({
-            attributes: ['homeroom_teacher_id', [fn('COUNT', col('class_id')), 'count']],
-            where: { homeroom_teacher_id: { [Op.ne]: null }, ...classWhere },
-            group: ['homeroom_teacher_id'],
-            raw: true,
-        }),
-        Schedules.findAll({
-            attributes: [
-                'teacher_id',
-                [fn('COUNT', col('schedule_id')), 'total_slots'],
-                [fn('COUNT', fn('DISTINCT', col('class_id'))), 'scheduled_classes'],
-                [col('TimeSlot.day_of_week'), 'day_of_week'],
-            ],
-            where: scheduleWhere,
-            include: [{ model: TimeSlots, attributes: [] }],
-            group: ['teacher_id', 'TimeSlot.day_of_week'],
-            raw: true,
-        }),
-        Schedules.findAll({
-            attributes: [
-                'teacher_id',
-                [fn('COUNT', fn('DISTINCT', col('subject_id'))), 'unique_subjects'],
-            ],
-            where: scheduleWhere,
-            group: ['teacher_id'],
-            raw: true,
-        }),
+    const [totalTeachers, homeroomRows, scheduleRows, subjectRows, teachers] = await Promise.all([
+        Teachers.aggregate([
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'user_id',
+                    foreignField: 'user_id',
+                    as: 'user'
+                }
+            },
+            { $unwind: '$user' },
+            { $match: { 'user.status': 'Active' } },
+            { $count: 'count' }
+        ]).then(res => res.length > 0 ? res[0].count : 0),
+        Classes.aggregate([
+            { $match: { homeroom_teacher_id: { $ne: null }, ...classWhere } },
+            { $group: { _id: '$homeroom_teacher_id', count: { $sum: 1 } } }
+        ]),
+        Schedules.aggregate([
+            { $match: scheduleWhere },
+            {
+                $lookup: {
+                    from: 'time_slots',
+                    localField: 'time_slot_id',
+                    foreignField: 'time_slot_id',
+                    as: 'timeSlot'
+                }
+            },
+            { $unwind: '$timeSlot' },
+            {
+                $group: {
+                    _id: {
+                        teacher_id: '$teacher_id',
+                        day_of_week: '$timeSlot.day_of_week'
+                    },
+                    total_slots: { $sum: 1 },
+                    classIds: { $addToSet: '$class_id' }
+                }
+            },
+            {
+                $project: {
+                    teacher_id: '$_id.teacher_id',
+                    day_of_week: '$_id.day_of_week',
+                    total_slots: '$total_slots',
+                    scheduled_classes: { $size: '$classIds' }
+                }
+            }
+        ]),
+        Schedules.aggregate([
+            { $match: scheduleWhere },
+            {
+                $group: {
+                    _id: '$teacher_id',
+                    subjectIds: { $addToSet: '$subject_id' }
+                }
+            },
+            {
+                $project: {
+                    teacher_id: '$_id',
+                    unique_subjects: { $size: '$subjectIds' }
+                }
+            }
+        ]),
+        Teachers.aggregate([
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'user_id',
+                    foreignField: 'user_id',
+                    as: 'user'
+                }
+            },
+            { $unwind: '$user' },
+            { $match: { 'user.status': 'Active' } },
+            {
+                $project: {
+                    teacher_id: 1,
+                    first_name: 1,
+                    last_name: 1
+                }
+            }
+        ]),
     ]);
-
-    const teachers = await Teachers.findAll({
-        attributes: ['teacher_id', 'first_name', 'last_name'],
-        include: [{ model: require('../../models/users.model'), where: { status: 'Active' }, attributes: [] }],
-        raw: true,
-    });
 
     const workload = teachers.map((t) => {
         const teacherId = t.teacher_id;
-        const homeroom = homeroomRows.find((r) => Number(r.homeroom_teacher_id) === teacherId);
+        const homeroom = homeroomRows.find((r) => Number(r._id) === teacherId);
         const teacherScheduleRows = scheduleRows.filter((r) => Number(r.teacher_id) === teacherId);
         const subjectRow = subjectRows.find((r) => Number(r.teacher_id) === teacherId);
 

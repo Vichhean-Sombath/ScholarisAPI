@@ -36,7 +36,9 @@ const LessonResourcesSchema = new mongoose.Schema(
     },
     {
         collection: 'lesson_resources',
-        timestamps: false
+        timestamps: false,
+        toJSON: { virtuals: true },
+        toObject: { virtuals: true }
     }
 );
 

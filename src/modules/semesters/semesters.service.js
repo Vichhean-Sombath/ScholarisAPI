@@ -1,28 +1,27 @@
 const Semesters = require('../../models/semesters.model');
 const AcademicYears = require('../../models/academic_years.model');
-const { Op } = require('sequelize');
+require('../../models/mappingContext');
 
 const GetSemesterData = async () => {
-    return await Semesters.findAll({
-        include: [{
-            model: AcademicYears,
-            attributes: ['academic_year_id', 'year_name', 'start_date', 'end_date']
-        }]
+    return await Semesters.find().populate({
+        path: 'academicYear',
+        select: 'academic_year_id year_name start_date end_date'
     });
 };
 
 const SelectedSemesterData = async (data) => {
+    const isNum = !isNaN(Number(data));
+    const orConditions = [];
+    if (isNum) {
+        orConditions.push({ semester_id: Number(data) });
+    }
+    orConditions.push({ semester_name: { $regex: data, $options: 'i' } });
+
     const selectedSemester = await Semesters.findOne({
-        where: {
-            [Op.or]: [
-                { semester_id: data },
-                { semester_name: { [Op.like]: `%${data}%` } }
-            ]
-        },
-        include: [{
-            model: AcademicYears,
-            attributes: ['academic_year_id', 'year_name', 'start_date', 'end_date']
-        }]
+        $or: orConditions
+    }).populate({
+        path: 'academicYear',
+        select: 'academic_year_id year_name start_date end_date'
     });
 
     if (!selectedSemester) {
@@ -37,7 +36,7 @@ const SelectedSemesterData = async (data) => {
 const CreateSemesterData = async (semesterData) => {
     const { academic_year_id, semester_name, start_date, end_date } = semesterData;
 
-    const academicYear = await AcademicYears.findByPk(academic_year_id);
+    const academicYear = await AcademicYears.findOne({ academic_year_id });
     if (!academicYear) {
         const err = new Error('Academic year not found!');
         err.statusCode = 404;
@@ -68,10 +67,8 @@ const CreateSemesterData = async (semesterData) => {
     }
 
     const existedSemesterName = await Semesters.findOne({
-        where: {
-            academic_year_id,
-            semester_name
-        }
+        academic_year_id,
+        semester_name
     });
     if (existedSemesterName) {
         const err = new Error('This semester name already exists for the selected academic year!');
@@ -79,7 +76,14 @@ const CreateSemesterData = async (semesterData) => {
         throw err;
     }
 
+    let semester_id = semesterData.semester_id;
+    if (!semester_id) {
+        const lastSem = await Semesters.findOne().sort({ semester_id: -1 });
+        semester_id = lastSem ? lastSem.semester_id + 1 : 1;
+    }
+
     const createSemester = await Semesters.create({
+        semester_id,
         academic_year_id,
         semester_name,
         start_date,
@@ -90,7 +94,7 @@ const CreateSemesterData = async (semesterData) => {
 };
 
 const UpdateSemesterData = async (semester_id, semesterData) => {
-    const selectedSemester = await Semesters.findByPk(semester_id);
+    const selectedSemester = await Semesters.findOne({ semester_id });
     if (!selectedSemester) {
         const err = new Error('Semester not found!');
         err.statusCode = 404;
@@ -98,7 +102,7 @@ const UpdateSemesterData = async (semester_id, semesterData) => {
     }
 
     const academicYearId = semesterData.academic_year_id || selectedSemester.academic_year_id;
-    const academicYear = await AcademicYears.findByPk(academicYearId);
+    const academicYear = await AcademicYears.findOne({ academic_year_id: academicYearId });
     if (!academicYear) {
         const err = new Error('Academic year not found!');
         err.statusCode = 404;
@@ -130,10 +134,8 @@ const UpdateSemesterData = async (semester_id, semesterData) => {
 
     if (semesterData.semester_name && (semesterData.semester_name !== selectedSemester.semester_name || parseInt(academicYearId) !== parseInt(selectedSemester.academic_year_id))) {
         const existedSemesterName = await Semesters.findOne({
-            where: {
-                academic_year_id: academicYearId,
-                semester_name: semesterData.semester_name
-            }
+            academic_year_id: academicYearId,
+            semester_name: semesterData.semester_name
         });
         if (existedSemesterName) {
             const err = new Error('This semester name already exists for the selected academic year!');
@@ -142,20 +144,21 @@ const UpdateSemesterData = async (semester_id, semesterData) => {
         }
     }
 
-    await selectedSemester.update(semesterData);
+    Object.assign(selectedSemester, semesterData);
+    await selectedSemester.save();
 
     return selectedSemester;
 };
 
 const DeleteSemesterData = async (semester_id) => {
-    const selectedSemester = await Semesters.findByPk(semester_id);
+    const selectedSemester = await Semesters.findOne({ semester_id });
     if (!selectedSemester) {
         const err = new Error('Semester not found!');
         err.statusCode = 404;
         throw err;
     }
 
-    await selectedSemester.destroy();
+    await Semesters.deleteOne({ semester_id });
 };
 
 module.exports = {

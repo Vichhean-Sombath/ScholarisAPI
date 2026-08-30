@@ -3,45 +3,47 @@ const Assessments = require('../../models/assessments.model');
 const Schedules = require('../../models/schedules.model');
 const Students = require('../../models/students.model');
 const Teachers = require('../../models/teachers.model');
-const { Op } = require('sequelize');
+require('../../models/mappingContext');
+
+const getPopulateOptions = (currentUser) => {
+    const scheduleMatch = currentUser.role === 'Teacher' ? { teacher_id: currentUser.teacher_id } : {};
+    return [
+        {
+            path: 'assessment',
+            select: 'assessment_id assessment_name max_score',
+            populate: {
+                path: 'schedule',
+                select: 'schedule_id teacher_id',
+                match: scheduleMatch
+            }
+        },
+        { path: 'student', select: 'student_id first_name last_name' },
+        { path: 'enteredBy', select: 'teacher_id first_name last_name' }
+    ];
+};
 
 const GetGradeData = async (currentUser, assessmentId) => {
-    const where = assessmentId ? { assessment_id: assessmentId } : {};
+    const query = assessmentId ? { assessment_id: Number(assessmentId) } : {};
 
-    const includeOptions = [
-        {
-            model: Assessments,
-            attributes: ['assessment_id', 'assessment_name', 'max_score'],
-            include: [
-                {
-                    model: Schedules,
-                    attributes: ['schedule_id', 'teacher_id'],
-                    where: currentUser.role === 'Teacher' ? { teacher_id: currentUser.teacher_id } : {}
-                }
-            ]
-        },
-        { model: Students, attributes: ['student_id', 'first_name', 'last_name'] },
-        { model: Teachers, as: 'EnteredBy', attributes: ['teacher_id', 'first_name', 'last_name'] }
-    ];
+    let grades = await Grades.find(query).populate(getPopulateOptions(currentUser)).lean();
 
-    return await Grades.findAll({
-        where,
-        include: includeOptions
-    });
+    if (currentUser.role === 'Teacher') {
+        grades = grades.filter(g => g.assessment && g.assessment.schedule);
+    }
+
+    return grades;
 };
 
 const SelectedGradeData = async (data, currentUser) => {
-    const selectedGrade = await Grades.findByPk(data, {
-        include: [
-            {
-                model: Assessments,
-                attributes: ['assessment_id', 'assessment_name', 'max_score'],
-                include: [{ model: Schedules, attributes: ['teacher_id'] }]
-            },
-            { model: Students, attributes: ['student_id', 'first_name', 'last_name'] },
-            { model: Teachers, as: 'EnteredBy', attributes: ['teacher_id', 'first_name', 'last_name'] }
-        ]
-    });
+    const selectedGrade = await Grades.findOne({ grade_id: data }).populate([
+        {
+            path: 'assessment',
+            select: 'assessment_id assessment_name max_score',
+            populate: { path: 'schedule', select: 'teacher_id' }
+        },
+        { path: 'student', select: 'student_id first_name last_name' },
+        { path: 'enteredBy', select: 'teacher_id first_name last_name' }
+    ]);
 
     if (!selectedGrade) {
         const err = new Error('Grade not found!');
@@ -49,7 +51,7 @@ const SelectedGradeData = async (data, currentUser) => {
         throw err;
     }
 
-    if (currentUser.role === 'Teacher' && selectedGrade.Assessment.Schedule.teacher_id !== currentUser.teacher_id) {
+    if (currentUser.role === 'Teacher' && selectedGrade.assessment?.schedule?.teacher_id !== currentUser.teacher_id) {
         const err = new Error('Unauthorized!');
         err.statusCode = 403;
         throw err;
@@ -64,29 +66,27 @@ const CreateGradeData = async (gradeData, currentUser) => {
         ? currentUser.teacher_id
         : gradeData.entered_by;
 
-    const assessment = await Assessments.findByPk(assessment_id, {
-        include: [{ model: Schedules, attributes: ['teacher_id'] }]
-    });
+    const assessment = await Assessments.findOne({ assessment_id }).populate({ path: 'schedule', select: 'teacher_id' });
     if (!assessment) {
         const err = new Error('Assessment not found!');
         err.statusCode = 404;
         throw err;
     }
 
-    if (currentUser.role === 'Teacher' && assessment.Schedule.teacher_id !== currentUser.teacher_id) {
+    if (currentUser.role === 'Teacher' && assessment.schedule?.teacher_id !== currentUser.teacher_id) {
         const err = new Error('Unauthorized!');
         err.statusCode = 403;
         throw err;
     }
 
-    const student = await Students.findByPk(student_id);
+    const student = await Students.findOne({ student_id });
     if (!student) {
         const err = new Error('Student not found!');
         err.statusCode = 404;
         throw err;
     }
 
-    const teacher = await Teachers.findByPk(entered_by);
+    const teacher = await Teachers.findOne({ teacher_id: entered_by });
     if (!teacher) {
         const err = new Error('Teacher not found!');
         err.statusCode = 404;
@@ -99,16 +99,21 @@ const CreateGradeData = async (gradeData, currentUser) => {
         throw err;
     }
 
-    const existedGrade = await Grades.findOne({
-        where: { assessment_id, student_id }
-    });
+    const existedGrade = await Grades.findOne({ assessment_id, student_id });
     if (existedGrade) {
         const err = new Error('Grade already exists for this assessment and student!');
         err.statusCode = 400;
         throw err;
     }
 
+    let grade_id = gradeData.grade_id;
+    if (!grade_id) {
+        const lastGrade = await Grades.findOne().sort({ grade_id: -1 });
+        grade_id = lastGrade ? lastGrade.grade_id + 1 : 1;
+    }
+
     const createGrade = await Grades.create({
+        grade_id,
         assessment_id,
         student_id,
         score,
@@ -120,14 +125,9 @@ const CreateGradeData = async (gradeData, currentUser) => {
 };
 
 const UpdateGradeData = async (grade_id, gradeData, currentUser) => {
-    const selectedGrade = await Grades.findByPk(grade_id, {
-        include: [
-            {
-                model: Assessments,
-                attributes: ['assessment_id'],
-                include: [{ model: Schedules, attributes: ['teacher_id'] }]
-            }
-        ]
+    const selectedGrade = await Grades.findOne({ grade_id }).populate({
+        path: 'assessment',
+        populate: { path: 'schedule' }
     });
     if (!selectedGrade) {
         const err = new Error('Grade not found!');
@@ -135,7 +135,7 @@ const UpdateGradeData = async (grade_id, gradeData, currentUser) => {
         throw err;
     }
 
-    if (currentUser.role === 'Teacher' && selectedGrade.Assessment.Schedule.teacher_id !== currentUser.teacher_id) {
+    if (currentUser.role === 'Teacher' && selectedGrade.assessment?.schedule?.teacher_id !== currentUser.teacher_id) {
         const err = new Error('Unauthorized!');
         err.statusCode = 403;
         throw err;
@@ -150,7 +150,7 @@ const UpdateGradeData = async (grade_id, gradeData, currentUser) => {
     const newAssessmentId = gradeData.assessment_id || selectedGrade.assessment_id;
     const newStudentId = gradeData.student_id || selectedGrade.student_id;
 
-    const assessment = await Assessments.findByPk(newAssessmentId);
+    const assessment = await Assessments.findOne({ assessment_id: newAssessmentId });
     if (!assessment) {
         const err = new Error('Assessment not found!');
         err.statusCode = 404;
@@ -158,7 +158,7 @@ const UpdateGradeData = async (grade_id, gradeData, currentUser) => {
     }
 
     if (gradeData.student_id) {
-        const student = await Students.findByPk(gradeData.student_id);
+        const student = await Students.findOne({ student_id: gradeData.student_id });
         if (!student) {
             const err = new Error('Student not found!');
             err.statusCode = 404;
@@ -167,7 +167,7 @@ const UpdateGradeData = async (grade_id, gradeData, currentUser) => {
     }
 
     if (gradeData.entered_by) {
-        const teacher = await Teachers.findByPk(gradeData.entered_by);
+        const teacher = await Teachers.findOne({ teacher_id: gradeData.entered_by });
         if (!teacher) {
             const err = new Error('Teacher not found!');
             err.statusCode = 404;
@@ -185,11 +185,9 @@ const UpdateGradeData = async (grade_id, gradeData, currentUser) => {
     if ((gradeData.assessment_id && parseInt(gradeData.assessment_id) !== parseInt(selectedGrade.assessment_id)) ||
         (gradeData.student_id && parseInt(gradeData.student_id) !== parseInt(selectedGrade.student_id))) {
         const existedGrade = await Grades.findOne({
-            where: {
-                assessment_id: newAssessmentId,
-                student_id: newStudentId,
-                grade_id: { [Op.ne]: grade_id }
-            }
+            assessment_id: newAssessmentId,
+            student_id: newStudentId,
+            grade_id: { $ne: grade_id }
         });
         if (existedGrade) {
             const err = new Error('Grade already exists for this assessment and student!');
@@ -198,20 +196,16 @@ const UpdateGradeData = async (grade_id, gradeData, currentUser) => {
         }
     }
 
-    await selectedGrade.update(gradeData);
+    Object.assign(selectedGrade, gradeData);
+    await selectedGrade.save();
 
     return selectedGrade;
 };
 
 const DeleteGradeData = async (grade_id, currentUser) => {
-    const selectedGrade = await Grades.findByPk(grade_id, {
-        include: [
-            {
-                model: Assessments,
-                attributes: ['assessment_id'],
-                include: [{ model: Schedules, attributes: ['teacher_id'] }]
-            }
-        ]
+    const selectedGrade = await Grades.findOne({ grade_id }).populate({
+        path: 'assessment',
+        populate: { path: 'schedule' }
     });
     if (!selectedGrade) {
         const err = new Error('Grade not found!');
@@ -219,13 +213,13 @@ const DeleteGradeData = async (grade_id, currentUser) => {
         throw err;
     }
 
-    if (currentUser.role === 'Teacher' && selectedGrade.Assessment.Schedule.teacher_id !== currentUser.teacher_id) {
+    if (currentUser.role === 'Teacher' && selectedGrade.assessment?.schedule?.teacher_id !== currentUser.teacher_id) {
         const err = new Error('Unauthorized!');
         err.statusCode = 403;
         throw err;
     }
 
-    await selectedGrade.destroy();
+    await Grades.deleteOne({ grade_id });
 };
 
 module.exports = {

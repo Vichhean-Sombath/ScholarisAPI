@@ -40,7 +40,9 @@ const FinalGradesSchema = new mongoose.Schema(
     },
     {
         collection: 'final_grades',
-        timestamps: false
+        timestamps: false,
+        toJSON: { virtuals: true },
+        toObject: { virtuals: true }
     }
 );
 

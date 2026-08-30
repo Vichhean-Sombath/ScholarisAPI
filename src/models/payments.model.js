@@ -39,7 +39,9 @@ const PaymentsSchema = new mongoose.Schema(
     },
     {
         collection: 'payments',
-        timestamps: false
+        timestamps: false,
+        toJSON: { virtuals: true },
+        toObject: { virtuals: true }
     }
 );
 

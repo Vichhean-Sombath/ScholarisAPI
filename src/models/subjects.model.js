@@ -24,7 +24,9 @@ const SubjectsSchema = new mongoose.Schema(
     },
     {
         collection: 'subjects',
-        timestamps: false
+        timestamps: false,
+        toJSON: { virtuals: true },
+        toObject: { virtuals: true }
     }
 );
 

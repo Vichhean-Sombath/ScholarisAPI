@@ -280,13 +280,14 @@ const BakongVerify = async (req, res, next) => {
             return res.status(400).json({ message: 'md5 is required.' });
         }
 
-        const qrRequest = await BakongQRRequests.findOne({ where: { md5 } });
+        const qrRequest = await BakongQRRequests.findOne({ md5 });
         if (!qrRequest) {
             return res.status(404).json({ message: 'QR request not found.' });
         }
 
         if (qrRequest.status === 'Pending' && new Date() > new Date(qrRequest.expires_at)) {
-            await qrRequest.update({ status: 'Expired' });
+            qrRequest.status = 'Expired';
+            await qrRequest.save();
         }
 
         let bakongStatus = null;
@@ -325,7 +326,9 @@ const BakongVerify = async (req, res, next) => {
                             receipt_url: tx.receiptUrl || null
                         });
 
-                        await qrRequest.update({ status: 'Paid', paid_at: new Date() });
+                        qrRequest.status = 'Paid';
+                        qrRequest.paid_at = new Date();
+                        await qrRequest.save();
                         paymentId = payment.payment_id;
                     }
                 }
@@ -335,7 +338,7 @@ const BakongVerify = async (req, res, next) => {
             }
         }
 
-        const refreshed = await BakongQRRequests.findOne({ where: { md5 } });
+        const refreshed = await BakongQRRequests.findOne({ md5 });
 
         res.status(200).json({
             message: 'Bakong QR status retrieved.',
@@ -402,7 +405,8 @@ const BakongWebhook = async (req, res, next) => {
         }
 
         const qrRequest = await BakongQRRequests.findOne({
-            where: { md5, status: 'Pending' }
+            md5,
+            status: 'Pending'
         });
 
         if (!qrRequest) {
@@ -411,7 +415,8 @@ const BakongWebhook = async (req, res, next) => {
         }
 
         if (new Date() > new Date(qrRequest.expires_at)) {
-            await qrRequest.update({ status: 'Expired' });
+            qrRequest.status = 'Expired';
+            await qrRequest.save();
             console.warn('Bakong webhook: QR request expired for md5:', md5);
             return res.status(200).json({ received: true });
         }
@@ -432,7 +437,8 @@ const BakongWebhook = async (req, res, next) => {
 
         if (!amountMatched) {
             console.warn(`Bakong webhook: amount mismatch for md5 ${md5}. currency=${currency}, expectedKhr=${expectedKhr}, expectedUsd=${expectedUsd}, received=${rawAmount}`);
-            await qrRequest.update({ status: 'Failed' });
+            qrRequest.status = 'Failed';
+            await qrRequest.save();
             return res.status(200).json({ received: true });
         }
 
@@ -445,7 +451,9 @@ const BakongWebhook = async (req, res, next) => {
                 receipt_url: payload.receiptUrl || payload.data?.receiptUrl || null
             });
 
-            await qrRequest.update({ status: 'Paid', paid_at: new Date() });
+            qrRequest.status = 'Paid';
+            qrRequest.paid_at = new Date();
+            await qrRequest.save();
             console.log('Bakong webhook: payment recorded for invoice', qrRequest.invoice_id);
         } catch (error) {
             console.error('Bakong webhook payment recording failed:', error.message);

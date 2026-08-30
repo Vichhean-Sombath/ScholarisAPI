@@ -1,28 +1,26 @@
 const AcademicYears = require('../../models/academic_years.model');
 const Semesters = require('../../models/semesters.model');
-const { Op } = require('sequelize');
 
 const GetAcademicYearData = async () => {
-    return await AcademicYears.findAll({
-        include: [{
-            model: Semesters,
-            attributes: ['semester_id', 'semester_name', 'start_date', 'end_date']
-        }]
+    return await AcademicYears.find().populate({
+        path: 'semesters',
+        select: 'semester_id semester_name start_date end_date'
     });
 };
 
 const SelectedAcademicYearData = async (data) => {
+    const isNum = !isNaN(Number(data));
+    const orConditions = [];
+    if (isNum) {
+        orConditions.push({ academic_year_id: Number(data) });
+    }
+    orConditions.push({ year_name: { $regex: data, $options: 'i' } });
+
     const selectedAcademicYear = await AcademicYears.findOne({
-        where: {
-            [Op.or]: [
-                { academic_year_id: data },
-                { year_name: { [Op.like]: `%${data}%` } }
-            ]
-        },
-        include: [{
-            model: Semesters,
-            attributes: ['semester_id', 'semester_name', 'start_date', 'end_date']
-        }]
+        $or: orConditions
+    }).populate({
+        path: 'semesters',
+        select: 'semester_id semester_name start_date end_date'
     });
 
     if (!selectedAcademicYear) {
@@ -37,7 +35,7 @@ const SelectedAcademicYearData = async (data) => {
 const CreateAcademicYearData = async (academicYearData) => {
     const { year_name, start_date, end_date, status } = academicYearData;
 
-    const existedYearName = await AcademicYears.findOne({ where: { year_name } });
+    const existedYearName = await AcademicYears.findOne({ year_name });
     if (existedYearName) {
         const err = new Error('This year name already exists!');
         err.statusCode = 400;
@@ -50,7 +48,17 @@ const CreateAcademicYearData = async (academicYearData) => {
         throw err;
     }
 
+    // In a production MongoDB environment with Mongoose, you would automatically generate IDs.
+    // For compatibility during the migration, we will generate user_id / academic_year_id sequentially
+    // if not already provided.
+    let academic_year_id = academicYearData.academic_year_id;
+    if (!academic_year_id) {
+        const lastYear = await AcademicYears.findOne().sort({ academic_year_id: -1 });
+        academic_year_id = lastYear ? lastYear.academic_year_id + 1 : 1;
+    }
+
     const createAcademicYear = await AcademicYears.create({
+        academic_year_id,
         year_name,
         start_date,
         end_date,
@@ -61,7 +69,7 @@ const CreateAcademicYearData = async (academicYearData) => {
 };
 
 const UpdateAcademicYearData = async (academic_year_id, academicYearData) => {
-    const selectedAcademicYear = await AcademicYears.findByPk(academic_year_id);
+    const selectedAcademicYear = await AcademicYears.findOne({ academic_year_id });
     if (!selectedAcademicYear) {
         const err = new Error('Academic year not found!');
         err.statusCode = 404;
@@ -69,7 +77,7 @@ const UpdateAcademicYearData = async (academic_year_id, academicYearData) => {
     }
 
     if (academicYearData.year_name && academicYearData.year_name !== selectedAcademicYear.year_name) {
-        const existedYearName = await AcademicYears.findOne({ where: { year_name: academicYearData.year_name } });
+        const existedYearName = await AcademicYears.findOne({ year_name: academicYearData.year_name });
         if (existedYearName) {
             const err = new Error('This year name already exists!');
             err.statusCode = 400;
@@ -85,20 +93,21 @@ const UpdateAcademicYearData = async (academic_year_id, academicYearData) => {
         throw err;
     }
 
-    await selectedAcademicYear.update(academicYearData);
+    Object.assign(selectedAcademicYear, academicYearData);
+    await selectedAcademicYear.save();
 
     return selectedAcademicYear;
 };
 
 const DeleteAcademicYearData = async (academic_year_id) => {
-    const selectedAcademicYear = await AcademicYears.findByPk(academic_year_id);
+    const selectedAcademicYear = await AcademicYears.findOne({ academic_year_id });
     if (!selectedAcademicYear) {
         const err = new Error('Academic year not found!');
         err.statusCode = 404;
         throw err;
     }
 
-    await selectedAcademicYear.destroy();
+    await AcademicYears.deleteOne({ academic_year_id });
 };
 
 module.exports = {

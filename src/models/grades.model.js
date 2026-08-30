@@ -35,7 +35,9 @@ const GradesSchema = new mongoose.Schema(
     },
     {
         collection: 'grades',
-        timestamps: false
+        timestamps: false,
+        toJSON: { virtuals: true },
+        toObject: { virtuals: true }
     }
 );
 

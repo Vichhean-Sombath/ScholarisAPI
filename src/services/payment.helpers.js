@@ -6,30 +6,22 @@ const StudentEmergencyContacts = require('../models/student_emergency_contacts.m
 
 const findPrimaryEmergencyContact = async (student_id) => {
     return await StudentEmergencyContacts.findOne({
-        where: {
-            student_id,
-            email: {
-                [require('sequelize').Op.ne]: null
-            }
-        },
-        order: [['contact_id', 'ASC']]
-    });
+        student_id,
+        email: { $ne: null }
+    }).sort({ contact_id: 1 });
 };
 
 const buildPaymentContext = async (invoice_id, payment) => {
-    const invoice = await Invoices.findByPk(invoice_id, {
-        include: [
-            { model: Students, attributes: ['student_id', 'first_name', 'last_name'] },
-            { model: FeeStructures, attributes: ['fee_id', 'fee_name', 'amount'] },
-            { model: Semesters, attributes: ['semester_id', 'semester_name'] }
-        ]
-    });
+    const invoice = await Invoices.findOne({ invoice_id })
+        .populate({ path: 'student', select: 'student_id first_name last_name' })
+        .populate({ path: 'feeStructure', select: 'fee_id fee_name amount' })
+        .populate({ path: 'semester', select: 'semester_id semester_name' });
 
     if (!invoice) return null;
 
-    const student = invoice.Student;
-    const fee = invoice.FeeStructure;
-    const semester = invoice.Semester;
+    const student = invoice.student;
+    const fee = invoice.feeStructure;
+    const semester = invoice.semester;
     const emergencyContact = await findPrimaryEmergencyContact(invoice.student_id);
 
     return {

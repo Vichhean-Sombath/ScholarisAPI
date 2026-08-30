@@ -28,7 +28,7 @@ const CreateUserData = async (userData) => {
         throw err;
     }
 
-    const existingUsername = await Users.findOne({ where: { username } });
+    const existingUsername = await Users.findOne({ username });
     if (existingUsername) {
         const err = new Error('This username already exists!');
         err.statusCode = 409;
@@ -50,7 +50,11 @@ const CreateUserData = async (userData) => {
 
     const hashedPassword = await bcrypt.hash(userData.password, 10);
 
+    const lastUser = await Users.findOne().sort({ user_id: -1 });
+    const user_id = lastUser ? lastUser.user_id + 1 : 1;
+
     const newUser = await Users.create({
+        user_id,
         username,
         email,
         role,
@@ -65,7 +69,11 @@ const CreateUserData = async (userData) => {
             throw err;
         }
 
+        const lastTeacher = await Teachers.findOne().sort({ teacher_id: -1 });
+        const teacher_id = lastTeacher ? lastTeacher.teacher_id + 1 : 1;
+
         await Teachers.create({
+            teacher_id,
             user_id: newUser.user_id,
             first_name,
             last_name,
@@ -86,7 +94,11 @@ const CreateUserData = async (userData) => {
             throw err;
         }
 
+        const lastStudent = await Students.findOne().sort({ student_id: -1 });
+        const student_id = lastStudent ? lastStudent.student_id + 1 : 1;
+
         await Students.create({
+            student_id,
             user_id: newUser.user_id,
             first_name,
             last_name,
@@ -109,7 +121,7 @@ const CreateUserData = async (userData) => {
 };
 
 const UpdateUserData = async (user_id, userData, currentUser) => {
-    const user = await Users.findByPk(user_id);
+    const user = await Users.findOne({ user_id });
     if (!user) {
         const err = new Error('User not found!');
         err.statusCode = 404;
@@ -140,7 +152,7 @@ const UpdateUserData = async (user_id, userData, currentUser) => {
     }
 
     if (userData.username && userData.username !== user.username) {
-        const existingUsername = await Users.findOne({ where: { username: userData.username } });
+        const existingUsername = await Users.findOne({ username: userData.username });
         if (existingUsername) {
             const err = new Error('This username already exists!');
             err.statusCode = 400;
@@ -164,7 +176,8 @@ const UpdateUserData = async (user_id, userData, currentUser) => {
 
     delete userData.password_hash;
 
-    await user.update(userData);
+    Object.assign(user, userData);
+    await user.save();
 
     return {
         user_id: user.user_id,
@@ -183,7 +196,7 @@ const ChangePasswordData = async (currentUser, { currentPassword, newPassword })
         throw err;
     }
 
-    const user = await Users.findByPk(currentUser.user_id);
+    const user = await Users.findOne({ user_id: currentUser.user_id });
     if (!user) {
         const err = new Error('User not found!');
         err.statusCode = 404;
@@ -224,7 +237,8 @@ const ChangePasswordData = async (currentUser, { currentPassword, newPassword })
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-    await user.update({ password_hash: hashedPassword });
+    user.password_hash = hashedPassword;
+    await user.save();
 
     return {
         user_id: user.user_id,
@@ -234,7 +248,7 @@ const ChangePasswordData = async (currentUser, { currentPassword, newPassword })
 };
 
 const DisableUserData = async (user_id, currentUser) => {
-    const user = await Users.findByPk(user_id);
+    const user = await Users.findOne({ user_id });
     if (!user) {
         const err = new Error('User not found!');
         err.statusCode = 404;
@@ -265,7 +279,8 @@ const DisableUserData = async (user_id, currentUser) => {
         throw err;
     }
 
-    await user.update({ status: 'Inactive' });
+    user.status = 'Inactive';
+    await user.save();
 
     return {
         user_id: user.user_id,
@@ -277,7 +292,7 @@ const DisableUserData = async (user_id, currentUser) => {
 };
 
 const EnableUserData = async (user_id, currentUser) => {
-    const user = await Users.findByPk(user_id);
+    const user = await Users.findOne({ user_id });
     if (!user) {
         const err = new Error('User not found!');
         err.statusCode = 404;
@@ -296,7 +311,8 @@ const EnableUserData = async (user_id, currentUser) => {
         throw err;
     }
 
-    await user.update({ status: 'Active' });
+    user.status = 'Active';
+    await user.save();
 
     return {
         user_id: user.user_id,

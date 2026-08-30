@@ -5,53 +5,43 @@ const Classes = require('../../models/classes.model');
 const Subjects = require('../../models/subjects.model');
 const Teachers = require('../../models/teachers.model');
 const TimeSlots = require('../../models/time_slots.model');
-const { Op, Sequelize } = require('sequelize');
+require('../../models/mappingContext');
+
+const sharedPopulates = [
+    { path: 'criteria', select: 'criteria_id component_name weight_percentage' },
+    {
+        path: 'schedule',
+        select: 'schedule_id class_id subject_id teacher_id time_slot_id room_number',
+        populate: [
+            { path: 'class', select: 'class_id class_name semester_id' },
+            { path: 'subject', select: 'subject_id subject_code subject_name' },
+            { path: 'teacher', select: 'teacher_id first_name last_name' },
+            { path: 'timeSlot', select: 'time_slot_id day_of_week start_time end_time' }
+        ]
+    }
+];
 
 const GetAssessmentData = async (currentUser) => {
-    const where = currentUser.role === 'Teacher'
-        ? { '$Schedule.teacher_id$': currentUser.teacher_id }
-        : {};
+    let assessments = await Assessments.find().populate(sharedPopulates).lean();
 
-    return await Assessments.findAll({
-        where,
-        include: [
-            { model: GradingCriteria, attributes: ['criteria_id', 'component_name', 'weight_percentage'] },
-            {
-                model: Schedules,
-                attributes: ['schedule_id', 'class_id', 'subject_id', 'teacher_id', 'time_slot_id', 'room_number'],
-                include: [
-                    { model: Classes, attributes: ['class_id', 'class_name', 'semester_id'] },
-                    { model: Subjects, attributes: ['subject_id', 'subject_code', 'subject_name'] },
-                    { model: Teachers, attributes: ['teacher_id', 'first_name', 'last_name'] },
-                    { model: TimeSlots, attributes: ['time_slot_id', 'day_of_week', 'start_time', 'end_time'] }
-                ]
-            }
-        ]
-    });
+    if (currentUser.role === 'Teacher') {
+        assessments = assessments.filter(a => a.schedule && a.schedule.teacher_id === currentUser.teacher_id);
+    }
+
+    return assessments;
 };
 
 const SelectedAssessmentData = async (data, currentUser) => {
+    const isNum = !isNaN(Number(data));
+    const orConditions = [];
+    if (isNum) {
+        orConditions.push({ assessment_id: Number(data) });
+    }
+    orConditions.push({ assessment_name: { $regex: data, $options: 'i' } });
+
     const selectedAssessment = await Assessments.findOne({
-        where: {
-            [Op.or]: [
-                { assessment_id: data },
-                { assessment_name: { [Op.like]: `%${data}%` } }
-            ]
-        },
-        include: [
-            { model: GradingCriteria, attributes: ['criteria_id', 'component_name', 'weight_percentage'] },
-            {
-                model: Schedules,
-                attributes: ['schedule_id', 'class_id', 'subject_id', 'teacher_id', 'time_slot_id', 'room_number'],
-                include: [
-                    { model: Classes, attributes: ['class_id', 'class_name', 'semester_id'] },
-                    { model: Subjects, attributes: ['subject_id', 'subject_code', 'subject_name'] },
-                    { model: Teachers, attributes: ['teacher_id', 'first_name', 'last_name'] },
-                    { model: TimeSlots, attributes: ['time_slot_id', 'day_of_week', 'start_time', 'end_time'] }
-                ]
-            }
-        ]
-    });
+        $or: orConditions
+    }).populate(sharedPopulates);
 
     if (!selectedAssessment) {
         const err = new Error('Assessment not found!');
@@ -59,7 +49,7 @@ const SelectedAssessmentData = async (data, currentUser) => {
         throw err;
     }
 
-    if (currentUser.role === 'Teacher' && selectedAssessment.Schedule.teacher_id !== currentUser.teacher_id) {
+    if (currentUser.role === 'Teacher' && selectedAssessment.schedule?.teacher_id !== currentUser.teacher_id) {
         const err = new Error('Unauthorized!');
         err.statusCode = 403;
         throw err;
@@ -71,13 +61,11 @@ const SelectedAssessmentData = async (data, currentUser) => {
 const CreateAssessmentData = async (assessmentData, currentUser) => {
     const { schedule_id, criteria_id, assessment_name, max_score, assessment_date } = assessmentData;
 
-    const schedule = await Schedules.findByPk(schedule_id, {
-        include: [
-            { model: Classes, attributes: ['class_id', 'class_name', 'semester_id'] },
-            { model: Subjects, attributes: ['subject_id', 'subject_code', 'subject_name'] },
-            { model: Teachers, attributes: ['teacher_id', 'first_name', 'last_name'] }
-        ]
-    });
+    const schedule = await Schedules.findOne({ schedule_id }).populate([
+        { path: 'class', select: 'class_id class_name semester_id' },
+        { path: 'subject', select: 'subject_id subject_code subject_name' },
+        { path: 'teacher', select: 'teacher_id first_name last_name' }
+    ]);
     if (!schedule) {
         const err = new Error('Schedule not found!');
         err.statusCode = 404;
@@ -90,31 +78,25 @@ const CreateAssessmentData = async (assessmentData, currentUser) => {
         throw err;
     }
 
-    const criteria = await GradingCriteria.findByPk(criteria_id);
+    const criteria = await GradingCriteria.findOne({ criteria_id });
     if (!criteria) {
         const err = new Error('Grading criteria not found!');
         err.statusCode = 404;
         throw err;
     }
 
-    const existingCount = await Assessments.count({
-        where: { criteria_id },
-        include: [
-            {
-                model: Schedules,
-                where: {
-                    class_id: schedule.class_id,
-                    subject_id: schedule.subject_id
-                },
-                include: [
-                    {
-                        model: Classes,
-                        where: { semester_id: schedule.Class.semester_id }
-                    }
-                ]
-            }
-        ]
-    });
+    const assessments = await Assessments.find({ criteria_id }).populate({
+        path: 'schedule',
+        populate: { path: 'class' }
+    }).lean();
+
+    const existingCount = assessments.filter(a =>
+        a.schedule &&
+        a.schedule.class_id === schedule.class_id &&
+        a.schedule.subject_id === schedule.subject_id &&
+        a.schedule.class &&
+        a.schedule.class.semester_id === schedule.class?.semester_id
+    ).length;
 
     if (existingCount >= Number(criteria.attempt_count)) {
         const err = new Error(`This criteria already has ${existingCount} assessment(s). Maximum allowed is ${criteria.attempt_count}.`);
@@ -122,7 +104,14 @@ const CreateAssessmentData = async (assessmentData, currentUser) => {
         throw err;
     }
 
+    let assessment_id = assessmentData.assessment_id;
+    if (!assessment_id) {
+        const lastAssess = await Assessments.findOne().sort({ assessment_id: -1 });
+        assessment_id = lastAssess ? lastAssess.assessment_id + 1 : 1;
+    }
+
     const createAssessment = await Assessments.create({
+        assessment_id,
         schedule_id,
         criteria_id,
         assessment_name,
@@ -130,41 +119,25 @@ const CreateAssessmentData = async (assessmentData, currentUser) => {
         assessment_date
     });
 
-    return await Assessments.findByPk(createAssessment.assessment_id, {
-        include: [
-            { model: GradingCriteria, attributes: ['criteria_id', 'component_name', 'weight_percentage'] },
-            {
-                model: Schedules,
-                attributes: ['schedule_id', 'class_id', 'subject_id', 'teacher_id', 'time_slot_id', 'room_number'],
-                include: [
-                    { model: Classes, attributes: ['class_id', 'class_name', 'semester_id'] },
-                    { model: Subjects, attributes: ['subject_id', 'subject_code', 'subject_name'] },
-                    { model: Teachers, attributes: ['teacher_id', 'first_name', 'last_name'] },
-                    { model: TimeSlots, attributes: ['time_slot_id', 'day_of_week', 'start_time', 'end_time'] }
-                ]
-            }
-        ]
-    });
+    return await Assessments.findOne({ assessment_id: createAssessment.assessment_id }).populate(sharedPopulates);
 };
 
 const UpdateAssessmentData = async (assessment_id, assessmentData, currentUser) => {
-    const selectedAssessment = await Assessments.findByPk(assessment_id, {
-        include: [{ model: Schedules, attributes: ['teacher_id'] }]
-    });
+    const selectedAssessment = await Assessments.findOne({ assessment_id }).populate('schedule');
     if (!selectedAssessment) {
         const err = new Error('Assessment not found!');
         err.statusCode = 404;
         throw err;
     }
 
-    if (currentUser.role === 'Teacher' && selectedAssessment.Schedule.teacher_id !== currentUser.teacher_id) {
+    if (currentUser.role === 'Teacher' && selectedAssessment.schedule?.teacher_id !== currentUser.teacher_id) {
         const err = new Error('Unauthorized!');
         err.statusCode = 403;
         throw err;
     }
 
     if (assessmentData.schedule_id) {
-        const schedule = await Schedules.findByPk(assessmentData.schedule_id);
+        const schedule = await Schedules.findOne({ schedule_id: assessmentData.schedule_id });
         if (!schedule) {
             const err = new Error('Schedule not found!');
             err.statusCode = 404;
@@ -179,7 +152,7 @@ const UpdateAssessmentData = async (assessment_id, assessmentData, currentUser) 
     }
 
     if (assessmentData.criteria_id) {
-        const criteria = await GradingCriteria.findByPk(assessmentData.criteria_id);
+        const criteria = await GradingCriteria.findOne({ criteria_id: assessmentData.criteria_id });
         if (!criteria) {
             const err = new Error('Grading criteria not found!');
             err.statusCode = 404;
@@ -187,28 +160,27 @@ const UpdateAssessmentData = async (assessment_id, assessmentData, currentUser) 
         }
     }
 
-    await selectedAssessment.update(assessmentData);
+    Object.assign(selectedAssessment, assessmentData);
+    await selectedAssessment.save();
 
     return selectedAssessment;
 };
 
 const DeleteAssessmentData = async (assessment_id, currentUser) => {
-    const selectedAssessment = await Assessments.findByPk(assessment_id, {
-        include: [{ model: Schedules, attributes: ['teacher_id'] }]
-    });
+    const selectedAssessment = await Assessments.findOne({ assessment_id }).populate('schedule');
     if (!selectedAssessment) {
         const err = new Error('Assessment not found!');
         err.statusCode = 404;
         throw err;
     }
 
-    if (currentUser.role === 'Teacher' && selectedAssessment.Schedule.teacher_id !== currentUser.teacher_id) {
+    if (currentUser.role === 'Teacher' && selectedAssessment.schedule?.teacher_id !== currentUser.teacher_id) {
         const err = new Error('Unauthorized!');
         err.statusCode = 403;
         throw err;
     }
 
-    await selectedAssessment.destroy();
+    await Assessments.deleteOne({ assessment_id });
 };
 
 module.exports = {

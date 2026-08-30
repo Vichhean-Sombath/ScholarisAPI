@@ -7,6 +7,7 @@ const FeeStructures = require('../../models/fee_structures.model');
 const { sendPaymentNotification } = require('../../services/telegram.service');
 const { sendReceiptEmail } = require('../../services/email.service');
 const { buildPaymentContext } = require('../../services/payment.helpers');
+require('../../models/mappingContext');
 
 const normalizePaymentMethod = (method) => {
     const map = {
@@ -20,18 +21,21 @@ const getSystemUserId = async () => {
     const systemUserId = process.env.SYSTEM_USER_ID;
     if (systemUserId) {
         const id = parseInt(systemUserId, 10);
-        const existing = await Users.findByPk(id);
+        const existing = await Users.findOne({ user_id: id });
         if (existing) return id;
     }
 
-    let user = await Users.findOne({
-        where: { username: 'system_automation' }
-    });
+    let user = await Users.findOne({ username: 'system_automation' });
 
     if (!user) {
         const randomPassword = crypto.randomBytes(32).toString('hex');
         const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+        const lastUser = await Users.findOne().sort({ user_id: -1 });
+        const user_id = lastUser ? lastUser.user_id + 1 : 1;
+
         user = await Users.create({
+            user_id,
             username: 'system_automation',
             email: 'system@scholaris.local',
             password_hash: hashedPassword,
@@ -44,17 +48,17 @@ const getSystemUserId = async () => {
 };
 
 const updateInvoiceAfterPaymentChange = async (invoice_id) => {
-    const invoice = await Invoices.findByPk(invoice_id, {
-        include: [{ model: Payments, attributes: ['amount'] }]
-    });
+    const invoice = await Invoices.findOne({ invoice_id }).populate('payments');
     if (!invoice) return;
 
-    const totalPaid = invoice.Payments.reduce((sum, payment) => sum + parseFloat(payment.amount), 0);
+    const totalPaid = (invoice.payments || []).reduce((sum, payment) => sum + parseFloat(payment.amount), 0);
     let status = 'Unpaid';
     if (totalPaid >= parseFloat(invoice.total_amount)) status = 'Paid';
     else if (totalPaid > 0) status = 'Partial';
 
-    await invoice.update({ amount_paid: totalPaid, status });
+    invoice.amount_paid = totalPaid;
+    invoice.status = status;
+    await invoice.save();
 };
 
 const notifyPaymentRecorded = async (invoice_id, payment) => {
@@ -79,14 +83,14 @@ const recordPaymentFromGateway = async ({ invoice_id, amount, payment_method, tr
     console.log(`Recording ${payment_method} payment for invoice ${invoice_id}, ref=${transaction_reference}, amount=${amount}`);
 
     if (transaction_reference) {
-        const existing = await Payments.findOne({ where: { transaction_reference } });
+        const existing = await Payments.findOne({ transaction_reference });
         if (existing) {
             console.log('Payment with transaction reference already recorded:', transaction_reference);
             return existing;
         }
     }
 
-    const invoice = await Invoices.findByPk(invoice_id);
+    const invoice = await Invoices.findOne({ invoice_id });
     if (!invoice) {
         const err = new Error('Invoice not found!');
         err.statusCode = 404;
@@ -95,7 +99,11 @@ const recordPaymentFromGateway = async ({ invoice_id, amount, payment_method, tr
 
     const systemUserId = await getSystemUserId();
 
+    const lastPayment = await Payments.findOne().sort({ payment_id: -1 });
+    const payment_id = lastPayment ? lastPayment.payment_id + 1 : 1;
+
     const payment = await Payments.create({
+        payment_id,
         invoice_id,
         payment_date: new Date(),
         amount: parseFloat(amount),
@@ -113,21 +121,15 @@ const recordPaymentFromGateway = async ({ invoice_id, amount, payment_method, tr
 };
 
 const GetPaymentData = async () => {
-    return await Payments.findAll({
-        include: [
-            { model: Invoices, attributes: ['invoice_id', 'invoice_number', 'total_amount', 'amount_paid', 'status'] },
-            { model: Users, attributes: ['user_id', 'username'] }
-        ]
-    });
+    return await Payments.find()
+        .populate({ path: 'invoice', select: 'invoice_id invoice_number total_amount amount_paid status' })
+        .populate({ path: 'user', select: 'user_id username' });
 };
 
 const SelectedPaymentData = async (payment_id) => {
-    const payment = await Payments.findByPk(payment_id, {
-        include: [
-            { model: Invoices, attributes: ['invoice_id', 'invoice_number', 'total_amount', 'amount_paid', 'status'] },
-            { model: Users, attributes: ['user_id', 'username'] }
-        ]
-    });
+    const payment = await Payments.findOne({ payment_id })
+        .populate({ path: 'invoice', select: 'invoice_id invoice_number total_amount amount_paid status' })
+        .populate({ path: 'user', select: 'user_id username' });
 
     if (!payment) {
         const err = new Error('Payment not found!');
@@ -141,14 +143,14 @@ const SelectedPaymentData = async (payment_id) => {
 const CreatePaymentData = async (paymentData) => {
     const { invoice_id, payment_date, amount, payment_method, receipt_url, recorded_by, notes, transaction_reference } = paymentData;
 
-    const invoice = await Invoices.findByPk(invoice_id);
+    const invoice = await Invoices.findOne({ invoice_id });
     if (!invoice) {
         const err = new Error('Invoice not found!');
         err.statusCode = 404;
         throw err;
     }
 
-    const user = await Users.findByPk(recorded_by);
+    const user = await Users.findOne({ user_id: recorded_by });
     if (!user) {
         const err = new Error('User not found!');
         err.statusCode = 404;
@@ -156,7 +158,7 @@ const CreatePaymentData = async (paymentData) => {
     }
 
     if (transaction_reference) {
-        const existing = await Payments.findOne({ where: { transaction_reference } });
+        const existing = await Payments.findOne({ transaction_reference });
         if (existing) {
             const err = new Error('Transaction reference already exists!');
             err.statusCode = 409;
@@ -164,7 +166,11 @@ const CreatePaymentData = async (paymentData) => {
         }
     }
 
+    const lastPayment = await Payments.findOne().sort({ payment_id: -1 });
+    const payment_id = lastPayment ? lastPayment.payment_id + 1 : 1;
+
     const payment = await Payments.create({
+        payment_id,
         invoice_id,
         payment_date,
         amount,
@@ -182,16 +188,14 @@ const CreatePaymentData = async (paymentData) => {
 };
 
 const RecordStudentPaymentData = async ({ invoice_id, payment_method = 'Stripe', user_id, transaction_reference }) => {
-    const invoice = await Invoices.findByPk(invoice_id, {
-        include: [{ model: FeeStructures, attributes: ['fee_id', 'fee_name', 'amount'] }]
-    });
+    const invoice = await Invoices.findOne({ invoice_id }).populate('feeStructure');
     if (!invoice) {
         const err = new Error('Invoice not found!');
         err.statusCode = 404;
         throw err;
     }
 
-    const user = await Users.findByPk(user_id);
+    const user = await Users.findOne({ user_id });
     if (!user) {
         const err = new Error('User not found!');
         err.statusCode = 404;
@@ -206,14 +210,18 @@ const RecordStudentPaymentData = async ({ invoice_id, payment_method = 'Stripe',
     }
 
     const finalReference = transaction_reference || `student_${user_id}_${Date.now()}`;
-    const existing = await Payments.findOne({ where: { transaction_reference: finalReference } });
+    const existing = await Payments.findOne({ transaction_reference: finalReference });
     if (existing) {
         const err = new Error('Transaction reference already exists!');
         err.statusCode = 409;
         throw err;
     }
 
+    const lastPayment = await Payments.findOne().sort({ payment_id: -1 });
+    const payment_id = lastPayment ? lastPayment.payment_id + 1 : 1;
+
     const payment = await Payments.create({
+        payment_id,
         invoice_id,
         payment_date: new Date(),
         amount: balance,
@@ -231,7 +239,7 @@ const RecordStudentPaymentData = async ({ invoice_id, payment_method = 'Stripe',
 };
 
 const UpdatePaymentData = async (payment_id, paymentData) => {
-    const payment = await Payments.findByPk(payment_id);
+    const payment = await Payments.findOne({ payment_id });
     if (!payment) {
         const err = new Error('Payment not found!');
         err.statusCode = 404;
@@ -239,7 +247,7 @@ const UpdatePaymentData = async (payment_id, paymentData) => {
     }
 
     if (paymentData.invoice_id) {
-        const invoice = await Invoices.findByPk(paymentData.invoice_id);
+        const invoice = await Invoices.findOne({ invoice_id: paymentData.invoice_id });
         if (!invoice) {
             const err = new Error('Invoice not found!');
             err.statusCode = 404;
@@ -248,7 +256,7 @@ const UpdatePaymentData = async (payment_id, paymentData) => {
     }
 
     if (paymentData.recorded_by) {
-        const user = await Users.findByPk(paymentData.recorded_by);
+        const user = await Users.findOne({ user_id: paymentData.recorded_by });
         if (!user) {
             const err = new Error('User not found!');
             err.statusCode = 404;
@@ -264,7 +272,8 @@ const UpdatePaymentData = async (payment_id, paymentData) => {
     const originalInvoiceId = payment.invoice_id;
     const newInvoiceId = normalizedData.invoice_id || originalInvoiceId;
 
-    await payment.update(normalizedData);
+    Object.assign(payment, normalizedData);
+    await payment.save();
 
     const invoicesToUpdate = newInvoiceId !== originalInvoiceId
         ? [originalInvoiceId, newInvoiceId]
@@ -278,7 +287,7 @@ const UpdatePaymentData = async (payment_id, paymentData) => {
 };
 
 const DeletePaymentData = async (payment_id) => {
-    const payment = await Payments.findByPk(payment_id);
+    const payment = await Payments.findOne({ payment_id });
     if (!payment) {
         const err = new Error('Payment not found!');
         err.statusCode = 404;
@@ -286,7 +295,7 @@ const DeletePaymentData = async (payment_id) => {
     }
 
     const invoice_id = payment.invoice_id;
-    await payment.destroy();
+    await Payments.deleteOne({ payment_id });
     await updateInvoiceAfterPaymentChange(invoice_id);
 };
 

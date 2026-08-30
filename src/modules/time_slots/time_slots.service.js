@@ -1,23 +1,15 @@
 const TimeSlots = require('../../models/time_slots.model');
 const Schedules = require('../../models/schedules.model');
-const { Op } = require('sequelize');
+require('../../models/mappingContext');
+
+const sharedPopulate = { path: 'schedules', select: 'schedule_id class_id subject_id teacher_id room_number' };
 
 const GetTimeSlotData = async () => {
-    return await TimeSlots.findAll({
-        include: [{
-            model: Schedules,
-            attributes: ['schedule_id', 'class_id', 'subject_id', 'teacher_id', 'room_number']
-        }]
-    });
+    return await TimeSlots.find().populate(sharedPopulate);
 };
 
 const SelectedTimeSlotData = async (data) => {
-    const selectedTimeSlot = await TimeSlots.findByPk(data, {
-        include: [{
-            model: Schedules,
-            attributes: ['schedule_id', 'class_id', 'subject_id', 'teacher_id', 'room_number']
-        }]
-    });
+    const selectedTimeSlot = await TimeSlots.findOne({ time_slot_id: data }).populate(sharedPopulate);
 
     if (!selectedTimeSlot) {
         const err = new Error('Time slot not found!');
@@ -38,7 +30,7 @@ const CreateTimeSlotData = async (timeSlotData) => {
     }
 
     const existedTimeSlot = await TimeSlots.findOne({
-        where: { day_of_week, start_time }
+        day_of_week, start_time
     });
     if (existedTimeSlot) {
         const err = new Error('This time slot already exists!');
@@ -46,7 +38,14 @@ const CreateTimeSlotData = async (timeSlotData) => {
         throw err;
     }
 
+    let time_slot_id = timeSlotData.time_slot_id;
+    if (!time_slot_id) {
+        const lastSlot = await TimeSlots.findOne().sort({ time_slot_id: -1 });
+        time_slot_id = lastSlot ? lastSlot.time_slot_id + 1 : 1;
+    }
+
     const createTimeSlot = await TimeSlots.create({
+        time_slot_id,
         day_of_week,
         start_time,
         end_time
@@ -56,7 +55,7 @@ const CreateTimeSlotData = async (timeSlotData) => {
 };
 
 const UpdateTimeSlotData = async (time_slot_id, timeSlotData) => {
-    const selectedTimeSlot = await TimeSlots.findByPk(time_slot_id);
+    const selectedTimeSlot = await TimeSlots.findOne({ time_slot_id });
     if (!selectedTimeSlot) {
         const err = new Error('Time slot not found!');
         err.statusCode = 404;
@@ -75,11 +74,9 @@ const UpdateTimeSlotData = async (time_slot_id, timeSlotData) => {
     if ((timeSlotData.day_of_week && timeSlotData.day_of_week !== selectedTimeSlot.day_of_week) ||
         (timeSlotData.start_time && timeSlotData.start_time !== selectedTimeSlot.start_time)) {
         const existedTimeSlot = await TimeSlots.findOne({
-            where: {
-                day_of_week: timeSlotData.day_of_week || selectedTimeSlot.day_of_week,
-                start_time: timeSlotData.start_time || selectedTimeSlot.start_time,
-                time_slot_id: { [Op.ne]: time_slot_id }
-            }
+            day_of_week: timeSlotData.day_of_week || selectedTimeSlot.day_of_week,
+            start_time: timeSlotData.start_time || selectedTimeSlot.start_time,
+            time_slot_id: { $ne: time_slot_id }
         });
         if (existedTimeSlot) {
             const err = new Error('This time slot already exists!');
@@ -88,20 +85,21 @@ const UpdateTimeSlotData = async (time_slot_id, timeSlotData) => {
         }
     }
 
-    await selectedTimeSlot.update(timeSlotData);
+    Object.assign(selectedTimeSlot, timeSlotData);
+    await selectedTimeSlot.save();
 
     return selectedTimeSlot;
 };
 
 const DeleteTimeSlotData = async (time_slot_id) => {
-    const selectedTimeSlot = await TimeSlots.findByPk(time_slot_id);
+    const selectedTimeSlot = await TimeSlots.findOne({ time_slot_id });
     if (!selectedTimeSlot) {
         const err = new Error('Time slot not found!');
         err.statusCode = 404;
         throw err;
     }
 
-    await selectedTimeSlot.destroy();
+    await TimeSlots.deleteOne({ time_slot_id });
 };
 
 module.exports = {

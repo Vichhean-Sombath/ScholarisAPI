@@ -27,7 +27,9 @@ const StudentEmergencyContactsSchema = new mongoose.Schema(
     },
     {
         collection: 'student_emergency_contacts',
-        timestamps: false
+        timestamps: false,
+        toJSON: { virtuals: true },
+        toObject: { virtuals: true }
     }
 );
 

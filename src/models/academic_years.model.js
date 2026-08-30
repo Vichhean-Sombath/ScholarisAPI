@@ -28,7 +28,9 @@ const AcademicYearsSchema = new mongoose.Schema(
     },
     {
         collection: 'academic_years',
-        timestamps: false
+        timestamps: false,
+        toJSON: { virtuals: true },
+        toObject: { virtuals: true }
     }
 );
 

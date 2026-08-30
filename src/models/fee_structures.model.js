@@ -27,7 +27,9 @@ const FeeStructuresSchema = new mongoose.Schema(
     },
     {
         collection: 'fee_structures',
-        timestamps: false
+        timestamps: false,
+        toJSON: { virtuals: true },
+        toObject: { virtuals: true }
     }
 );
 

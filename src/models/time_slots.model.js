@@ -22,7 +22,9 @@ const TimeSlotsSchema = new mongoose.Schema(
     },
     {
         collection: 'time_slots',
-        timestamps: false
+        timestamps: false,
+        toJSON: { virtuals: true },
+        toObject: { virtuals: true }
     }
 );
 

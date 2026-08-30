@@ -28,7 +28,9 @@ const GradingCriteriaSchema = new mongoose.Schema(
     },
     {
         collection: 'grading_criteria',
-        timestamps: false
+        timestamps: false,
+        toJSON: { virtuals: true },
+        toObject: { virtuals: true }
     }
 );
 

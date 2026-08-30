@@ -1,30 +1,26 @@
 const Subjects = require('../../models/subjects.model');
-const { Op } = require('sequelize');
 
 const GetSubjectData = async () => {
-    return await Subjects.findAll({
-        include: [{
-            model: Subjects,
-            as: 'Prerequisite',
-            attributes: ['subject_id', 'subject_code', 'subject_name']
-        }]
+    return await Subjects.find().populate({
+        path: 'prerequisite',
+        select: 'subject_id subject_code subject_name'
     });
 };
 
 const SelectedSubjectData = async (data) => {
+    const isNum = !isNaN(Number(data));
+    const orConditions = [];
+    if (isNum) {
+        orConditions.push({ subject_id: Number(data) });
+    }
+    orConditions.push({ subject_code: data });
+    orConditions.push({ subject_name: { $regex: data, $options: 'i' } });
+
     const selectedSubject = await Subjects.findOne({
-        where: {
-            [Op.or]: [
-                { subject_id: data },
-                { subject_code: data },
-                { subject_name: { [Op.like]: `%${data}%` } }
-            ]
-        },
-        include: [{
-            model: Subjects,
-            as: 'Prerequisite',
-            attributes: ['subject_id', 'subject_code', 'subject_name']
-        }]
+        $or: orConditions
+    }).populate({
+        path: 'prerequisite',
+        select: 'subject_id subject_code subject_name'
     });
 
     if (!selectedSubject) {
@@ -39,7 +35,7 @@ const SelectedSubjectData = async (data) => {
 const CreateSubjectData = async (subjectData) => {
     const { subject_code, subject_name, description, prerequisite_subject_id } = subjectData;
 
-    const existedSubjectCode = await Subjects.findOne({ where: { subject_code } });
+    const existedSubjectCode = await Subjects.findOne({ subject_code });
     if (existedSubjectCode) {
         const err = new Error('This subject code already exists!');
         err.statusCode = 400;
@@ -47,7 +43,7 @@ const CreateSubjectData = async (subjectData) => {
     }
 
     if (prerequisite_subject_id) {
-        const prerequisite = await Subjects.findByPk(prerequisite_subject_id);
+        const prerequisite = await Subjects.findOne({ subject_id: prerequisite_subject_id });
         if (!prerequisite) {
             const err = new Error('Prerequisite subject not found!');
             err.statusCode = 404;
@@ -55,7 +51,14 @@ const CreateSubjectData = async (subjectData) => {
         }
     }
 
+    let subject_id = subjectData.subject_id;
+    if (!subject_id) {
+        const lastSub = await Subjects.findOne().sort({ subject_id: -1 });
+        subject_id = lastSub ? lastSub.subject_id + 1 : 1;
+    }
+
     const createSubject = await Subjects.create({
+        subject_id,
         subject_code,
         subject_name,
         description,
@@ -66,7 +69,7 @@ const CreateSubjectData = async (subjectData) => {
 };
 
 const UpdateSubjectData = async (subject_id, subjectData) => {
-    const selectedSubject = await Subjects.findByPk(subject_id);
+    const selectedSubject = await Subjects.findOne({ subject_id });
     if (!selectedSubject) {
         const err = new Error('Subject not found!');
         err.statusCode = 404;
@@ -74,7 +77,7 @@ const UpdateSubjectData = async (subject_id, subjectData) => {
     }
 
     if (subjectData.subject_code && subjectData.subject_code !== selectedSubject.subject_code) {
-        const existedSubjectCode = await Subjects.findOne({ where: { subject_code: subjectData.subject_code } });
+        const existedSubjectCode = await Subjects.findOne({ subject_code: subjectData.subject_code });
         if (existedSubjectCode) {
             const err = new Error('This subject code already exists!');
             err.statusCode = 400;
@@ -89,7 +92,7 @@ const UpdateSubjectData = async (subject_id, subjectData) => {
             throw err;
         }
 
-        const prerequisite = await Subjects.findByPk(subjectData.prerequisite_subject_id);
+        const prerequisite = await Subjects.findOne({ subject_id: subjectData.prerequisite_subject_id });
         if (!prerequisite) {
             const err = new Error('Prerequisite subject not found!');
             err.statusCode = 404;
@@ -97,20 +100,21 @@ const UpdateSubjectData = async (subject_id, subjectData) => {
         }
     }
 
-    await selectedSubject.update(subjectData);
+    Object.assign(selectedSubject, subjectData);
+    await selectedSubject.save();
 
     return selectedSubject;
 };
 
 const DeleteSubjectData = async (subject_id) => {
-    const selectedSubject = await Subjects.findByPk(subject_id);
+    const selectedSubject = await Subjects.findOne({ subject_id });
     if (!selectedSubject) {
         const err = new Error('Subject not found!');
         err.statusCode = 404;
         throw err;
     }
 
-    await selectedSubject.destroy();
+    await Subjects.deleteOne({ subject_id });
 };
 
 module.exports = {

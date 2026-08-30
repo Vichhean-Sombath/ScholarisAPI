@@ -25,7 +25,9 @@ const SemestersSchema = new mongoose.Schema(
     },
     {
         collection: 'semesters',
-        timestamps: false
+        timestamps: false,
+        toJSON: { virtuals: true },
+        toObject: { virtuals: true }
     }
 );
 

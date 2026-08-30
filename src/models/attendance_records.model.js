@@ -38,7 +38,9 @@ const AttendanceRecordsSchema = new mongoose.Schema(
     },
     {
         collection: 'attendance_records',
-        timestamps: false
+        timestamps: false,
+        toJSON: { virtuals: true },
+        toObject: { virtuals: true }
     }
 );
 

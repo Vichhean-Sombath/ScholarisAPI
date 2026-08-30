@@ -2,38 +2,26 @@ const Students = require('../../models/students.model');
 const StudentEmergencyContacts = require('../../models/student_emergency_contacts.model');
 const Users = require('../../models/users.model');
 require('../../models/mappingContext');
-const { Op } = require('sequelize');
 
 const GetStudentData = async () => {
-    return await Students.findAll({
-        include: [
-            {
-                model: Users,
-                attributes: { exclude: ['password_hash'] }
-            },
-            {
-                model: StudentEmergencyContacts,
-                attributes: { exclude: ['student_id'] }
-            }
-        ]
-    });
+    return await Students.find()
+        .populate({ path: 'user', select: '-password_hash' })
+        .populate({ path: 'emergencyContacts', select: '-student_id' });
 };
 
 const SelectStudentData = async (data) => {
+    const isNum = !isNaN(Number(data));
+    const orConditions = [];
+    if (isNum) {
+        orConditions.push({ student_id: Number(data) });
+    }
+    orConditions.push({ first_name: { $regex: data, $options: 'i' } });
+    orConditions.push({ last_name: { $regex: data, $options: 'i' } });
+    orConditions.push({ contact_number: { $regex: data, $options: 'i' } });
+
     const selectedStudent = await Students.findOne({
-        where: {
-            [Op.or]: [
-                { student_id: data },
-                { first_name: { [Op.like]: `%${data}%` } },
-                { last_name: { [Op.like]: `%${data}%` } },
-                { contact_number: { [Op.like]: `%${data}%` } }
-            ]
-        },
-        include: [{
-            model: StudentEmergencyContacts,
-            attributes: { exclude: ['student_id'] }
-        }]
-    });
+        $or: orConditions
+    }).populate({ path: 'emergencyContacts', select: '-student_id' });
 
     if (!selectedStudent) {
         const err = new Error('Student not found!');
@@ -45,7 +33,7 @@ const SelectStudentData = async (data) => {
 };
 
 const UpdateStudentData = async (student_id, studentData) => {
-    const student = await Students.findByPk(student_id);
+    const student = await Students.findOne({ student_id });
     if (!student) {
         const err = new Error('Student not found!');
         err.statusCode = 404;
@@ -76,7 +64,8 @@ const UpdateStudentData = async (student_id, studentData) => {
         throw err;
     }
 
-    await student.update(studentData);
+    Object.assign(student, studentData);
+    await student.save();
 
     return student;
 };

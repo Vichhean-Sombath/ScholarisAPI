@@ -1,6 +1,9 @@
 // Load env first so every module sees process.env values
 require('dotenv').config();
 
+// Register Mongoose virtuals and associations before any route/service import
+require('./src/models/mappingContext');
+
 // Dependencies
 const express = require('express');
 const cors = require('cors');
@@ -32,10 +35,13 @@ const StudentPortalController = require('./src/modules/student_portal/student_po
 const errorHandler = require('./src/middleware/errorHandler');
 
 // Sync DB
-const sequelize = require('./src/config/db');
-sequelize.sync({ alter: true })
-    .then(() => console.log('Database updated!'))
-    .catch((err) => console.log('Database sync error: ', err));
+const mongoose = require('./src/config/db');
+mongoose.connection.once('open', () => {
+    console.log('Database connected successfully!');
+})
+mongoose.connection.on('error', (err) => {
+    console.log('Database connection error: ', err);
+})
 
 // Models
 const {
@@ -72,6 +78,19 @@ app.use(cors());
 app.post('/payment/stripe/webhook', express.raw({ type: 'application/json' }), StripeWebhook);
 
 app.use(express.json());
+
+// Legacy frontend casing support middleware
+const { processResponseBody } = require('./src/utils/responseCasing');
+app.use((req, res, next) => {
+    const originalJson = res.json;
+    res.json = function (body) {
+        if (body && typeof body === 'object') {
+            processResponseBody(body);
+        }
+        return originalJson.call(this, body);
+    };
+    next();
+});
 
 // Bakong webhook is parsed as JSON
 app.post('/payment/bakong/webhook', BakongWebhook);
@@ -112,7 +131,7 @@ const gracefulShutdown = (signal) => {
     console.log(`${signal} received. Shutting down gracefully...`);
     server.close(async () => {
         try {
-            await sequelize.close();
+            await mongoose.connection.close();
             console.log('Database connection closed.');
         } catch (err) {
             console.error('Error closing database connection:', err.message);

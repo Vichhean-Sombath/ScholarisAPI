@@ -2,32 +2,29 @@ const GradingCriteria = require('../../models/grading_criteria.model');
 const Subjects = require('../../models/subjects.model');
 const Classes = require('../../models/classes.model');
 const Assessments = require('../../models/assessments.model');
-const { Op } = require('sequelize');
+require('../../models/mappingContext');
+
+const sharedPopulates = [
+    { path: 'subject', select: 'subject_id subject_code subject_name' },
+    { path: 'class', select: 'class_id class_name' },
+    { path: 'assessments', select: 'assessment_id assessment_name max_score' }
+];
 
 const GetGradingCriteriaData = async () => {
-    return await GradingCriteria.findAll({
-        include: [
-            { model: Subjects, attributes: ['subject_id', 'subject_code', 'subject_name'] },
-            { model: Classes, attributes: ['class_id', 'class_name'] },
-            { model: Assessments, attributes: ['assessment_id', 'assessment_name', 'max_score'] }
-        ]
-    });
+    return await GradingCriteria.find().populate(sharedPopulates);
 };
 
 const SelectedGradingCriteriaData = async (data) => {
+    const isNum = !isNaN(Number(data));
+    const orConditions = [];
+    if (isNum) {
+        orConditions.push({ criteria_id: Number(data) });
+    }
+    orConditions.push({ component_name: { $regex: data, $options: 'i' } });
+
     const selectedGradingCriteria = await GradingCriteria.findOne({
-        where: {
-            [Op.or]: [
-                { criteria_id: data },
-                { component_name: { [Op.like]: `%${data}%` } }
-            ]
-        },
-        include: [
-            { model: Subjects, attributes: ['subject_id', 'subject_code', 'subject_name'] },
-            { model: Classes, attributes: ['class_id', 'class_name'] },
-            { model: Assessments, attributes: ['assessment_id', 'assessment_name', 'max_score'] }
-        ]
-    });
+        $or: orConditions
+    }).populate(sharedPopulates);
 
     if (!selectedGradingCriteria) {
         const err = new Error('Grading criteria not found!');
@@ -42,7 +39,7 @@ const CreateGradingCriteriaData = async (gradingCriteriaData) => {
     const { subject_id, class_id, component_name, weight_percentage, attempt_count } = gradingCriteriaData;
 
     if (subject_id) {
-        const subject = await Subjects.findByPk(subject_id);
+        const subject = await Subjects.findOne({ subject_id });
         if (!subject) {
             const err = new Error('Subject not found!');
             err.statusCode = 404;
@@ -51,7 +48,7 @@ const CreateGradingCriteriaData = async (gradingCriteriaData) => {
     }
 
     if (class_id) {
-        const relatedClass = await Classes.findByPk(class_id);
+        const relatedClass = await Classes.findOne({ class_id });
         if (!relatedClass) {
             const err = new Error('Class not found!');
             err.statusCode = 404;
@@ -59,7 +56,14 @@ const CreateGradingCriteriaData = async (gradingCriteriaData) => {
         }
     }
 
+    let criteria_id = gradingCriteriaData.criteria_id;
+    if (!criteria_id) {
+        const lastCrit = await GradingCriteria.findOne().sort({ criteria_id: -1 });
+        criteria_id = lastCrit ? lastCrit.criteria_id + 1 : 1;
+    }
+
     const createGradingCriteria = await GradingCriteria.create({
+        criteria_id,
         subject_id,
         class_id,
         component_name,
@@ -71,7 +75,7 @@ const CreateGradingCriteriaData = async (gradingCriteriaData) => {
 };
 
 const UpdateGradingCriteriaData = async (criteria_id, gradingCriteriaData) => {
-    const selectedGradingCriteria = await GradingCriteria.findByPk(criteria_id);
+    const selectedGradingCriteria = await GradingCriteria.findOne({ criteria_id });
     if (!selectedGradingCriteria) {
         const err = new Error('Grading criteria not found!');
         err.statusCode = 404;
@@ -79,7 +83,7 @@ const UpdateGradingCriteriaData = async (criteria_id, gradingCriteriaData) => {
     }
 
     if (gradingCriteriaData.subject_id) {
-        const subject = await Subjects.findByPk(gradingCriteriaData.subject_id);
+        const subject = await Subjects.findOne({ subject_id: gradingCriteriaData.subject_id });
         if (!subject) {
             const err = new Error('Subject not found!');
             err.statusCode = 404;
@@ -87,20 +91,21 @@ const UpdateGradingCriteriaData = async (criteria_id, gradingCriteriaData) => {
         }
     }
 
-    await selectedGradingCriteria.update(gradingCriteriaData);
+    Object.assign(selectedGradingCriteria, gradingCriteriaData);
+    await selectedGradingCriteria.save();
 
     return selectedGradingCriteria;
 };
 
 const DeleteGradingCriteriaData = async (criteria_id) => {
-    const selectedGradingCriteria = await GradingCriteria.findByPk(criteria_id);
+    const selectedGradingCriteria = await GradingCriteria.findOne({ criteria_id });
     if (!selectedGradingCriteria) {
         const err = new Error('Grading criteria not found!');
         err.statusCode = 404;
         throw err;
     }
 
-    await selectedGradingCriteria.destroy();
+    await GradingCriteria.deleteOne({ criteria_id });
 };
 
 module.exports = {

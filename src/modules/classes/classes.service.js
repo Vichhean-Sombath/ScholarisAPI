@@ -8,100 +8,65 @@ const Subjects = require('../../models/subjects.model');
 const TimeSlots = require('../../models/time_slots.model');
 const Schedules = require('../../models/schedules.model');
 require('../../models/mappingContext');
-const { Op } = require('sequelize');
 
 const ClassEnrollments = require('../../models/class_enrollments.model');
 
+const sharedPopulates = [
+    { path: 'academicYear', select: 'academic_year_id year_name' },
+    { path: 'semester', select: 'semester_id semester_name' },
+    { path: 'homeroomTeacher', select: 'teacher_id first_name last_name' },
+    {
+        path: 'schedules',
+        select: 'schedule_id room_number',
+        populate: [
+            { path: 'subject', select: 'subject_id subject_code subject_name' },
+            { path: 'timeSlot', select: 'time_slot_id day_of_week start_time end_time' }
+        ]
+    },
+    {
+        path: 'classEnrollments',
+        select: 'enrollment_id student_id',
+        populate: {
+            path: 'student',
+            select: 'student_id first_name last_name user_id',
+            populate: {
+                path: 'user',
+                select: 'user_id email'
+            }
+        }
+    }
+];
+
 const GetClassData = async (currentUser) => {
-    let where = {};
+    let query = {};
 
     if (currentUser && currentUser.role === 'Teacher' && currentUser.teacher_id) {
-        const scheduledClassIds = await Schedules.findAll({
-            where: { teacher_id: currentUser.teacher_id },
-            attributes: ['class_id'],
-            raw: true
-        }).then((rows) => rows.map((row) => row.class_id));
+        const scheduledClassIds = await Schedules.find({
+            teacher_id: currentUser.teacher_id
+        }).select('class_id').lean().then((rows) => rows.map((row) => row.class_id));
 
-        where = {
-            [Op.or]: [
+        query = {
+            $or: [
                 { homeroom_teacher_id: currentUser.teacher_id },
-                { class_id: { [Op.in]: scheduledClassIds.length > 0 ? scheduledClassIds : [0] } }
+                { class_id: { $in: scheduledClassIds.length > 0 ? scheduledClassIds : [0] } }
             ]
         };
     }
 
-    return await Classes.findAll({
-        where,
-        include: [
-            { model: AcademicYears, attributes: ['academic_year_id', 'year_name'] },
-            { model: Semesters, attributes: ['semester_id', 'semester_name'] },
-            { model: Teachers, as: 'HomeroomTeacher', attributes: ['teacher_id', 'first_name', 'last_name'] },
-            {
-                model: Schedules,
-                attributes: ['schedule_id', 'room_number'],
-                include: [
-                    { model: Subjects, attributes: ['subject_id', 'subject_code', 'subject_name'] },
-                    { model: TimeSlots, attributes: ['time_slot_id', 'day_of_week', 'start_time', 'end_time'] }
-                ]
-            },
-            {
-                model: ClassEnrollments,
-                attributes: ['enrollment_id', 'student_id'],
-                include: [
-                    {
-                        model: Students,
-                        attributes: ['student_id', 'first_name', 'last_name', 'user_id'],
-                        include: [
-                            {
-                                model: Users,
-                                attributes: ['user_id', 'email']
-                            }
-                        ]
-                    }
-                ]
-            }
-        ]
-    });
+    return await Classes.find(query).populate(sharedPopulates);
 };
 
 const SelectedClassData = async (data) => {
+    const isNum = !isNaN(Number(data));
+    const orConditions = [];
+    if (isNum) {
+        orConditions.push({ class_id: Number(data) });
+    }
+    orConditions.push({ class_name: { $regex: data, $options: 'i' } });
+
     const selectedClass = await Classes.findOne({
-        where: {
-            [Op.or]: [
-                { class_id: data },
-                { class_name: { [Op.like]: `%${data}%` } }
-            ]
-        },
-        include: [
-            { model: AcademicYears, attributes: ['academic_year_id', 'year_name'] },
-            { model: Semesters, attributes: ['semester_id', 'semester_name'] },
-            { model: Teachers, as: 'HomeroomTeacher', attributes: ['teacher_id', 'first_name', 'last_name'] },
-            {
-                model: Schedules,
-                attributes: ['schedule_id', 'room_number'],
-                include: [
-                    { model: Subjects, attributes: ['subject_id', 'subject_code', 'subject_name'] },
-                    { model: TimeSlots, attributes: ['time_slot_id', 'day_of_week', 'start_time', 'end_time'] }
-                ]
-            },
-            {
-                model: ClassEnrollments,
-                attributes: ['enrollment_id', 'student_id'],
-                include: [
-                    {
-                        model: Students,
-                        attributes: ['student_id', 'first_name', 'last_name', 'user_id'],
-                        include: [
-                            {
-                                model: Users,
-                                attributes: ['user_id', 'email']
-                            }
-                        ]
-                    }
-                ]
-            }
-        ]
-    });
+        $or: orConditions
+    }).populate(sharedPopulates);
 
     if (!selectedClass) {
         const err = new Error('Class not found!');
@@ -115,14 +80,14 @@ const SelectedClassData = async (data) => {
 const CreateClassData = async (classData) => {
     const { class_name, academic_year_id, semester_id, room_number, max_capacity, homeroom_teacher_id } = classData;
 
-    const academicYear = await AcademicYears.findByPk(academic_year_id);
+    const academicYear = await AcademicYears.findOne({ academic_year_id });
     if (!academicYear) {
         const err = new Error('Academic year not found!');
         err.statusCode = 404;
         throw err;
     }
 
-    const semester = await Semesters.findByPk(semester_id);
+    const semester = await Semesters.findOne({ semester_id });
     if (!semester) {
         const err = new Error('Semester not found!');
         err.statusCode = 404;
@@ -130,7 +95,7 @@ const CreateClassData = async (classData) => {
     }
 
     if (homeroom_teacher_id) {
-        const teacher = await Teachers.findByPk(homeroom_teacher_id);
+        const teacher = await Teachers.findOne({ teacher_id: homeroom_teacher_id });
         if (!teacher) {
             const err = new Error('Homeroom teacher not found!');
             err.statusCode = 404;
@@ -138,7 +103,14 @@ const CreateClassData = async (classData) => {
         }
     }
 
+    let class_id = classData.class_id;
+    if (!class_id) {
+        const lastClass = await Classes.findOne().sort({ class_id: -1 });
+        class_id = lastClass ? lastClass.class_id + 1 : 1;
+    }
+
     const createClass = await Classes.create({
+        class_id,
         class_name,
         academic_year_id,
         semester_id,
@@ -151,7 +123,7 @@ const CreateClassData = async (classData) => {
 };
 
 const UpdateClassData = async (class_id, classData) => {
-    const selectedClass = await Classes.findByPk(class_id);
+    const selectedClass = await Classes.findOne({ class_id });
     if (!selectedClass) {
         const err = new Error('Class not found!');
         err.statusCode = 404;
@@ -159,7 +131,7 @@ const UpdateClassData = async (class_id, classData) => {
     }
 
     if (classData.academic_year_id) {
-        const academicYear = await AcademicYears.findByPk(classData.academic_year_id);
+        const academicYear = await AcademicYears.findOne({ academic_year_id: classData.academic_year_id });
         if (!academicYear) {
             const err = new Error('Academic year not found!');
             err.statusCode = 404;
@@ -168,7 +140,7 @@ const UpdateClassData = async (class_id, classData) => {
     }
 
     if (classData.semester_id) {
-        const semester = await Semesters.findByPk(classData.semester_id);
+        const semester = await Semesters.findOne({ semester_id: classData.semester_id });
         if (!semester) {
             const err = new Error('Semester not found!');
             err.statusCode = 404;
@@ -177,7 +149,7 @@ const UpdateClassData = async (class_id, classData) => {
     }
 
     if (classData.homeroom_teacher_id) {
-        const teacher = await Teachers.findByPk(classData.homeroom_teacher_id);
+        const teacher = await Teachers.findOne({ teacher_id: classData.homeroom_teacher_id });
         if (!teacher) {
             const err = new Error('Homeroom teacher not found!');
             err.statusCode = 404;
@@ -185,20 +157,21 @@ const UpdateClassData = async (class_id, classData) => {
         }
     }
 
-    await selectedClass.update(classData);
+    Object.assign(selectedClass, classData);
+    await selectedClass.save();
 
     return selectedClass;
 };
 
 const DeleteClassData = async (class_id) => {
-    const selectedClass = await Classes.findByPk(class_id);
+    const selectedClass = await Classes.findOne({ class_id });
     if (!selectedClass) {
         const err = new Error('Class not found!');
         err.statusCode = 404;
         throw err;
     }
 
-    await selectedClass.destroy();
+    await Classes.deleteOne({ class_id });
 };
 
 module.exports = {

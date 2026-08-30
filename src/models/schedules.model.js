@@ -28,7 +28,9 @@ const SchedulesSchema = new mongoose.Schema(
     },
     {
         collection: 'schedules',
-        timestamps: false
+        timestamps: false,
+        toJSON: { virtuals: true },
+        toObject: { virtuals: true }
     }
 );
 

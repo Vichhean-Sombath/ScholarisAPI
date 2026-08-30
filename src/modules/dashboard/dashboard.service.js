@@ -1,11 +1,9 @@
-const { Op, Sequelize, fn, col, literal } = require('sequelize');
 const {
     Payments,
     Students,
     Teachers,
     Classes,
     Invoices,
-    ClassEnrollments,
 } = require('../../models/mappingContext');
 
 const formatCurrency = (value) => {
@@ -35,6 +33,14 @@ const dayKey = (date) => {
 
 const monthKey = (date) =>
     `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+
+const sumAmount = async (query = {}) => {
+    const result = await Payments.aggregate([
+        { $match: query },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+    return result.length > 0 ? result[0].total : 0;
+};
 
 const getRevenueTrend = async (range = 'monthly') => {
     const now = new Date();
@@ -84,22 +90,36 @@ const getRevenueTrend = async (range = 'monthly') => {
         }
     }
 
-    const rows = await Payments.findAll({
-        attributes: [
-            [fn('DATE_FORMAT', col('payment_date'), dbGroupFormat), 'period'],
-            [fn('SUM', col('amount')), 'total'],
-        ],
-        where: {
-            payment_date: { [Op.gte]: since },
+    const rows = await Payments.aggregate([
+        {
+            $match: {
+                payment_date: { $gte: since }
+            }
         },
-        group: [literal('period')],
-        order: [[literal('period'), 'ASC']],
-        raw: true,
-    });
+        {
+            $group: {
+                _id: {
+                    $dateToString: {
+                        format: dbGroupFormat,
+                        date: '$payment_date'
+                    }
+                },
+                total: { $sum: '$amount' }
+            }
+        },
+        {
+            $sort: { _id: 1 }
+        }
+    ]);
+
+    const mappedRows = rows.map(r => ({
+        period: r._id,
+        total: r.total
+    }));
 
     const labels = periods.map((p) => formatLabel(p.date));
     const data = periods.map((p) => {
-        const row = rows.find((r) => r.period === p.key);
+        const row = mappedRows.find((r) => r.period === p.key);
         return Number(row?.total || 0);
     });
 
@@ -113,19 +133,13 @@ const getMonthlyComparison = async () => {
     const previousMonthEnd = new Date(currentMonthStart.getTime() - 1);
 
     const [currentTotal, previousTotal] = await Promise.all([
-        Payments.sum('amount', {
-            where: {
-                payment_date: { [Op.gte]: currentMonthStart },
-            },
-        }),
-        Payments.sum('amount', {
-            where: {
-                payment_date: {
-                    [Op.gte]: previousMonthStart,
-                    [Op.lte]: previousMonthEnd,
-                },
-            },
-        }),
+        sumAmount({ payment_date: { $gte: currentMonthStart } }),
+        sumAmount({
+            payment_date: {
+                $gte: previousMonthStart,
+                $lte: previousMonthEnd
+            }
+        })
     ]);
 
     const current = Number(currentTotal || 0);
@@ -146,27 +160,33 @@ const getMonthlyComparison = async () => {
 };
 
 const getPaymentMethods = async () => {
-    const rows = await Payments.findAll({
-        attributes: ['payment_method', [fn('SUM', col('amount')), 'total']],
-        group: ['payment_method'],
-        raw: true,
-    });
+    const rows = await Payments.aggregate([
+        {
+            $group: {
+                _id: '$payment_method',
+                total: { $sum: '$amount' }
+            }
+        }
+    ]);
 
     return rows.map((r) => ({
-        name: r.payment_method || 'Other',
+        name: r._id || 'Other',
         value: Number(r.total || 0),
     }));
 };
 
 const getInvoiceStatus = async () => {
-    const rows = await Invoices.findAll({
-        attributes: ['status', [fn('COUNT', col('invoice_id')), 'count']],
-        group: ['status'],
-        raw: true,
-    });
+    const rows = await Invoices.aggregate([
+        {
+            $group: {
+                _id: '$status',
+                count: { $sum: 1 }
+            }
+        }
+    ]);
 
     return rows.map((r) => ({
-        name: r.status,
+        name: r._id,
         value: Number(r.count || 0),
     }));
 };
@@ -178,18 +198,32 @@ const getNewStudentsTrend = async () => {
     since.setDate(1);
     since.setHours(0, 0, 0, 0);
 
-    const rows = await Students.findAll({
-        attributes: [
-            [fn('DATE_FORMAT', col('enrollment_date'), '%Y-%m'), 'month'],
-            [fn('COUNT', col('student_id')), 'count'],
-        ],
-        where: {
-            enrollment_date: { [Op.gte]: since },
+    const rows = await Students.aggregate([
+        {
+            $match: {
+                enrollment_date: { $gte: since }
+            }
         },
-        group: [literal('month')],
-        order: [[literal('month'), 'ASC']],
-        raw: true,
-    });
+        {
+            $group: {
+                _id: {
+                    $dateToString: {
+                        format: '%Y-%m',
+                        date: '$enrollment_date'
+                    }
+                },
+                count: { $sum: 1 }
+            }
+        },
+        {
+            $sort: { _id: 1 }
+        }
+    ]);
+
+    const mappedRows = rows.map(r => ({
+        month: r._id,
+        count: r.count
+    }));
 
     const labels = [];
     const data = [];
@@ -198,7 +232,7 @@ const getNewStudentsTrend = async () => {
         d.setMonth(d.getMonth() - i);
         d.setDate(1);
         const key = monthKey(d);
-        const row = rows.find((r) => r.month === key);
+        const row = mappedRows.find((r) => r.month === key);
         labels.push(formatMonthLabel(d));
         data.push(Number(row?.count || 0));
     }
@@ -207,23 +241,15 @@ const getNewStudentsTrend = async () => {
 };
 
 const getRecentPayments = async () => {
-    const rows = await Payments.findAll({
-        attributes: ['payment_id', 'payment_date', 'amount', 'payment_method'],
-        include: [
-            {
-                model: Invoices,
-                attributes: ['invoice_number'],
-            },
-        ],
-        order: [['payment_date', 'DESC']],
-        limit: 5,
-        raw: true,
-        nest: true,
-    });
+    const rows = await Payments.find()
+        .select('payment_id payment_date amount payment_method invoice_id')
+        .populate({ path: 'invoice', select: 'invoice_number' })
+        .sort({ payment_date: -1 })
+        .limit(5);
 
     return rows.map((r) => ({
         id: r.payment_id,
-        invoiceNumber: r.Invoice?.invoice_number || '—',
+        invoiceNumber: r.invoice?.invoice_number || '—',
         amount: Number(r.amount || 0),
         method: r.payment_method,
         date: r.payment_date,
@@ -232,10 +258,10 @@ const getRecentPayments = async () => {
 
 const GetDashboardSummary = async (range = 'monthly') => {
     const [totalRevenue, totalStudents, totalTeachers, totalClasses, revenueTrend, monthlyComparison, paymentMethods, invoiceStatus, newStudentsTrend, recentPayments] = await Promise.all([
-        Payments.sum('amount'),
-        Students.count(),
-        Teachers.count(),
-        Classes.count(),
+        sumAmount({}),
+        Students.countDocuments(),
+        Teachers.countDocuments(),
+        Classes.countDocuments(),
         getRevenueTrend(range),
         getMonthlyComparison(),
         getPaymentMethods(),

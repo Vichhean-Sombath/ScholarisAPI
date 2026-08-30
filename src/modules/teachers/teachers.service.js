@@ -1,33 +1,28 @@
 const Teachers = require('../../models/teachers.model');
 const Users = require('../../models/users.model');
 require('../../models/mappingContext');
-const { Op } = require('sequelize');
 
 const GetTeacherData = async () => {
-    return await Teachers.findAll({
-        include: {
-            model: Users,
-            attributes: { exclude: ['password_hash'] }
-        }
+    return await Teachers.find().populate({
+        path: 'user',
+        select: '-password_hash'
     });
 };
 
 const SelectTeacherData = async (data) => {
+    const isNum = !isNaN(Number(data));
+    const orConditions = [];
+    if (isNum) {
+        orConditions.push({ teacher_id: Number(data) });
+        orConditions.push({ user_id: Number(data) });
+    }
+    orConditions.push({ first_name: { $regex: data, $options: 'i' } });
+    orConditions.push({ last_name: { $regex: data, $options: 'i' } });
+    orConditions.push({ specialization: { $regex: data, $options: 'i' } });
+
     const selectedTeacher = await Teachers.findOne({
-        where: {
-            [Op.or]: [
-                { teacher_id: data },
-                { user_id: data },
-                { first_name: { [Op.like]: `%${data}%` } },
-                { last_name: { [Op.like]: `%${data}%` } },
-                { specialization: { [Op.like]: `%${data}%` } }
-            ]
-        },
-        include: [{
-            model: Users,
-            attributes: { exclude: ['password_hash'] }
-        }]
-    });
+        $or: orConditions
+    }).populate({ path: 'user', select: '-password_hash' });
 
     if (!selectedTeacher) {
         const err = new Error('Teacher not found!');
@@ -39,7 +34,7 @@ const SelectTeacherData = async (data) => {
 };
 
 const UpdateTeacherData = async (teacher_id, teacherData, currentUser) => {
-    const teacher = await Teachers.findByPk(teacher_id);
+    const teacher = await Teachers.findOne({ teacher_id });
     if (!teacher) {
         const err = new Error('Teacher not found!');
         err.statusCode = 404;
@@ -76,7 +71,8 @@ const UpdateTeacherData = async (teacher_id, teacherData, currentUser) => {
         throw err;
     }
 
-    await teacher.update(teacherData);
+    Object.assign(teacher, teacherData);
+    await teacher.save();
 
     return teacher;
 };

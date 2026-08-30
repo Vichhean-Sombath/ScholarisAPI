@@ -50,7 +50,9 @@ const TeachersSchema = new mongoose.Schema(
     },
     {
         collection: 'teachers',
-        timestamps: false
+        timestamps: false,
+        toJSON: { virtuals: true },
+        toObject: { virtuals: true }
     }
 );
 

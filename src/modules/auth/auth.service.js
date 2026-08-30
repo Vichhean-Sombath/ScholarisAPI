@@ -7,7 +7,7 @@ const Students = require('../../models/students.model');
 const LoginUserData = async (userData) => {
     const { email, password } = userData;
 
-    const user = await Users.findOne({ where: { email } });
+    const user = await Users.findOne({ email });
     if (!user) {
         const err = new Error('Invalid email!');
         err.statusCode = 401;
@@ -21,10 +21,11 @@ const LoginUserData = async (userData) => {
         throw err;
     }
 
-    await user.update({ last_login_at: new Date() });
+    user.last_login_at = new Date();
+    await user.save();
 
-    const teacher = await Teachers.findOne({ where: { user_id: user.user_id } });
-    const student = await Students.findOne({ where: { user_id: user.user_id } });
+    const teacher = await Teachers.findOne({ user_id: user.user_id });
+    const student = await Students.findOne({ user_id: user.user_id });
 
     const token = jwt.sign(
         {
@@ -87,7 +88,7 @@ const RegisterUserData = async (userData) => {
         throw err;
     }
 
-    const existingUsername = await Users.findOne({ where: { username } });
+    const existingUsername = await Users.findOne({ username });
     if (existingUsername) {
         const err = new Error('This username already exists!');
         err.statusCode = 409;
@@ -103,7 +104,11 @@ const RegisterUserData = async (userData) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    const lastUser = await Users.findOne().sort({ user_id: -1 });
+    const user_id = lastUser ? lastUser.user_id + 1 : 1;
+
     const newUser = await Users.create({
+        user_id,
         username,
         email,
         role,
@@ -114,7 +119,11 @@ const RegisterUserData = async (userData) => {
     let studentId = null;
 
     if (role === 'Teacher') {
+        const lastTeacher = await Teachers.findOne().sort({ teacher_id: -1 });
+        const teacher_id = lastTeacher ? lastTeacher.teacher_id + 1 : 1;
+
         const newTeacher = await Teachers.create({
+            teacher_id,
             user_id: newUser.user_id,
             first_name,
             last_name,
@@ -130,7 +139,11 @@ const RegisterUserData = async (userData) => {
     }
 
     if (role === 'Student') {
+        const lastStudent = await Students.findOne().sort({ student_id: -1 });
+        const student_id = lastStudent ? lastStudent.student_id + 1 : 1;
+
         const newStudent = await Students.create({
+            student_id,
             user_id: newUser.user_id,
             first_name,
             last_name,

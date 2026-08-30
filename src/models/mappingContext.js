@@ -51,10 +51,10 @@ Users.schema.virtual('student', { ref: 'Students', localField: 'user_id', foreig
 Students.schema.virtual('user', { ref: 'Users', localField: 'user_id', foreignField: 'user_id', justOne: true });
 
 Users.schema.virtual('payments', { ref: 'Payments', localField: 'user_id', foreignField: 'recorded_by' });
-Payments.schema.virtual('recordedBy', { ref: 'Users', localField: 'recorded_by', foreignField: 'user_id', justOne: true });
+Payments.schema.virtual('user', { ref: 'Users', localField: 'recorded_by', foreignField: 'user_id', justOne: true });
 
 Users.schema.virtual('certificates', { ref: 'Certificates', localField: 'user_id', foreignField: 'issued_by' });
-Certificates.schema.virtual('issuedBy', { ref: 'Users', localField: 'issued_by', foreignField: 'user_id', justOne: true });
+Certificates.schema.virtual('user', { ref: 'Users', localField: 'issued_by', foreignField: 'user_id', justOne: true });
 
 Students.schema.virtual('emergencyContacts', { ref: 'StudentEmergencyContacts', localField: 'student_id', foreignField: 'student_id' });
 StudentEmergencyContacts.schema.virtual('student', { ref: 'Students', localField: 'student_id', foreignField: 'student_id', justOne: true });
@@ -160,6 +160,7 @@ LessonResources.schema.virtual('schedule', { ref: 'Schedules', localField: 'sche
 
 GradingCriteria.schema.virtual('assessments', { ref: 'Assessments', localField: 'criteria_id', foreignField: 'criteria_id' });
 Assessments.schema.virtual('criteria', { ref: 'GradingCriteria', localField: 'criteria_id', foreignField: 'criteria_id', justOne: true });
+Assessments.schema.virtual('schedule', { ref: 'Schedules', localField: 'schedule_id', foreignField: 'schedule_id', justOne: true });
 
 Assessments.schema.virtual('grades', { ref: 'Grades', localField: 'assessment_id', foreignField: 'assessment_id' });
 Grades.schema.virtual('assessment', { ref: 'Assessments', localField: 'assessment_id', foreignField: 'assessment_id', justOne: true });
@@ -176,6 +177,15 @@ Payments.schema.virtual('invoice', { ref: 'Invoices', localField: 'invoice_id', 
 
 Invoices.schema.virtual('bakongQrRequests', { ref: 'BakongQRRequests', localField: 'invoice_id', foreignField: 'invoice_id' });
 BakongQRRequests.schema.virtual('invoice', { ref: 'Invoices', localField: 'invoice_id', foreignField: 'invoice_id', justOne: true });
+
+// ============================================================
+// Re-apply virtuals serialization AFTER all virtuals are defined.
+// This ensures populated virtuals appear in toJSON/toObject output.
+// ============================================================
+models.forEach(model => {
+    model.schema.set('toJSON', { virtuals: true });
+    model.schema.set('toObject', { virtuals: true });
+});
 
 module.exports = {
     Users,

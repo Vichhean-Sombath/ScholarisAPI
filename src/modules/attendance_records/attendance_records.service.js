@@ -3,52 +3,69 @@ const Students = require('../../models/students.model');
 const Schedules = require('../../models/schedules.model');
 const Teachers = require('../../models/teachers.model');
 require('../../models/mappingContext');
-const { Op } = require('sequelize');
+
+const getPopulates = (currentUser) => {
+    const scheduleMatch = currentUser.role === 'Teacher' ? { teacher_id: currentUser.teacher_id } : {};
+    return [
+        { path: 'student', select: 'student_id first_name last_name' },
+        { path: 'schedule', select: 'schedule_id class_id subject_id time_slot_id teacher_id', match: scheduleMatch },
+        { path: 'marker', select: 'teacher_id first_name last_name' }
+    ];
+};
 
 const GetAttendanceRecordData = async (currentUser) => {
-    const scheduleWhere = currentUser.role === 'Teacher'
-        ? { teacher_id: currentUser.teacher_id }
-        : {};
+    let records = await AttendanceRecords.find().populate(getPopulates(currentUser)).lean();
 
-    return await AttendanceRecords.findAll({
-        include: [
-            { model: Students, attributes: ['student_id', 'first_name', 'last_name'] },
-            {
-                model: Schedules,
-                attributes: ['schedule_id', 'class_id', 'subject_id', 'time_slot_id'],
-                where: scheduleWhere
-            },
-            { model: Teachers, as: 'Marker', attributes: ['teacher_id', 'first_name', 'last_name'] }
-        ]
-    });
+    if (currentUser.role === 'Teacher') {
+        records = records.filter(r => r.schedule);
+    }
+
+    return records;
 };
 
 const SelectedAttendanceRecordData = async (data, currentUser) => {
-    const selectedRecord = await AttendanceRecords.findOne({
-        where: {
-            [Op.or]: [
-                { attendance_id: data },
-                { '$Student.first_name$': { [Op.like]: `%${data}%` } },
-                { '$Student.last_name$': { [Op.like]: `%${data}%` } }
-            ]
-        },
-        include: [
-            { model: Students, attributes: ['student_id', 'first_name', 'last_name'] },
-            {
-                model: Schedules,
-                attributes: ['schedule_id', 'class_id', 'subject_id', 'time_slot_id', 'teacher_id']
-            },
-            { model: Teachers, as: 'Marker', attributes: ['teacher_id', 'first_name', 'last_name'] }
-        ]
-    });
+    const isNum = !isNaN(Number(data));
+    const orConditions = [];
+    if (isNum) {
+        orConditions.push({ attendance_id: Number(data) });
+    }
 
-    if (!selectedRecord) {
+    const pipeline = [
+        {
+            $lookup: {
+                from: 'students',
+                localField: 'student_id',
+                foreignField: 'student_id',
+                as: 'student'
+            }
+        },
+        { $unwind: '$student' },
+        {
+            $match: {
+                $or: [
+                    ...orConditions,
+                    { 'student.first_name': { $regex: data, $options: 'i' } },
+                    { 'student.last_name': { $regex: data, $options: 'i' } }
+                ]
+            }
+        }
+    ];
+
+    const matched = await AttendanceRecords.aggregate(pipeline);
+    if (!matched.length) {
         const err = new Error('Attendance record not found!');
         err.statusCode = 404;
         throw err;
     }
 
-    if (currentUser.role === 'Teacher' && selectedRecord.Schedule.teacher_id !== currentUser.teacher_id) {
+    const selectedRecord = await AttendanceRecords.findOne({ attendance_id: matched[0].attendance_id })
+        .populate([
+            { path: 'student', select: 'student_id first_name last_name' },
+            { path: 'schedule', select: 'schedule_id class_id subject_id time_slot_id teacher_id' },
+            { path: 'marker', select: 'teacher_id first_name last_name' }
+        ]);
+
+    if (currentUser.role === 'Teacher' && selectedRecord.schedule?.teacher_id !== currentUser.teacher_id) {
         const err = new Error('Unauthorized!');
         err.statusCode = 403;
         throw err;
@@ -69,7 +86,7 @@ const CreateAttendanceRecordData = async (recordData, currentUser) => {
         throw err;
     }
 
-    const schedule = await Schedules.findByPk(schedule_id);
+    const schedule = await Schedules.findOne({ schedule_id });
     if (!schedule) {
         const err = new Error('Schedule not found!');
         err.statusCode = 404;
@@ -82,14 +99,14 @@ const CreateAttendanceRecordData = async (recordData, currentUser) => {
         throw err;
     }
 
-    const student = await Students.findByPk(student_id);
+    const student = await Students.findOne({ student_id });
     if (!student) {
         const err = new Error('Student not found!');
         err.statusCode = 404;
         throw err;
     }
 
-    const teacher = await Teachers.findByPk(marked_by);
+    const teacher = await Teachers.findOne({ teacher_id: marked_by });
     if (!teacher) {
         const err = new Error('Teacher not found!');
         err.statusCode = 404;
@@ -102,7 +119,14 @@ const CreateAttendanceRecordData = async (recordData, currentUser) => {
         throw err;
     }
 
+    let attendance_id = recordData.attendance_id;
+    if (!attendance_id) {
+        const lastAtt = await AttendanceRecords.findOne().sort({ attendance_id: -1 });
+        attendance_id = lastAtt ? lastAtt.attendance_id + 1 : 1;
+    }
+
     const createRecord = await AttendanceRecords.create({
+        attendance_id,
         schedule_id,
         student_id,
         attendance_date,
@@ -115,16 +139,14 @@ const CreateAttendanceRecordData = async (recordData, currentUser) => {
 };
 
 const UpdateAttendanceRecordData = async (attendance_id, recordData, currentUser) => {
-    const selectedRecord = await AttendanceRecords.findByPk(attendance_id, {
-        include: [{ model: Schedules, attributes: ['teacher_id'] }]
-    });
+    const selectedRecord = await AttendanceRecords.findOne({ attendance_id }).populate('schedule');
     if (!selectedRecord) {
         const err = new Error('Attendance record not found!');
         err.statusCode = 404;
         throw err;
     }
 
-    if (currentUser.role === 'Teacher' && selectedRecord.Schedule.teacher_id !== currentUser.teacher_id) {
+    if (currentUser.role === 'Teacher' && selectedRecord.schedule?.teacher_id !== currentUser.teacher_id) {
         const err = new Error('Unauthorized!');
         err.statusCode = 403;
         throw err;
@@ -137,7 +159,7 @@ const UpdateAttendanceRecordData = async (attendance_id, recordData, currentUser
     }
 
     if (recordData.schedule_id !== undefined) {
-        const schedule = await Schedules.findByPk(recordData.schedule_id);
+        const schedule = await Schedules.findOne({ schedule_id: recordData.schedule_id });
         if (!schedule) {
             const err = new Error('Schedule not found!');
             err.statusCode = 404;
@@ -146,7 +168,7 @@ const UpdateAttendanceRecordData = async (attendance_id, recordData, currentUser
     }
 
     if (recordData.student_id !== undefined) {
-        const student = await Students.findByPk(recordData.student_id);
+        const student = await Students.findOne({ student_id: recordData.student_id });
         if (!student) {
             const err = new Error('Student not found!');
             err.statusCode = 404;
@@ -155,7 +177,7 @@ const UpdateAttendanceRecordData = async (attendance_id, recordData, currentUser
     }
 
     if (recordData.marked_by !== undefined) {
-        const teacher = await Teachers.findByPk(recordData.marked_by);
+        const teacher = await Teachers.findOne({ teacher_id: recordData.marked_by });
         if (!teacher) {
             const err = new Error('Teacher not found!');
             err.statusCode = 404;
@@ -177,28 +199,27 @@ const UpdateAttendanceRecordData = async (attendance_id, recordData, currentUser
 
     recordData.last_edited_at = new Date();
 
-    await selectedRecord.update(recordData);
+    Object.assign(selectedRecord, recordData);
+    await selectedRecord.save();
 
     return selectedRecord;
 };
 
 const DeleteAttendanceRecordData = async (attendance_id, currentUser) => {
-    const selectedRecord = await AttendanceRecords.findByPk(attendance_id, {
-        include: [{ model: Schedules, attributes: ['teacher_id'] }]
-    });
+    const selectedRecord = await AttendanceRecords.findOne({ attendance_id }).populate('schedule');
     if (!selectedRecord) {
         const err = new Error('Attendance record not found!');
         err.statusCode = 404;
         throw err;
     }
 
-    if (currentUser.role === 'Teacher' && selectedRecord.Schedule.teacher_id !== currentUser.teacher_id) {
+    if (currentUser.role === 'Teacher' && selectedRecord.schedule?.teacher_id !== currentUser.teacher_id) {
         const err = new Error('Unauthorized!');
         err.statusCode = 403;
         throw err;
     }
 
-    await selectedRecord.destroy();
+    await AttendanceRecords.deleteOne({ attendance_id });
 };
 
 module.exports = {

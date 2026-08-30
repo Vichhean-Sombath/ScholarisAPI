@@ -27,7 +27,9 @@ const ClassEnrollmentsSchema = new mongoose.Schema(
     },
     {
         collection: 'class_enrollments',
-        timestamps: false
+        timestamps: false,
+        toJSON: { virtuals: true },
+        toObject: { virtuals: true }
     }
 );
 

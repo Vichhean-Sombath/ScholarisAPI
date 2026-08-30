@@ -1,4 +1,4 @@
-const { Op } = require('sequelize');
+// No sequelize import needed
 const Users = require('../models/users.model');
 const Teachers = require('../models/teachers.model');
 const Students = require('../models/students.model');
@@ -83,21 +83,21 @@ const validatePhone = (phone, errors, label = 'Phone number') => {
 };
 
 const checkDuplicateEmail = async (email, excludeUserId = null) => {
-    const where = { email };
+    const query = { email };
     if (excludeUserId) {
-        where.user_id = { [Op.ne]: excludeUserId };
+        query.user_id = { $ne: excludeUserId };
     }
-    return await Users.findOne({ where });
+    return await Users.findOne(query);
 };
 
 const checkDuplicatePhone = async (phone, excludeUserId = null) => {
-    const where = { contact_number: phone };
+    const query = { contact_number: phone };
     if (excludeUserId) {
-        where.user_id = { [Op.ne]: excludeUserId };
+        query.user_id = { $ne: excludeUserId };
     }
-    const teacher = await Teachers.findOne({ where });
+    const teacher = await Teachers.findOne(query);
     if (teacher) return { type: 'teacher', record: teacher };
-    const student = await Students.findOne({ where });
+    const student = await Students.findOne(query);
     if (student) return { type: 'student', record: student };
     return null;
 };

@@ -1,4 +1,3 @@
-const { Op } = require('sequelize');
 const {
     Students,
     Users,
@@ -33,11 +32,10 @@ const formatDate = (date) => {
 };
 
 const getActiveEnrollmentClassIds = async (studentId) => {
-    const enrollments = await ClassEnrollments.findAll({
-        where: { student_id: studentId, status: 'Active' },
-        attributes: ['class_id'],
-        raw: true,
-    });
+    const enrollments = await ClassEnrollments.find({
+        student_id: studentId,
+        status: 'Active'
+    }).select('class_id').lean();
     return [...new Set(enrollments.map((e) => e.class_id))];
 };
 
@@ -62,8 +60,9 @@ const checkInAttendance = async (studentId, payload) => {
         throw err;
     }
 
-    const schedule = await Schedules.findByPk(schedule_id, {
-        include: [{ model: Classes, attributes: ['class_id', 'class_name'] }],
+    const schedule = await Schedules.findOne({ schedule_id }).populate({
+        path: 'class',
+        select: 'class_id class_name'
     });
     if (!schedule) {
         const err = new Error('Schedule not found!');
@@ -72,7 +71,9 @@ const checkInAttendance = async (studentId, payload) => {
     }
 
     const enrollment = await ClassEnrollments.findOne({
-        where: { student_id: studentId, class_id: schedule.class_id, status: 'Active' },
+        student_id: studentId,
+        class_id: schedule.class_id,
+        status: 'Active'
     });
     if (!enrollment) {
         const err = new Error('You are not enrolled in this class!');
@@ -89,7 +90,9 @@ const checkInAttendance = async (studentId, payload) => {
     }
 
     const existing = await AttendanceRecords.findOne({
-        where: { schedule_id, student_id: studentId, attendance_date },
+        schedule_id,
+        student_id: studentId,
+        attendance_date
     });
     if (existing) {
         const err = new Error('Attendance already recorded for this schedule and date!');
@@ -97,7 +100,12 @@ const checkInAttendance = async (studentId, payload) => {
         throw err;
     }
 
+    let attendance_id;
+    const lastAtt = await AttendanceRecords.findOne().sort({ attendance_id: -1 });
+    attendance_id = lastAtt ? lastAtt.attendance_id + 1 : 1;
+
     const record = await AttendanceRecords.create({
+        attendance_id,
         schedule_id,
         student_id: studentId,
         attendance_date,
@@ -116,14 +124,10 @@ const checkInAttendance = async (studentId, payload) => {
 };
 
 const getStudentProfile = async (studentId) => {
-    const student = await Students.findByPk(studentId, {
-        include: [
-            { model: Users, attributes: ['user_id', 'username', 'email', 'status', 'last_login_at'] },
-            { model: StudentEmergencyContacts, attributes: ['contact_id', 'contact_name', 'relationship', 'phone_number', 'email'] },
-        ],
-        raw: true,
-        nest: true,
-    });
+    const student = await Students.findOne({ student_id: studentId })
+        .populate({ path: 'user', select: 'user_id username email status last_login_at' })
+        .populate({ path: 'emergencyContacts', select: 'contact_id contact_name relationship phone_number email' })
+        .lean();
 
     if (!student) {
         const err = new Error('Student not found!');
@@ -131,7 +135,7 @@ const getStudentProfile = async (studentId) => {
         throw err;
     }
 
-    const user = student.User || {};
+    const user = student.user || {};
     return {
         studentId: student.student_id,
         firstName: student.first_name,
@@ -151,7 +155,7 @@ const getStudentProfile = async (studentId) => {
             status: user.status,
             lastLoginAt: user.last_login_at,
         },
-        emergencyContacts: [].concat(student.StudentEmergencyContacts || []).map((c) => ({
+        emergencyContacts: [].concat(student.emergencyContacts || []).map((c) => ({
             contactId: c.contact_id,
             contactName: c.contact_name,
             relationship: c.relationship,
@@ -162,35 +166,36 @@ const getStudentProfile = async (studentId) => {
 };
 
 const getStudentClasses = async (studentId) => {
-    const enrollments = await ClassEnrollments.findAll({
-        where: { student_id: studentId, status: 'Active' },
-        attributes: ['enrollment_id', 'enrollment_date', 'status'],
-        include: [
-            {
-                model: Classes,
-                attributes: ['class_id', 'class_name', 'room_number', 'max_capacity'],
-                include: [
-                    { model: AcademicYears, attributes: ['academic_year_id', 'year_name'] },
-                    { model: Semesters, attributes: ['semester_id', 'semester_name'] },
-                    { model: Teachers, as: 'HomeroomTeacher', attributes: ['teacher_id', 'first_name', 'last_name'] },
-                    {
-                        model: Schedules,
-                        attributes: ['schedule_id', 'room_number'],
-                        include: [
-                            { model: Subjects, attributes: ['subject_id', 'subject_code', 'subject_name'] },
-                            { model: Teachers, attributes: ['teacher_id', 'first_name', 'last_name'] },
-                            { model: TimeSlots, attributes: ['time_slot_id', 'day_of_week', 'start_time', 'end_time'] },
-                        ],
-                    },
-                ],
-            },
-        ],
-        order: [[Classes, 'class_name', 'ASC']],
+    const enrollments = await ClassEnrollments.find({ student_id: studentId, status: 'Active' })
+        .populate({
+            path: 'class',
+            select: 'class_id class_name room_number max_capacity',
+            populate: [
+                { path: 'academicYear', select: 'academic_year_id year_name' },
+                { path: 'semester', select: 'semester_id semester_name' },
+                { path: 'homeroomTeacher', select: 'teacher_id first_name last_name' },
+                {
+                    path: 'schedules',
+                    select: 'schedule_id room_number',
+                    populate: [
+                        { path: 'subject', select: 'subject_id subject_code subject_name' },
+                        { path: 'teacher', select: 'teacher_id first_name last_name' },
+                        { path: 'timeSlot', select: 'time_slot_id day_of_week start_time end_time' }
+                    ]
+                }
+            ]
+        })
+        .lean();
+
+    enrollments.sort((a, b) => {
+        const nameA = a.class?.class_name || '';
+        const nameB = b.class?.class_name || '';
+        return nameA.localeCompare(nameB);
     });
 
     return enrollments.map((e) => {
-        const cls = e.Class || {};
-        const schedules = Array.isArray(cls.Schedules) ? cls.Schedules : [];
+        const cls = e.class || {};
+        const schedules = Array.isArray(cls.schedules) ? cls.schedules : [];
         return {
             enrollmentId: e.enrollment_id,
             enrollmentDate: formatDate(e.enrollment_date),
@@ -199,20 +204,20 @@ const getStudentClasses = async (studentId) => {
             className: cls.class_name,
             roomNumber: cls.room_number,
             maxCapacity: cls.max_capacity,
-            academicYear: cls.AcademicYear?.year_name || '—',
-            semester: cls.Semester?.semester_name || '—',
-            homeroomTeacher: cls.HomeroomTeacher
-                ? `${cls.HomeroomTeacher.first_name || ''} ${cls.HomeroomTeacher.last_name || ''}`.trim()
+            academicYear: cls.academicYear?.year_name || '—',
+            semester: cls.semester?.semester_name || '—',
+            homeroomTeacher: cls.homeroomTeacher
+                ? `${cls.homeroomTeacher.first_name || ''} ${cls.homeroomTeacher.last_name || ''}`.trim()
                 : '—',
             scheduleCount: schedules.length,
             schedules: schedules.map((s) => ({
                 scheduleId: s.schedule_id,
-                subjectCode: s.Subject?.subject_code,
-                subjectName: s.Subject?.subject_name,
-                teacherName: s.Teacher ? `${s.Teacher.first_name || ''} ${s.Teacher.last_name || ''}`.trim() : '—',
-                dayOfWeek: s.TimeSlot?.day_of_week,
-                startTime: s.TimeSlot?.start_time,
-                endTime: s.TimeSlot?.end_time,
+                subjectCode: s.subject?.subject_code,
+                subjectName: s.subject?.subject_name,
+                teacherName: s.teacher ? `${s.teacher.first_name || ''} ${s.teacher.last_name || ''}`.trim() : '—',
+                dayOfWeek: s.timeSlot?.day_of_week,
+                startTime: s.timeSlot?.start_time,
+                endTime: s.timeSlot?.end_time,
                 roomNumber: s.room_number,
             })),
         };
@@ -224,33 +229,24 @@ const getStudentSchedule = async (studentId) => {
 
     if (classIds.length === 0) return [];
 
-    const schedules = await Schedules.findAll({
-        where: { class_id: { [Op.in]: classIds } },
-        include: [
-            { model: Classes, attributes: ['class_id', 'class_name'] },
-            { model: Subjects, attributes: ['subject_id', 'subject_code', 'subject_name'] },
-            { model: Teachers, attributes: ['teacher_id', 'first_name', 'last_name'] },
-            { model: TimeSlots, attributes: ['time_slot_id', 'day_of_week', 'start_time', 'end_time'] },
-        ],
-        order: [
-            [{ model: TimeSlots }, 'day_of_week', 'ASC'],
-            [{ model: TimeSlots }, 'start_time', 'ASC'],
-        ],
-        raw: true,
-        nest: true,
-    });
+    const schedules = await Schedules.find({ class_id: { $in: classIds } })
+        .populate({ path: 'class', select: 'class_id class_name' })
+        .populate({ path: 'subject', select: 'subject_id subject_code subject_name' })
+        .populate({ path: 'teacher', select: 'teacher_id first_name last_name' })
+        .populate({ path: 'timeSlot', select: 'time_slot_id day_of_week start_time end_time' })
+        .lean();
 
     const dayOrder = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const mapped = schedules.map((s) => ({
         scheduleId: s.schedule_id,
-        classId: s.Class?.class_id,
-        className: s.Class?.class_name,
-        subjectCode: s.Subject?.subject_code,
-        subjectName: s.Subject?.subject_name,
-        teacherName: s.Teacher ? `${s.Teacher.first_name || ''} ${s.Teacher.last_name || ''}`.trim() : '—',
-        dayOfWeek: s.TimeSlot?.day_of_week,
-        startTime: s.TimeSlot?.start_time,
-        endTime: s.TimeSlot?.end_time,
+        classId: s.class?.class_id,
+        className: s.class?.class_name,
+        subjectCode: s.subject?.subject_code,
+        subjectName: s.subject?.subject_name,
+        teacherName: s.teacher ? `${s.teacher.first_name || ''} ${s.teacher.last_name || ''}`.trim() : '—',
+        dayOfWeek: s.timeSlot?.day_of_week,
+        startTime: s.timeSlot?.start_time,
+        endTime: s.timeSlot?.end_time,
         roomNumber: s.room_number,
     }));
 
@@ -263,65 +259,53 @@ const getStudentSchedule = async (studentId) => {
 
 const getStudentGrades = async (studentId) => {
     const [grades, finalGrades] = await Promise.all([
-        Grades.findAll({
-            where: { student_id: studentId, is_published: true },
-            include: [
-                {
-                    model: Assessments,
-                    attributes: ['assessment_id', 'assessment_name', 'max_score', 'assessment_date'],
-                    include: [
-                        {
-                            model: Schedules,
-                            attributes: ['schedule_id'],
-                            include: [
-                                { model: Classes, attributes: ['class_id', 'class_name'] },
-                                { model: Subjects, attributes: ['subject_id', 'subject_code', 'subject_name'] },
-                            ],
-                        },
-                    ],
-                },
-                { model: Teachers, as: 'EnteredBy', attributes: ['teacher_id', 'first_name', 'last_name'] },
-            ],
-            order: [['entered_at', 'DESC']],
-            raw: true,
-            nest: true,
-        }),
-        FinalGrades.findAll({
-            where: { student_id: studentId },
-            include: [
-                { model: Classes, attributes: ['class_id', 'class_name'] },
-                { model: Subjects, attributes: ['subject_id', 'subject_code', 'subject_name'] },
-                { model: Semesters, attributes: ['semester_id', 'semester_name'] },
-            ],
-            order: [['computed_at', 'DESC']],
-            raw: true,
-            nest: true,
-        }),
+        Grades.find({ student_id: studentId, is_published: true })
+            .populate({
+                path: 'assessment',
+                select: 'assessment_id assessment_name max_score assessment_date',
+                populate: {
+                    path: 'schedule',
+                    select: 'schedule_id',
+                    populate: [
+                        { path: 'class', select: 'class_id class_name' },
+                        { path: 'subject', select: 'subject_id subject_code subject_name' }
+                    ]
+                }
+            })
+            .populate({ path: 'enteredBy', select: 'teacher_id first_name last_name' })
+            .sort({ entered_at: -1 })
+            .lean(),
+        FinalGrades.find({ student_id: studentId })
+            .populate({ path: 'class', select: 'class_id class_name' })
+            .populate({ path: 'subject', select: 'subject_id subject_code subject_name' })
+            .populate({ path: 'semester', select: 'semester_id semester_name' })
+            .sort({ computed_at: -1 })
+            .lean(),
     ]);
 
     const assessmentGrades = grades.map((g) => ({
         gradeId: g.grade_id,
-        assessmentId: g.Assessment?.assessment_id,
-        assessmentName: g.Assessment?.assessment_name,
-        maxScore: Number(g.Assessment?.max_score || 0),
+        assessmentId: g.assessment?.assessment_id,
+        assessmentName: g.assessment?.assessment_name,
+        maxScore: Number(g.assessment?.max_score || 0),
         score: Number(g.score || 0),
-        percentage: g.Assessment?.max_score
-            ? Number(((Number(g.score || 0) / Number(g.Assessment.max_score)) * 100).toFixed(1))
+        percentage: g.assessment?.max_score
+            ? Number(((Number(g.score || 0) / Number(g.assessment.max_score)) * 100).toFixed(1))
             : 0,
-        assessmentDate: formatDate(g.Assessment?.assessment_date),
-        subjectCode: g.Assessment?.Schedule?.Subject?.subject_code,
-        subjectName: g.Assessment?.Schedule?.Subject?.subject_name,
-        className: g.Assessment?.Schedule?.Class?.class_name,
-        enteredBy: g.EnteredBy ? `${g.EnteredBy.first_name || ''} ${g.EnteredBy.last_name || ''}`.trim() : '—',
+        assessmentDate: formatDate(g.assessment?.assessment_date),
+        subjectCode: g.assessment?.schedule?.subject?.subject_code,
+        subjectName: g.assessment?.schedule?.subject?.subject_name,
+        className: g.assessment?.schedule?.class?.class_name,
+        enteredBy: g.enteredBy ? `${g.enteredBy.first_name || ''} ${g.enteredBy.last_name || ''}`.trim() : '—',
         enteredAt: g.entered_at,
     }));
 
     const finalGradesMapped = finalGrades.map((fg) => ({
         finalGradeId: fg.final_grade_id,
-        className: fg.Class?.class_name,
-        subjectCode: fg.Subject?.subject_code,
-        subjectName: fg.Subject?.subject_name,
-        semesterName: fg.Semester?.semester_name,
+        className: fg.class?.class_name,
+        subjectCode: fg.subject?.subject_code,
+        subjectName: fg.subject?.subject_name,
+        semesterName: fg.semester?.semester_name,
         finalScore: Number(fg.final_score || 0),
         letterGrade: fg.letter_grade,
         gpaPoints: fg.gpa_points ? Number(fg.gpa_points) : null,
@@ -332,24 +316,19 @@ const getStudentGrades = async (studentId) => {
 };
 
 const getStudentAttendance = async (studentId) => {
-    const records = await AttendanceRecords.findAll({
-        where: { student_id: studentId },
-        include: [
-            {
-                model: Schedules,
-                attributes: ['schedule_id'],
-                include: [
-                    { model: Classes, attributes: ['class_id', 'class_name'] },
-                    { model: Subjects, attributes: ['subject_id', 'subject_code', 'subject_name'] },
-                    { model: TimeSlots, attributes: ['time_slot_id', 'day_of_week', 'start_time', 'end_time'] },
-                ],
-            },
-            { model: Teachers, as: 'Marker', attributes: ['teacher_id', 'first_name', 'last_name'] },
-        ],
-        order: [['attendance_date', 'DESC']],
-        raw: true,
-        nest: true,
-    });
+    const records = await AttendanceRecords.find({ student_id: studentId })
+        .populate({
+            path: 'schedule',
+            select: 'schedule_id',
+            populate: [
+                { path: 'class', select: 'class_id class_name' },
+                { path: 'subject', select: 'subject_id subject_code subject_name' },
+                { path: 'timeSlot', select: 'time_slot_id day_of_week start_time end_time' }
+            ]
+        })
+        .populate({ path: 'marker', select: 'teacher_id first_name last_name' })
+        .sort({ attendance_date: -1 })
+        .lean();
 
     const statusCounts = { present: 0, absent: 0, late: 0, excused: 0 };
     let total = 0;
@@ -364,16 +343,16 @@ const getStudentAttendance = async (studentId) => {
 
         return {
             attendanceId: r.attendance_id,
-            scheduleId: r.Schedule?.schedule_id,
-            className: r.Schedule?.Class?.class_name,
-            subjectCode: r.Schedule?.Subject?.subject_code,
-            subjectName: r.Schedule?.Subject?.subject_name,
-            dayOfWeek: r.Schedule?.TimeSlot?.day_of_week,
-            startTime: r.Schedule?.TimeSlot?.start_time,
-            endTime: r.Schedule?.TimeSlot?.end_time,
+            scheduleId: r.schedule?.schedule_id,
+            className: r.schedule?.class?.class_name,
+            subjectCode: r.schedule?.subject?.subject_code,
+            subjectName: r.schedule?.subject?.subject_name,
+            dayOfWeek: r.schedule?.timeSlot?.day_of_week,
+            startTime: r.schedule?.timeSlot?.start_time,
+            endTime: r.schedule?.timeSlot?.end_time,
             attendanceDate: formatDate(r.attendance_date),
             status,
-            markedBy: r.Marker ? `${r.Marker.first_name || ''} ${r.Marker.last_name || ''}`.trim() : '—',
+            markedBy: r.marker ? `${r.marker.first_name || ''} ${r.marker.last_name || ''}`.trim() : '—',
         };
     });
 
@@ -386,25 +365,19 @@ const getStudentAttendance = async (studentId) => {
 };
 
 const getStudentInvoices = async (studentId) => {
-    const invoices = await Invoices.findAll({
-        where: { student_id: studentId },
-        include: [
-            { model: FeeStructures, attributes: ['fee_id', 'fee_name', 'amount'] },
-            { model: Semesters, attributes: ['semester_id', 'semester_name'] },
-            {
-                model: Payments,
-                attributes: ['payment_id', 'payment_date', 'amount', 'payment_method', 'transaction_reference', 'receipt_url'],
-            },
-        ],
-        order: [['issue_date', 'DESC']],
-    });
+    const invoices = await Invoices.find({ student_id: studentId })
+        .populate({ path: 'feeStructure', select: 'fee_id fee_name amount' })
+        .populate({ path: 'semester', select: 'semester_id semester_name' })
+        .populate({ path: 'payments', select: 'payment_id payment_date amount payment_method transaction_reference receipt_url' })
+        .sort({ issue_date: -1 })
+        .lean();
 
     let totalBilled = 0;
     let totalPaid = 0;
     let outstandingBalance = 0;
 
     const mapped = invoices.map((inv) => {
-        const payments = Array.isArray(inv.Payments) ? inv.Payments : [];
+        const payments = Array.isArray(inv.payments) ? inv.payments : [];
         const paid = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
         const balance = Number(inv.total_amount || 0) - paid;
 
@@ -415,8 +388,8 @@ const getStudentInvoices = async (studentId) => {
         return {
             invoiceId: inv.invoice_id,
             invoiceNumber: inv.invoice_number,
-            feeName: inv.FeeStructure?.fee_name || '—',
-            semesterName: inv.Semester?.semester_name || '—',
+            feeName: inv.feeStructure?.fee_name || '—',
+            semesterName: inv.semester?.semester_name || '—',
             issueDate: formatDate(inv.issue_date),
             dueDate: formatDate(inv.due_date),
             totalAmount: Number(inv.total_amount || 0),
@@ -449,15 +422,10 @@ const getStudentInvoices = async (studentId) => {
 };
 
 const getStudentCertificates = async (studentId) => {
-    const certificates = await Certificates.findAll({
-        where: { student_id: studentId },
-        include: [
-            { model: Users, attributes: ['user_id', 'username'] },
-        ],
-        order: [['issue_date', 'DESC']],
-        raw: true,
-        nest: true,
-    });
+    const certificates = await Certificates.find({ student_id: studentId })
+        .populate({ path: 'user', select: 'user_id username' })
+        .sort({ issue_date: -1 })
+        .lean();
 
     return certificates.map((c) => ({
         certificateId: c.certificate_id,
@@ -465,7 +433,7 @@ const getStudentCertificates = async (studentId) => {
         templateUsed: c.template_used,
         issueDate: formatDate(c.issue_date),
         generatedFileUrl: c.generated_file_url,
-        issuedBy: c.User?.username || '—',
+        issuedBy: c.user?.username || '—',
     }));
 };
 
@@ -474,31 +442,25 @@ const getStudentResources = async (studentId) => {
 
     if (classIds.length === 0) return [];
 
-    const scheduleIds = await Schedules.findAll({
-        where: { class_id: { [Op.in]: classIds } },
-        attributes: ['schedule_id'],
-        raw: true,
-    }).then((rows) => rows.map((r) => r.schedule_id));
+    const scheduleIds = await Schedules.find({ class_id: { $in: classIds } })
+        .select('schedule_id')
+        .lean()
+        .then((rows) => rows.map((r) => r.schedule_id));
 
     if (scheduleIds.length === 0) return [];
 
-    const resources = await LessonResources.findAll({
-        where: { schedule_id: { [Op.in]: scheduleIds } },
-        include: [
-            {
-                model: Schedules,
-                attributes: ['schedule_id'],
-                include: [
-                    { model: Classes, attributes: ['class_id', 'class_name'] },
-                    { model: Subjects, attributes: ['subject_id', 'subject_code', 'subject_name'] },
-                ],
-            },
-            { model: Teachers, attributes: ['teacher_id', 'first_name', 'last_name'] },
-        ],
-        order: [['upload_date', 'DESC']],
-        raw: true,
-        nest: true,
-    });
+    const resources = await LessonResources.find({ schedule_id: { $in: scheduleIds } })
+        .populate({
+            path: 'schedule',
+            select: 'schedule_id',
+            populate: [
+                { path: 'class', select: 'class_id class_name' },
+                { path: 'subject', select: 'subject_id subject_code subject_name' }
+            ]
+        })
+        .populate({ path: 'teacher', select: 'teacher_id first_name last_name' })
+        .sort({ upload_date: -1 })
+        .lean();
 
     return resources.map((r) => ({
         resourceId: r.resource_id,
@@ -507,10 +469,10 @@ const getStudentResources = async (studentId) => {
         resourceType: r.resource_type,
         fileUrl: r.file_url,
         uploadDate: formatDate(r.upload_date),
-        className: r.Schedule?.Class?.class_name,
-        subjectCode: r.Schedule?.Subject?.subject_code,
-        subjectName: r.Schedule?.Subject?.subject_name,
-        teacherName: r.Teacher ? `${r.Teacher.first_name || ''} ${r.Teacher.last_name || ''}`.trim() : '—',
+        className: r.schedule?.class?.class_name,
+        subjectCode: r.schedule?.subject?.subject_code,
+        subjectName: r.schedule?.subject?.subject_name,
+        teacherName: r.teacher ? `${r.teacher.first_name || ''} ${r.teacher.last_name || ''}`.trim() : '—',
     }));
 };
 
@@ -521,7 +483,7 @@ const getStudentSummary = async (studentId) => {
         getStudentGrades(studentId),
         getStudentAttendance(studentId),
         getStudentInvoices(studentId),
-        Certificates.count({ where: { student_id: studentId } }),
+        Certificates.countDocuments({ student_id: studentId }),
         getStudentResources(studentId).then((r) => r.length),
         getStudentProfile(studentId),
     ]);

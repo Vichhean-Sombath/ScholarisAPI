@@ -32,7 +32,9 @@ const CertificatesSchema = new mongoose.Schema(
     },
     {
         collection: 'certificates',
-        timestamps: false
+        timestamps: false,
+        toJSON: { virtuals: true },
+        toObject: { virtuals: true }
     }
 );
 

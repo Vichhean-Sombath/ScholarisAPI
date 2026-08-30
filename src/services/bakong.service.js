@@ -81,7 +81,11 @@ const generateKHQR = async (invoice) => {
         );
     }
 
+    const lastQR = await BakongQRRequests.findOne().sort({ qr_id: -1 });
+    const qr_id = lastQR && lastQR.qr_id != null ? lastQR.qr_id + 1 : 1;
+
     const qrRequest = await BakongQRRequests.create({
+        qr_id,
         invoice_id: invoice.invoice_id,
         md5: response.data.md5,
         amount_khr: amount,
@@ -109,7 +113,8 @@ const checkBakongAccount = async () => {
     }
 
     try {
-        const result = await BakongKHQR.checkBakongAccount(apiUrl, bakongAccountId);
+        const baseUrl = String(apiUrl).replace(/\/+$/, '');
+        const result = await BakongKHQR.checkBakongAccount(`${baseUrl}/v1/check_bakong_account`, bakongAccountId);
         return { enabled: true, result };
     } catch (error) {
         return { enabled: true, error: error.message };

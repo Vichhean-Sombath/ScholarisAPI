@@ -2,32 +2,28 @@ const Certificates = require('../../models/certificates.model');
 const Students = require('../../models/students.model');
 const Users = require('../../models/users.model');
 require('../../models/mappingContext');
-const { Op } = require('sequelize');
 
 const GetCertificateData = async () => {
-    return await Certificates.findAll({
-        include: [
-            { model: Students, attributes: ['student_id', 'first_name', 'last_name'] },
-            { model: Users, attributes: ['user_id', 'username', 'email'] }
-        ],
-        order: [['issue_date', 'DESC']]
-    });
+    return await Certificates.find()
+        .populate({ path: 'student', select: 'student_id first_name last_name' })
+        .populate({ path: 'issuedBy', select: 'user_id username email' })
+        .sort({ issue_date: -1 });
 };
 
 const SelectCertificateData = async (data) => {
-    const certificates = await Certificates.findAll({
-        where: {
-            [Op.or]: [
-                { certificate_id: data },
-                { student_id: data },
-                { certificate_type: { [Op.like]: `%${data}%` } }
-            ]
-        },
-        include: [
-            { model: Students, attributes: ['student_id', 'first_name', 'last_name'] },
-            { model: Users, attributes: ['user_id', 'username', 'email'] }
-        ]
-    });
+    const isNum = !isNaN(Number(data));
+    const orConditions = [];
+    if (isNum) {
+        orConditions.push({ certificate_id: Number(data) });
+        orConditions.push({ student_id: Number(data) });
+    }
+    orConditions.push({ certificate_type: { $regex: data, $options: 'i' } });
+
+    const certificates = await Certificates.find({
+        $or: orConditions
+    })
+    .populate({ path: 'student', select: 'student_id first_name last_name' })
+    .populate({ path: 'issuedBy', select: 'user_id username email' });
 
     if (!certificates.length) {
         const err = new Error('Certificate not found!');
@@ -41,14 +37,14 @@ const SelectCertificateData = async (data) => {
 const CreateCertificateData = async (data) => {
     const { student_id, certificate_type, template_used, issue_date, generated_file_url, issued_by } = data;
 
-    const existedStudent = await Students.findByPk(student_id);
+    const existedStudent = await Students.findOne({ student_id });
     if (!existedStudent) {
         const err = new Error('Student not found!');
         err.statusCode = 404;
         throw err;
     }
 
-    const existedUser = await Users.findByPk(issued_by);
+    const existedUser = await Users.findOne({ user_id: issued_by });
     if (!existedUser) {
         const err = new Error('Issuer user not found!');
         err.statusCode = 404;
@@ -62,7 +58,14 @@ const CreateCertificateData = async (data) => {
         throw err;
     }
 
+    let certificate_id = data.certificate_id;
+    if (!certificate_id) {
+        const lastCert = await Certificates.findOne().sort({ certificate_id: -1 });
+        certificate_id = lastCert ? lastCert.certificate_id + 1 : 1;
+    }
+
     const createCertificate = await Certificates.create({
+        certificate_id,
         student_id,
         certificate_type,
         template_used,
@@ -75,14 +78,14 @@ const CreateCertificateData = async (data) => {
 };
 
 const DeleteCertificateData = async (certificate_id) => {
-    const selectedCertificate = await Certificates.findByPk(certificate_id);
+    const selectedCertificate = await Certificates.findOne({ certificate_id });
     if (!selectedCertificate) {
         const err = new Error('Certificate not found!');
         err.statusCode = 404;
         throw err;
     }
 
-    await selectedCertificate.destroy();
+    await Certificates.deleteOne({ certificate_id });
 };
 
 module.exports = {
