@@ -1,57 +1,25 @@
-const ValidationCreateEmergencyContact = (data) => {
-    const error = [];
-    const { student_id, contact_name, phone_number } = data;
+const { z } = require('zod');
+const { createValidator } = require('../../utils/zodValidation');
 
-    if (student_id === undefined || isNaN(Number(student_id))) {
-        error.push('Student ID required and must be a number!');
-    }
+const createEmergencyContactSchema = z.strictObject({
+    student_id: z.number().int().positive('Student ID must be a positive integer!'),
+    contact_name: z.string().trim().min(1, 'Contact name required!'),
+    relationship: z.string().trim().min(1, 'Relationship must be a non-empty string.').optional(),
+    phone_number: z.string().regex(/^\d{9,10}$/, 'Phone number must be 9-10 digits.'),
+    email: z.email('Email must be a valid email address.').optional()
+});
 
-    if (!contact_name || typeof contact_name !== 'string' || contact_name.trim() === '') {
-        error.push('Contact name required and must be a non-empty string!');
-    }
+const updateEmergencyContactSchema = createEmergencyContactSchema.partial().refine(
+    (data) => Object.keys(data).length > 0,
+    'At least one field must be provided.'
+);
 
-    if (!phone_number || typeof phone_number !== 'string' || phone_number.trim() === '') {
-        error.push('Phone number required and must be a non-empty string!');
-    }
-
-    return error.length > 0
-        ? { success: false, error }
-        : { success: true, error: null };
-};
-
-const ValidationUpdateEmergencyContact = (data) => {
-    const error = [];
-    const { student_id, contact_name, relationship, phone_number, email } = data;
-
-    if (student_id !== undefined && isNaN(Number(student_id))) {
-        error.push('Student ID must be a number.');
-    }
-
-    if (contact_name !== undefined && (typeof contact_name !== 'string' || contact_name.trim() === '')) {
-        error.push('Contact name must be a non-empty string.');
-    }
-
-    if (relationship !== undefined && (typeof relationship !== 'string' || relationship.trim() === '')) {
-        error.push('Relationship must be a non-empty string.');
-    }
-
-    if (phone_number !== undefined && (typeof phone_number !== 'string' || phone_number.trim() === '')) {
-        error.push('Phone number must be a non-empty string.');
-    }
-
-    if (email !== undefined) {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (typeof email !== 'string' || email.trim() === '' || !emailRegex.test(email)) {
-            error.push('Email must be a valid email address.');
-        }
-    }
-
-    return error.length > 0
-        ? { success: false, error }
-        : { success: true, error: null };
-};
+const ValidationCreateEmergencyContact = createValidator(createEmergencyContactSchema);
+const ValidationUpdateEmergencyContact = createValidator(updateEmergencyContactSchema);
 
 module.exports = {
+    createEmergencyContactSchema,
+    updateEmergencyContactSchema,
     ValidationCreateEmergencyContact,
     ValidationUpdateEmergencyContact
 };

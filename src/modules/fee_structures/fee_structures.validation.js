@@ -1,70 +1,28 @@
-const isValidDecimal = (value) => {
-    if (value === undefined || value === null || value === '') return false;
-    const num = Number(value);
-    return !isNaN(num) && num >= 0;
-};
+const { z } = require('zod');
+const { createValidator } = require('../../utils/zodValidation');
 
-const ValidationCreateFeeStructure = (data) => {
-    const error = [];
-    const { class_id, semester_id, fee_name, amount, due_date } = data;
+const createFeeStructureSchema = z.strictObject({
+    class_id: z.number().int().positive('Class ID must be a positive integer.').nullable().optional(),
+    semester_id: z.number().int().positive('Semester ID must be a positive integer!'),
+    fee_name: z.string()
+        .trim()
+        .min(1, 'Fee name required and must be a non-empty string.')
+        .max(100, 'Fee name must not exceed 100 characters.'),
+    amount: z.number().nonnegative('Amount must be a non-negative number.'),
+    due_date: z.iso.date('Due date must be a valid YYYY-MM-DD date.').optional()
+});
 
-    if (semester_id === undefined || semester_id === null || isNaN(Number(semester_id))) {
-        error.push('Semester ID required and must be a number!');
-    }
+const updateFeeStructureSchema = createFeeStructureSchema.partial().refine(
+    (data) => Object.keys(data).length > 0,
+    'At least one field must be provided.'
+);
 
-    if (class_id !== undefined && isNaN(Number(class_id))) {
-        error.push('Class ID must be a number.');
-    }
-
-    if (!fee_name || typeof fee_name !== 'string' || fee_name.trim() === '') {
-        error.push('Fee name required and must be a non-empty string.');
-    } else if (fee_name.length > 100) {
-        error.push('Fee name must not exceed 100 characters.');
-    }
-
-    if (!isValidDecimal(amount)) {
-        error.push('Amount required and must be a non-negative number.');
-    }
-
-    if (due_date !== undefined && isNaN(Date.parse(due_date))) {
-        error.push('Invalid due date format.');
-    }
-
-    return error.length > 0
-        ? { success: false, error }
-        : { success: true, error: null };
-};
-
-const ValidationUpdateFeeStructure = (data) => {
-    const error = [];
-    const { class_id, semester_id, fee_name, amount, due_date } = data;
-
-    if (semester_id !== undefined && isNaN(Number(semester_id))) {
-        error.push('Semester ID must be a number.');
-    }
-
-    if (class_id !== undefined && isNaN(Number(class_id))) {
-        error.push('Class ID must be a number.');
-    }
-
-    if (fee_name !== undefined && (typeof fee_name !== 'string' || fee_name.trim() === '')) {
-        error.push('Fee name must be a non-empty string.');
-    }
-
-    if (amount !== undefined && !isValidDecimal(amount)) {
-        error.push('Amount must be a non-negative number.');
-    }
-
-    if (due_date !== undefined && isNaN(Date.parse(due_date))) {
-        error.push('Invalid due date format.');
-    }
-
-    return error.length > 0
-        ? { success: false, error }
-        : { success: true, error: null };
-};
+const ValidationCreateFeeStructure = createValidator(createFeeStructureSchema);
+const ValidationUpdateFeeStructure = createValidator(updateFeeStructureSchema);
 
 module.exports = {
+    createFeeStructureSchema,
+    updateFeeStructureSchema,
     ValidationCreateFeeStructure,
     ValidationUpdateFeeStructure
 };

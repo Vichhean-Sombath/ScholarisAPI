@@ -1,62 +1,25 @@
-const ValidationCreateSchedule = (data) => {
-    const error = [];
-    const { class_id, subject_id, teacher_id, time_slot_id, room_number } = data;
+const { z } = require('zod');
+const { createValidator } = require('../../utils/zodValidation');
 
-    if (class_id === undefined || class_id === null || isNaN(Number(class_id))) {
-        error.push('Class ID required and must be a number!');
-    }
+const createScheduleSchema = z.strictObject({
+    class_id: z.number().int().positive('Class ID must be a positive integer!'),
+    subject_id: z.number().int().positive('Subject ID must be a positive integer!'),
+    teacher_id: z.number().int().positive('Teacher ID must be a positive integer!'),
+    time_slot_id: z.number().int().positive('Time slot ID must be a positive integer!'),
+    room_number: z.string().trim().min(1, 'Room number must be a non-empty string.').optional()
+});
 
-    if (subject_id === undefined || subject_id === null || isNaN(Number(subject_id))) {
-        error.push('Subject ID required and must be a number!');
-    }
+const updateScheduleSchema = createScheduleSchema.partial().refine(
+    (data) => Object.keys(data).length > 0,
+    'At least one field must be provided.'
+);
 
-    if (teacher_id === undefined || teacher_id === null || isNaN(Number(teacher_id))) {
-        error.push('Teacher ID required and must be a number!');
-    }
-
-    if (time_slot_id === undefined || time_slot_id === null || isNaN(Number(time_slot_id))) {
-        error.push('Time slot ID required and must be a number!');
-    }
-
-    if (room_number !== undefined && (typeof room_number !== 'string' || room_number.trim() === '')) {
-        error.push('Room number must be a non-empty string.');
-    }
-
-    return error.length > 0
-        ? { success: false, error }
-        : { success: true, error: null };
-};
-
-const ValidationUpdateSchedule = (data) => {
-    const error = [];
-    const { class_id, subject_id, teacher_id, time_slot_id, room_number } = data;
-
-    if (class_id !== undefined && isNaN(Number(class_id))) {
-        error.push('Class ID must be a number.');
-    }
-
-    if (subject_id !== undefined && isNaN(Number(subject_id))) {
-        error.push('Subject ID must be a number.');
-    }
-
-    if (teacher_id !== undefined && isNaN(Number(teacher_id))) {
-        error.push('Teacher ID must be a number.');
-    }
-
-    if (time_slot_id !== undefined && isNaN(Number(time_slot_id))) {
-        error.push('Time slot ID must be a number.');
-    }
-
-    if (room_number !== undefined && (typeof room_number !== 'string' || room_number.trim() === '')) {
-        error.push('Room number must be a non-empty string.');
-    }
-
-    return error.length > 0
-        ? { success: false, error }
-        : { success: true, error: null };
-};
+const ValidationCreateSchedule = createValidator(createScheduleSchema);
+const ValidationUpdateSchedule = createValidator(updateScheduleSchema);
 
 module.exports = {
+    createScheduleSchema,
+    updateScheduleSchema,
     ValidationCreateSchedule,
     ValidationUpdateSchedule
 };

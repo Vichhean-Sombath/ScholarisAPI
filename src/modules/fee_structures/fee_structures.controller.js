@@ -37,7 +37,7 @@ const CreateFeeStructure = async (req, res, next) => {
             });
         }
 
-        const { feeStructure, invoicesGenerated } = await CreateFeeStructureData(req.body);
+        const { feeStructure, invoicesGenerated } = await CreateFeeStructureData(validation.data);
 
         res.status(201).json({
             message: invoicesGenerated > 0
@@ -63,7 +63,7 @@ const UpdateFeeStructure = async (req, res, next) => {
             });
         }
 
-        const { feeStructure, invoicesGenerated } = await UpdateFeeStructureData(req.params.id, req.body);
+        const { feeStructure, invoicesGenerated } = await UpdateFeeStructureData(req.params.id, validation.data);
 
         res.status(200).json({
             message: invoicesGenerated > 0

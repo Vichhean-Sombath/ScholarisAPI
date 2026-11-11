@@ -43,7 +43,7 @@ const CreateEmergencyContact = async (req, res, next) => {
             });
         }
 
-        const contactData = await CreateEmergencyContactData(req.body);
+        const contactData = await CreateEmergencyContactData(validation.data);
 
         res.status(201).json({
             message: 'Emergency contact created successfully!',
@@ -64,7 +64,7 @@ const UpdateEmergencyContact = async (req, res, next) => {
             });
         }
 
-        const contactData = await UpdateEmergencyContactData(req.params.id, req.body);
+        const contactData = await UpdateEmergencyContactData(req.params.id, validation.data);
 
         res.status(200).json({
             message: 'Emergency contact updated successfully!',

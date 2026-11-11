@@ -191,8 +191,8 @@ const UpdateAttendanceRecordData = async (attendance_id, recordData, currentUser
         throw err;
     }
 
-    if (recordData.status !== undefined && !['Present', 'Absent', 'Late'].includes(recordData.status)) {
-        const err = new Error('Status must be Present, Absent, or Late!');
+    if (recordData.status !== undefined && !['Present', 'Absent', 'Late', 'Excused'].includes(recordData.status)) {
+        const err = new Error('Status must be Present, Absent, Late, or Excused!');
         err.statusCode = 400;
         throw err;
     }

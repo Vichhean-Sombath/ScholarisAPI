@@ -1,43 +1,24 @@
-const ValidationUpdateStudent = (data) => {
-    const error = [];
-    const {
-        first_name,
-        last_name,
-        dob,
-        gender,
-        enrollment_date,
-        status
-    } = data;
+const { z } = require('zod');
+const { createValidator } = require('../../utils/zodValidation');
 
-    if (first_name !== undefined && (typeof first_name !== 'string' || first_name.trim() === '')) {
-        error.push('First name must be a non-empty string.');
-    }
+const updateStudentSchema = z.strictObject({
+    first_name: z.string().trim().min(1, 'First name must be a non-empty string.').optional(),
+    last_name: z.string().trim().min(1, 'Last name must be a non-empty string.').optional(),
+    dob: z.iso.date('Date of birth must be a valid YYYY-MM-DD date.').optional(),
+    gender: z.enum(['Male', 'Female', 'Other'], 'Gender must be Male, Female, or Other.').optional(),
+    photo_url: z.string().trim().min(1, 'Photo URL must be a non-empty string.').optional(),
+    contact_number: z.string().regex(/^\d{9,10}$/, 'Phone number must be 9-10 digits.').optional(),
+    address: z.string().trim().min(1, 'Address must be a non-empty string.').optional(),
+    enrollment_date: z.iso.date('Enrollment date must be a valid YYYY-MM-DD date.').optional(),
+    status: z.enum(['Active', 'Inactive'], 'Status must be Active or Inactive.').optional()
+}).refine(
+    (data) => Object.keys(data).length > 0,
+    'At least one field must be provided.'
+);
 
-    if (last_name !== undefined && (typeof last_name !== 'string' || last_name.trim() === '')) {
-        error.push('Last name must be a non-empty string.');
-    }
-
-    if (dob !== undefined && isNaN(Date.parse(dob))) {
-        error.push('Invalid date of birth.');
-    }
-
-    if (gender !== undefined && !['Male', 'Female', 'Other'].includes(gender)) {
-        error.push('Gender must be Male, Female, or Other.');
-    }
-
-    if (enrollment_date !== undefined && isNaN(Date.parse(enrollment_date))) {
-        error.push('Invalid enrollment date.');
-    }
-
-    if (status !== undefined && !['Active', 'Inactive'].includes(status)) {
-        error.push('Status must be Active or Inactive.');
-    }
-
-    return error.length > 0
-        ? { success: false, error }
-        : { success: true, error: null };
-};
+const ValidationUpdateStudent = createValidator(updateStudentSchema);
 
 module.exports = {
+    updateStudentSchema,
     ValidationUpdateStudent
 };

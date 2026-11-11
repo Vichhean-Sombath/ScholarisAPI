@@ -37,7 +37,7 @@ const CreateInvoice = async (req, res, next) => {
             });
         }
 
-        const invoiceData = await CreateInvoiceData(req.body);
+        const invoiceData = await CreateInvoiceData(validation.data);
 
         res.status(201).json({
             message: 'Invoice created successfully!',
@@ -58,7 +58,7 @@ const UpdateInvoice = async (req, res, next) => {
             });
         }
 
-        const invoiceData = await UpdateInvoiceData(req.params.id, req.body);
+        const invoiceData = await UpdateInvoiceData(req.params.id, validation.data);
 
         res.status(200).json({
             message: 'Invoice updated successfully!',

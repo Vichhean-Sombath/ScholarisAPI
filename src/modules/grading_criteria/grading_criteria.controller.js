@@ -37,7 +37,7 @@ const CreateGradingCriteria = async (req, res, next) => {
             });
         }
 
-        const gradingCriteriaData = await CreateGradingCriteriaData(req.body);
+        const gradingCriteriaData = await CreateGradingCriteriaData(validation.data);
 
         res.status(201).json({
             message: 'Grading criteria created successfully!',
@@ -58,7 +58,7 @@ const UpdateGradingCriteria = async (req, res, next) => {
             });
         }
 
-        const gradingCriteriaData = await UpdateGradingCriteriaData(req.params.id, req.body);
+        const gradingCriteriaData = await UpdateGradingCriteriaData(req.params.id, validation.data);
 
         res.status(200).json({
             message: 'Grading criteria updated successfully!',

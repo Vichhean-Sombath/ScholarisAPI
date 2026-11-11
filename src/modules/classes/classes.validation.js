@@ -1,54 +1,28 @@
-const ValidationCreateClass = (data) => {
-    const error = [];
-    const { class_name, academic_year_id, semester_id } = data;
+const { z } = require('zod');
+const { createValidator } = require('../../utils/zodValidation');
 
-    if (!class_name || class_name.trim() === '') {
-        error.push('Class name required!');
-    }
+const createClassSchema = z.strictObject({
+    class_name: z.string().trim().min(1, 'Class name required!'),
+    academic_year_id: z.number().int().positive('Academic year ID must be a positive integer!'),
+    semester_id: z.number().int().positive('Semester ID must be a positive integer!'),
+    room_number: z.string().trim().min(1, 'Room number must be a non-empty string.').optional(),
+    max_capacity: z.number().int().positive('Max capacity must be a positive integer.').optional(),
+    homeroom_teacher_id: z.number().int().positive('Homeroom teacher ID must be a positive integer.')
+        .nullable()
+        .optional()
+});
 
-    if (academic_year_id === undefined || academic_year_id === null || isNaN(Number(academic_year_id))) {
-        error.push('Academic year ID required and must be a number!');
-    }
+const updateClassSchema = createClassSchema.partial().refine(
+    (data) => Object.keys(data).length > 0,
+    'At least one field must be provided.'
+);
 
-    if (semester_id === undefined || semester_id === null || isNaN(Number(semester_id))) {
-        error.push('Semester ID required and must be a number!');
-    }
-
-    return error.length > 0
-        ? { success: false, error }
-        : { success: true, error: null };
-};
-
-const ValidationUpdateClass = (data) => {
-    const error = [];
-    const { class_name, academic_year_id, semester_id, max_capacity, homeroom_teacher_id } = data;
-
-    if (class_name !== undefined && (typeof class_name !== 'string' || class_name.trim() === '')) {
-        error.push('Class name must be a non-empty string.');
-    }
-
-    if (academic_year_id !== undefined && isNaN(Number(academic_year_id))) {
-        error.push('Academic year ID must be a number.');
-    }
-
-    if (semester_id !== undefined && isNaN(Number(semester_id))) {
-        error.push('Semester ID must be a number.');
-    }
-
-    if (max_capacity !== undefined && (isNaN(Number(max_capacity)) || Number(max_capacity) < 1)) {
-        error.push('Max capacity must be a positive number.');
-    }
-
-    if (homeroom_teacher_id !== undefined && isNaN(Number(homeroom_teacher_id))) {
-        error.push('Homeroom teacher ID must be a number.');
-    }
-
-    return error.length > 0
-        ? { success: false, error }
-        : { success: true, error: null };
-};
+const ValidationCreateClass = createValidator(createClassSchema);
+const ValidationUpdateClass = createValidator(updateClassSchema);
 
 module.exports = {
+    createClassSchema,
+    updateClassSchema,
     ValidationCreateClass,
     ValidationUpdateClass
 };

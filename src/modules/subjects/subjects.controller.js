@@ -37,7 +37,7 @@ const CreateSubject = async (req, res, next) => {
             });
         }
 
-        const subjectData = await CreateSubjectData(req.body);
+        const subjectData = await CreateSubjectData(validation.data);
 
         res.status(201).json({
             message: 'Subject created successfully!',
@@ -58,7 +58,7 @@ const UpdateSubject = async (req, res, next) => {
             });    
         }
 
-        const subjectData = await UpdateSubjectData(req.params.id, req.body);
+        const subjectData = await UpdateSubjectData(req.params.id, validation.data);
         
         res.status(200).json({
             message: 'Subject updated successfully!',

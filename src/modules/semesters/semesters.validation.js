@@ -1,54 +1,35 @@
-const ValidationCreateSemester = (data) => {
-    const error = [];
-    const { academic_year_id, semester_name, start_date, end_date } = data;
+const { z } = require('zod');
+const { createValidator } = require('../../utils/zodValidation');
 
-    if (academic_year_id === undefined || academic_year_id === null || isNaN(Number(academic_year_id))) {
-        error.push('Academic year ID required and must be a number!');
-    }
+const createSemesterSchema = z.strictObject({
+    academic_year_id: z.number().int().positive('Academic year ID must be a positive integer!'),
+    semester_name: z.string().trim().min(1, 'Semester name required!'),
+    start_date: z.iso.date('Start date must be a valid YYYY-MM-DD date!'),
+    end_date: z.iso.date('End date must be a valid YYYY-MM-DD date!')
+}).refine(
+    (data) => data.start_date <= data.end_date,
+    { path: ['end_date'], message: 'End date must be on or after start date.' }
+);
 
-    if (!semester_name || semester_name.trim() === '') {
-        error.push('Semester name required!');
-    }
+const updateSemesterSchema = z.strictObject({
+    academic_year_id: z.number().int().positive('Academic year ID must be a positive integer!').optional(),
+    semester_name: z.string().trim().min(1, 'Semester name must be a non-empty string.').optional(),
+    start_date: z.iso.date('Start date must be a valid YYYY-MM-DD date!').optional(),
+    end_date: z.iso.date('End date must be a valid YYYY-MM-DD date!').optional()
+}).refine(
+    (data) => Object.keys(data).length > 0,
+    'At least one field must be provided.'
+).refine(
+    (data) => !data.start_date || !data.end_date || data.start_date <= data.end_date,
+    { path: ['end_date'], message: 'End date must be on or after start date.' }
+);
 
-    if (!start_date || start_date.trim() === '') {
-        error.push('Start date required!');
-    }
-
-    if (!end_date || end_date.trim() === '') {
-        error.push('End date required!');
-    }
-
-    return error.length > 0
-        ? { success: false, error }
-        : { success: true, error: null };
-};
-
-const ValidationUpdateSemester = (data) => {
-    const error = [];
-    const { academic_year_id, semester_name, start_date, end_date } = data;
-
-    if (academic_year_id !== undefined && isNaN(Number(academic_year_id))) {
-        error.push('Academic year ID must be a number.');
-    }
-
-    if (semester_name !== undefined && (typeof semester_name !== 'string' || semester_name.trim() === '')) {
-        error.push('Semester name must be a non-empty string.');
-    }
-
-    if (start_date !== undefined && (typeof start_date !== 'string' || start_date.trim() === '')) {
-        error.push('Start date must be a non-empty string.');
-    }
-
-    if (end_date !== undefined && (typeof end_date !== 'string' || end_date.trim() === '')) {
-        error.push('End date must be a non-empty string.');
-    }
-
-    return error.length > 0
-        ? { success: false, error }
-        : { success: true, error: null };
-};
+const ValidationCreateSemester = createValidator(createSemesterSchema);
+const ValidationUpdateSemester = createValidator(updateSemesterSchema);
 
 module.exports = {
+    createSemesterSchema,
+    updateSemesterSchema,
     ValidationCreateSemester,
     ValidationUpdateSemester
 };

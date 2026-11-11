@@ -37,7 +37,7 @@ const CreateSemester = async (req, res, next) => {
             });
         }
 
-        const semesterData = await CreateSemesterData(req.body);
+        const semesterData = await CreateSemesterData(validation.data);
 
         res.status(201).json({
             message: 'Semester created successfully!',
@@ -58,7 +58,7 @@ const UpdateSemester = async (req, res, next) => {
             });
         }
 
-        const semesterData = await UpdateSemesterData(req.params.id, req.body);
+        const semesterData = await UpdateSemesterData(req.params.id, validation.data);
 
         res.status(200).json({
             message: 'Semester updated successfully!',

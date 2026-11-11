@@ -1,77 +1,62 @@
-const ValidationLoginUser = (data) => {
-    const error = [];
-    const { email, password } = data;
+const { z } = require('zod');
+const { createValidator } = require('../../utils/zodValidation');
 
-    const isEmpty = (value) => !value || value.toString().trim() === '';
-    const emailFormat = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const calculateAge = (dateOfBirth) => {
+    const birthDate = new Date(dateOfBirth);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDifference = today.getMonth() - birthDate.getMonth();
 
-    if (!email || isEmpty(email)) {
-        error.push('Email required!');
-    } else if (!emailFormat.test(email)) {
-        error.push('Invalid email format!');
+    if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < birthDate.getDate())) {
+        age -= 1;
     }
 
-    if (!password || isEmpty(password)) {
-        error.push('Password required!');
-    }
-
-    return error.length > 0
-        ? { success: false, error }
-        : { success: true, error: null };
+    return age;
 };
 
-const { validateEmail, validateUsername, validatePassword, validateDob, validatePhone } = require('../../utils/validationHelpers');
+const loginSchema = z.strictObject({
+    email: z.email('Invalid email format!'),
+    password: z.string().min(1, 'Password required!')
+});
 
-const ValidationRegisterUser = (data) => {
-    const error = [];
-    const {
-        username,
-        email,
-        password,
-        role,
-        first_name,
-        last_name,
-        gender,
-        dob,
-        contact_number
-    } = data;
+const registerSchema = z.strictObject({
+    username: z.string().trim().min(1, 'Username required!').max(50, 'Username must not exceed 50 characters!'),
+    email: z.email('Invalid email format!').max(100, 'Email must not exceed 100 characters!'),
+    password: z.string()
+        .min(8, 'Password must be at least 8 characters!')
+        .regex(/[A-Z]/, 'Password must contain at least one capital letter!')
+        .regex(/[a-z]/, 'Password must contain at least one lowercase letter!')
+        .regex(/\d/, 'Password must contain at least one number!')
+        .regex(/[!@#$%^&*(),.?":{}|<>]/, 'Password must contain at least one special character!'),
+    role: z.enum(['Teacher', 'Student'], 'Role must be Teacher or Student!'),
+    first_name: z.string().trim().min(1, 'First name required!'),
+    last_name: z.string().trim().min(1, 'Last name required!'),
+    gender: z.enum(['Male', 'Female', 'Other'], 'Gender must be Male, Female, or Other!').optional(),
+    dob: z.iso.date('Date of birth must be a valid YYYY-MM-DD date!'),
+    contact_number: z.string().regex(/^\d{9,10}$/, 'Phone number must be 9-10 digits.'),
+    address: z.string().trim().min(1, 'Address must be a non-empty string.').optional(),
+    photo_url: z.string().trim().min(1, 'Photo URL must be a non-empty string.').optional(),
+    specialization: z.string().trim().min(1, 'Specialization must be a non-empty string.').optional(),
+    bio: z.string().trim().min(1, 'Bio must be a non-empty string.').optional(),
+    enrollment_date: z.iso.date('Enrollment date must be a valid YYYY-MM-DD date.').optional()
+}).superRefine((data, context) => {
+    const minimumAge = data.role === 'Teacher' ? 25 : 16;
 
-    validateUsername(username, error);
-    validateEmail(email, error);
-    validatePassword(password, error, 'Password');
-
-    if (!role || (typeof role === 'string' && role.trim() === '')) {
-        error.push('Role required!');
-    } else if (!['Teacher', 'Student'].includes(role)) {
-        error.push('Role must be Teacher or Student!');
+    if (calculateAge(data.dob) < minimumAge) {
+        context.addIssue({
+            code: 'custom',
+            path: ['dob'],
+            message: `${data.role} must be at least ${minimumAge} years old.`
+        });
     }
+});
 
-    if (!first_name || (typeof first_name === 'string' && first_name.trim() === '')) {
-        error.push(`${role || 'User'} first name required!`);
-    }
-
-    if (!last_name || (typeof last_name === 'string' && last_name.trim() === '')) {
-        error.push(`${role || 'User'} last name required!`);
-    }
-
-    if (role === 'Teacher') {
-        validateDob(dob, 25, error, 'Teacher');
-    } else if (role === 'Student') {
-        validateDob(dob, 16, error, 'Student');
-    }
-
-    if (gender !== undefined && !['Male', 'Female', 'Other'].includes(gender)) {
-        error.push('Gender must be Male, Female, or Other!');
-    }
-
-    validatePhone(contact_number, error, role === 'Teacher' ? 'Teacher phone number' : 'Phone number');
-
-    return error.length > 0
-        ? { success: false, error }
-        : { success: true, error: null };
-};
+const ValidationLoginUser = createValidator(loginSchema);
+const ValidationRegisterUser = createValidator(registerSchema);
 
 module.exports = {
+    loginSchema,
+    registerSchema,
     ValidationLoginUser,
     ValidationRegisterUser
 };

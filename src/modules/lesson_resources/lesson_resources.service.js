@@ -1,37 +1,47 @@
 const LessonResources = require('../../models/lesson_resources.model');
 const Schedules = require('../../models/schedules.model');
 const Teachers = require('../../models/teachers.model');
-const TimeSlots = require('../../models/time_slots.model');
+require('../../models/mappingContext');
+
+const lessonResourcePopulates = [
+    {
+        path: 'schedule',
+        select: 'schedule_id time_slot_id',
+        populate: {
+            path: 'timeSlot',
+            select: 'day_of_week start_time end_time'
+        }
+    },
+    {
+        path: 'teacher',
+        select: 'teacher_id first_name last_name'
+    }
+];
+
+const parseResourceId = (resourceId) => {
+    const parsedId = Number(resourceId);
+
+    if (!Number.isInteger(parsedId) || parsedId <= 0) {
+        const err = new Error('Lesson resource ID must be a positive integer!');
+        err.statusCode = 400;
+        throw err;
+    }
+
+    return parsedId;
+};
 
 const GetLessonResourceData = async (currentUser) => {
-    const where = currentUser.role === 'Teacher'
+    const query = currentUser.role === 'Teacher'
         ? { teacher_id: currentUser.teacher_id }
         : {};
 
-    return await LessonResources.findAll({
-        where,
-        include: [
-            {
-                model: Schedules,
-                attributes: ['schedule_id'],
-                include: [{ model: TimeSlots, attributes: ['day_of_week', 'start_time', 'end_time'] }]
-            },
-            { model: Teachers, attributes: ['teacher_id', 'first_name', 'last_name'] }
-        ]
-    });
+    return await LessonResources.find(query).populate(lessonResourcePopulates);
 };
 
-const SelectedLessonResourceData = async (resource_id, currentUser) => {
-    const lessonResource = await LessonResources.findByPk(resource_id, {
-        include: [
-            {
-                model: Schedules,
-                attributes: ['schedule_id'],
-                include: [{ model: TimeSlots, attributes: ['day_of_week', 'start_time', 'end_time'] }]
-            },
-            { model: Teachers, attributes: ['teacher_id', 'first_name', 'last_name'] }
-        ]
-    });
+const SelectedLessonResourceData = async (resourceId, currentUser) => {
+    const lessonResource = await LessonResources.findOne({
+        resource_id: parseResourceId(resourceId)
+    }).populate(lessonResourcePopulates);
 
     if (!lessonResource) {
         const err = new Error('Lesson resource not found!');
@@ -54,15 +64,15 @@ const CreateLessonResourceData = async (resourceData, currentUser) => {
         ? currentUser.teacher_id
         : resourceData.teacher_id;
 
-    const relatedTeacher = await Teachers.findByPk(teacher_id);
+    const relatedTeacher = await Teachers.findOne({ teacher_id });
     if (!relatedTeacher) {
         const err = new Error('Teacher not found!');
         err.statusCode = 404;
         throw err;
     }
 
-    if (schedule_id) {
-        const relatedSchedule = await Schedules.findByPk(schedule_id);
+    if (schedule_id != null) {
+        const relatedSchedule = await Schedules.findOne({ schedule_id });
         if (!relatedSchedule) {
             const err = new Error('Schedule not found!');
             err.statusCode = 404;
@@ -70,7 +80,13 @@ const CreateLessonResourceData = async (resourceData, currentUser) => {
         }
     }
 
-    const createLessonResource = await LessonResources.create({
+    const lastResource = await LessonResources.findOne()
+        .sort({ resource_id: -1 })
+        .select('resource_id');
+    const resource_id = lastResource ? lastResource.resource_id + 1 : 1;
+
+    const lessonResource = await LessonResources.create({
+        resource_id,
         schedule_id,
         teacher_id,
         title,
@@ -80,20 +96,14 @@ const CreateLessonResourceData = async (resourceData, currentUser) => {
         upload_date: upload_date || new Date()
     });
 
-    return await LessonResources.findByPk(createLessonResource.resource_id, {
-        include: [
-            {
-                model: Schedules,
-                attributes: ['schedule_id'],
-                include: [{ model: TimeSlots, attributes: ['day_of_week', 'start_time', 'end_time'] }]
-            },
-            { model: Teachers, attributes: ['teacher_id', 'first_name', 'last_name'] }
-        ]
-    });
+    return await lessonResource.populate(lessonResourcePopulates);
 };
 
-const UpdateLessonResourceData = async (resource_id, resourceData, currentUser) => {
-    const lessonResource = await LessonResources.findByPk(resource_id);
+const UpdateLessonResourceData = async (resourceId, resourceData, currentUser) => {
+    const lessonResource = await LessonResources.findOne({
+        resource_id: parseResourceId(resourceId)
+    });
+
     if (!lessonResource) {
         const err = new Error('Lesson resource not found!');
         err.statusCode = 404;
@@ -106,14 +116,18 @@ const UpdateLessonResourceData = async (resource_id, resourceData, currentUser) 
         throw err;
     }
 
-    if (currentUser.role === 'Teacher' && resourceData.teacher_id && parseInt(resourceData.teacher_id) !== currentUser.teacher_id) {
+    if (
+        currentUser.role === 'Teacher'
+        && resourceData.teacher_id !== undefined
+        && resourceData.teacher_id !== currentUser.teacher_id
+    ) {
         const err = new Error('Cannot assign resource to another teacher!');
         err.statusCode = 403;
         throw err;
     }
 
-    if (resourceData.teacher_id) {
-        const relatedTeacher = await Teachers.findByPk(resourceData.teacher_id);
+    if (resourceData.teacher_id !== undefined) {
+        const relatedTeacher = await Teachers.findOne({ teacher_id: resourceData.teacher_id });
         if (!relatedTeacher) {
             const err = new Error('Teacher not found!');
             err.statusCode = 404;
@@ -121,8 +135,8 @@ const UpdateLessonResourceData = async (resource_id, resourceData, currentUser) 
         }
     }
 
-    if (resourceData.schedule_id) {
-        const relatedSchedule = await Schedules.findByPk(resourceData.schedule_id);
+    if (resourceData.schedule_id != null) {
+        const relatedSchedule = await Schedules.findOne({ schedule_id: resourceData.schedule_id });
         if (!relatedSchedule) {
             const err = new Error('Schedule not found!');
             err.statusCode = 404;
@@ -130,25 +144,17 @@ const UpdateLessonResourceData = async (resource_id, resourceData, currentUser) 
         }
     }
 
-    await lessonResource.update({
-        ...resourceData,
-        upload_date: resourceData.upload_date || lessonResource.upload_date || new Date()
-    });
+    Object.assign(lessonResource, resourceData);
+    await lessonResource.save();
 
-    return await LessonResources.findByPk(resource_id, {
-        include: [
-            {
-                model: Schedules,
-                attributes: ['schedule_id'],
-                include: [{ model: TimeSlots, attributes: ['day_of_week', 'start_time', 'end_time'] }]
-            },
-            { model: Teachers, attributes: ['teacher_id', 'first_name', 'last_name'] }
-        ]
-    });
+    return await lessonResource.populate(lessonResourcePopulates);
 };
 
-const DeleteLessonResourceData = async (resource_id, currentUser) => {
-    const lessonResource = await LessonResources.findByPk(resource_id);
+const DeleteLessonResourceData = async (resourceId, currentUser) => {
+    const lessonResource = await LessonResources.findOne({
+        resource_id: parseResourceId(resourceId)
+    });
+
     if (!lessonResource) {
         const err = new Error('Lesson resource not found!');
         err.statusCode = 404;
@@ -161,7 +167,7 @@ const DeleteLessonResourceData = async (resource_id, currentUser) => {
         throw err;
     }
 
-    await lessonResource.destroy();
+    await lessonResource.deleteOne();
 };
 
 module.exports = {

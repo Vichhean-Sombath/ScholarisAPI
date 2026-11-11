@@ -37,7 +37,7 @@ const CreateClass = async (req, res, next) => {
             });
         }
 
-        const classData = await CreateClassData(req.body);
+        const classData = await CreateClassData(validation.data);
 
         res.status(201).json({
             message: 'Class created successfully!',
@@ -58,7 +58,7 @@ const UpdateClass = async (req, res, next) => {
             });    
         }
 
-        const classData = await UpdateClassData(req.params.id, req.body);
+        const classData = await UpdateClassData(req.params.id, validation.data);
         
         res.status(200).json({
             message: 'Class updated successfully!',

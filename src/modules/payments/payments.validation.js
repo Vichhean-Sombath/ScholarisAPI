@@ -1,84 +1,28 @@
-const isValidPositiveDecimal = (value) => {
-    if (value === undefined || value === null || value === '') return false;
-    const num = Number(value);
-    return !isNaN(num) && num > 0;
-};
+const { z } = require('zod');
+const { createValidator } = require('../../utils/zodValidation');
 
-const ValidationCreatePayment = (data) => {
-    const error = [];
-    const { invoice_id, payment_date, amount, payment_method, receipt_url, recorded_by, notes } = data;
+const createPaymentSchema = z.strictObject({
+    invoice_id: z.number().int().positive('Invoice ID must be a positive integer.'),
+    payment_date: z.iso.date('Payment date must be a valid YYYY-MM-DD date.'),
+    amount: z.number().positive('Amount must be a positive number.'),
+    payment_method: z.enum(['stripe', 'bakongkhqr'], 'Payment method must be stripe or bakongkhqr.'),
+    receipt_url: z.string().trim().min(1, 'Receipt URL must be a non-empty string.').optional(),
+    transaction_reference: z.string().trim().min(1, 'Transaction reference must be a non-empty string.').optional(),
+    recorded_by: z.number().int().positive('Recorded by must be a positive integer.'),
+    notes: z.string().trim().min(1, 'Notes must be a non-empty string.').optional()
+});
 
-    if (invoice_id === undefined || invoice_id === null || isNaN(Number(invoice_id))) {
-        error.push('Invoice ID required and must be a number.');
-    }
+const updatePaymentSchema = createPaymentSchema.partial().refine(
+    (data) => Object.keys(data).length > 0,
+    'At least one field must be provided.'
+);
 
-    if (!payment_date || isNaN(Date.parse(payment_date))) {
-        error.push('Payment date required and must be a valid date.');
-    }
-
-    if (!isValidPositiveDecimal(amount)) {
-        error.push('Amount required and must be a positive number.');
-    }
-
-    if (!payment_method || !['stripe', 'bakongkhqr'].includes(payment_method)) {
-        error.push('Payment method required and must be stripe or bakongkhqr.');
-    }
-
-    if (recorded_by === undefined || recorded_by === null || isNaN(Number(recorded_by))) {
-        error.push('Recorded by required and must be a number.');
-    }
-
-    if (receipt_url !== undefined && (typeof receipt_url !== 'string' || receipt_url.trim() === '')) {
-        error.push('Receipt URL must be a non-empty string.');
-    }
-
-    if (notes !== undefined && (typeof notes !== 'string' || notes.trim() === '')) {
-        error.push('Notes must be a non-empty string.');
-    }
-
-    return error.length > 0
-        ? { success: false, error }
-        : { success: true, error: null };
-};
-
-const ValidationUpdatePayment = (data) => {
-    const error = [];
-    const { invoice_id, payment_date, amount, payment_method, receipt_url, recorded_by, notes } = data;
-
-    if (invoice_id !== undefined && isNaN(Number(invoice_id))) {
-        error.push('Invoice ID must be a number.');
-    }
-
-    if (payment_date !== undefined && isNaN(Date.parse(payment_date))) {
-        error.push('Invalid payment date format.');
-    }
-
-    if (amount !== undefined && !isValidPositiveDecimal(amount)) {
-        error.push('Amount must be a positive number.');
-    }
-
-    if (payment_method !== undefined && !['stripe', 'bakongkhqr'].includes(payment_method)) {
-        error.push('Payment method must be stripe or bakongkhqr.');
-    }
-
-    if (recorded_by !== undefined && isNaN(Number(recorded_by))) {
-        error.push('Recorded by must be a number.');
-    }
-
-    if (receipt_url !== undefined && (typeof receipt_url !== 'string' || receipt_url.trim() === '')) {
-        error.push('Receipt URL must be a non-empty string.');
-    }
-
-    if (notes !== undefined && (typeof notes !== 'string' || notes.trim() === '')) {
-        error.push('Notes must be a non-empty string.');
-    }
-
-    return error.length > 0
-        ? { success: false, error }
-        : { success: true, error: null };
-};
+const ValidationCreatePayment = createValidator(createPaymentSchema);
+const ValidationUpdatePayment = createValidator(updatePaymentSchema);
 
 module.exports = {
+    createPaymentSchema,
+    updatePaymentSchema,
     ValidationCreatePayment,
     ValidationUpdatePayment
 };

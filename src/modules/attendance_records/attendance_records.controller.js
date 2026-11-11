@@ -43,7 +43,7 @@ const CreateAttendanceRecord = async (req, res, next) => {
             });
         }
 
-        const recordData = await CreateAttendanceRecordData(req.body, req.user);
+        const recordData = await CreateAttendanceRecordData(validation.data, req.user);
 
         res.status(201).json({
             message: 'Attendance record created successfully!',
@@ -64,7 +64,7 @@ const UpdateAttendanceRecord = async (req, res, next) => {
             });
         }
 
-        const recordData = await UpdateAttendanceRecordData(req.params.id, req.body, req.user);
+        const recordData = await UpdateAttendanceRecordData(req.params.id, validation.data, req.user);
 
         res.status(200).json({
             message: 'Attendance record updated successfully!',

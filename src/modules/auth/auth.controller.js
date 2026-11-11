@@ -13,7 +13,7 @@ const LoginUser = async (req, res, next) => {
             });
         }
 
-        const loginResult = await LoginUserData(req.body);
+        const loginResult = await LoginUserData(validation.data);
 
         res.status(201).json(loginResult);
 
@@ -34,7 +34,7 @@ const RegisterUser = async (req, res, next) => {
             });
         }
 
-        const registerResult = await RegisterUserData(req.body);
+        const registerResult = await RegisterUserData(validation.data);
 
         res.status(201).json(registerResult);
 

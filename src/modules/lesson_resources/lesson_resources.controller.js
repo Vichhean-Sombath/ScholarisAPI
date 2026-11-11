@@ -37,7 +37,7 @@ const CreateLessonResource = async (req, res, next) => {
             });
         }
 
-        const lessonResourceData = await CreateLessonResourceData(req.body, req.user);
+        const lessonResourceData = await CreateLessonResourceData(validation.data, req.user);
 
         res.status(201).json({
             message: 'Lesson resource created successfully!',
@@ -58,7 +58,7 @@ const UpdateLessonResource = async (req, res, next) => {
             });
         }
 
-        const lessonResourceData = await UpdateLessonResourceData(req.params.id, req.body, req.user);
+        const lessonResourceData = await UpdateLessonResourceData(req.params.id, validation.data, req.user);
 
         res.status(200).json({
             message: 'Lesson resource updated successfully!',

@@ -18,7 +18,9 @@ const CreateUserData = async (userData) => {
         specialization,
         bio,
         photo_url,
-        address
+        address,
+        hire_date,
+        enrollment_date
     } = userData;
 
     const existingEmail = await checkDuplicateEmail(email);
@@ -35,8 +37,7 @@ const CreateUserData = async (userData) => {
         throw err;
     }
 
-    const allowedRoles = ['Admin', 'Teacher', 'Student'];
-    if (!allowedRoles.includes(role)) {
+    if (!['Admin', 'Teacher', 'Student'].includes(role)) {
         const err = new Error('Role must be Admin, Teacher or Student!');
         err.statusCode = 400;
         throw err;
@@ -82,7 +83,7 @@ const CreateUserData = async (userData) => {
             contact_number,
             specialization,
             bio,
-            hire_date: todayString()
+            hire_date: hire_date || todayString()
         });
     }
 
@@ -107,7 +108,7 @@ const CreateUserData = async (userData) => {
             contact_number,
             address,
             photo_url,
-            enrollment_date: todayString()
+            enrollment_date: enrollment_date || todayString()
         });
     }
 
@@ -190,12 +191,6 @@ const UpdateUserData = async (user_id, userData, currentUser) => {
 };
 
 const ChangePasswordData = async (currentUser, { currentPassword, newPassword }) => {
-    if (!currentPassword || !newPassword) {
-        const err = new Error('Current password and new password are required!');
-        err.statusCode = 400;
-        throw err;
-    }
-
     const user = await Users.findOne({ user_id: currentUser.user_id });
     if (!user) {
         const err = new Error('User not found!');
@@ -207,32 +202,6 @@ const ChangePasswordData = async (currentUser, { currentPassword, newPassword })
     if (!isMatch) {
         const err = new Error('Current password is incorrect!');
         err.statusCode = 401;
-        throw err;
-    }
-
-    if (newPassword.length < 8) {
-        const err = new Error('New password must be at least 8 characters!');
-        err.statusCode = 400;
-        throw err;
-    }
-    if (!/[A-Z]/.test(newPassword)) {
-        const err = new Error('New password must contain at least one uppercase letter!');
-        err.statusCode = 400;
-        throw err;
-    }
-    if (!/[a-z]/.test(newPassword)) {
-        const err = new Error('New password must contain at least one lowercase letter!');
-        err.statusCode = 400;
-        throw err;
-    }
-    if (!/\d/.test(newPassword)) {
-        const err = new Error('New password must contain at least one number!');
-        err.statusCode = 400;
-        throw err;
-    }
-    if (!/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) {
-        const err = new Error('New password must contain at least one special character!');
-        err.statusCode = 400;
         throw err;
     }
 

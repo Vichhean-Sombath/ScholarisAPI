@@ -37,7 +37,7 @@ const CreateTimeSlot = async (req, res, next) => {
             });
         }
 
-        const timeSlotData = await CreateTimeSlotData(req.body);
+        const timeSlotData = await CreateTimeSlotData(validation.data);
 
         res.status(201).json({
             message: 'Time slot created successfully!',
@@ -58,7 +58,7 @@ const UpdateTimeSlot = async (req, res, next) => {
             });
         }
 
-        const timeSlotData = await UpdateTimeSlotData(req.params.id, req.body);
+        const timeSlotData = await UpdateTimeSlotData(req.params.id, validation.data);
 
         res.status(200).json({
             message: 'Time slot updated successfully!',

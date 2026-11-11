@@ -37,7 +37,7 @@ const CreateAssessment = async (req, res, next) => {
             });
         }
 
-        const assessmentData = await CreateAssessmentData(req.body, req.user);
+        const assessmentData = await CreateAssessmentData(validation.data, req.user);
 
         res.status(201).json({
             message: 'Assessment created successfully!',
@@ -58,7 +58,7 @@ const UpdateAssessment = async (req, res, next) => {
             });
         }
 
-        const assessmentData = await UpdateAssessmentData(req.params.id, req.body, req.user);
+        const assessmentData = await UpdateAssessmentData(req.params.id, validation.data, req.user);
 
         res.status(200).json({
             message: 'Assessment updated successfully!',

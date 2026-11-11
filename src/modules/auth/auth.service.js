@@ -74,8 +74,7 @@ const RegisterUserData = async (userData) => {
         enrollment_date
     } = userData;
 
-    const allowedRoles = ['Teacher', 'Student'];
-    if (!allowedRoles.includes(role)) {
+    if (!['Teacher', 'Student'].includes(role)) {
         const err = new Error('Role must be Teacher or Student!');
         err.statusCode = 400;
         throw err;

@@ -37,7 +37,7 @@ const CreateSchedule = async (req, res, next) => {
             });
         }
 
-        const scheduleData = await CreateScheduleData(req.body, req.user);
+        const scheduleData = await CreateScheduleData(validation.data, req.user);
 
         res.status(201).json({
             message: 'Schedule created successfully!',
@@ -58,7 +58,7 @@ const UpdateSchedule = async (req, res, next) => {
             });
         }
 
-        const scheduleData = await UpdateScheduleData(req.params.id, req.body, req.user);
+        const scheduleData = await UpdateScheduleData(req.params.id, validation.data, req.user);
 
         res.status(200).json({
             message: 'Schedule updated successfully!',

@@ -1,50 +1,41 @@
-const ValidationCreateTimeSlot = (data) => {
-    const error = [];
-    const { day_of_week, start_time, end_time } = data;
+const { z } = require('zod');
+const { createValidator } = require('../../utils/zodValidation');
 
-    const validDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const timeSchema = z.string().regex(
+    /^([01]\d|2[0-3]):[0-5]\d$/,
+    'Time must use HH:mm 24-hour format.'
+);
 
-    if (!day_of_week || !validDays.includes(day_of_week)) {
-        error.push('Day of week required and must be one of Mon, Tue, Wed, Thu, Fri, Sat, Sun!');
-    }
+const createTimeSlotSchema = z.strictObject({
+    day_of_week: z.enum(
+        ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        'Day of week must be Mon, Tue, Wed, Thu, Fri, Sat, or Sun.'
+    ),
+    start_time: timeSchema,
+    end_time: timeSchema
+}).refine(
+    (data) => data.start_time < data.end_time,
+    { path: ['end_time'], message: 'End time must be after start time.' }
+);
 
-    if (!start_time || start_time.trim() === '') {
-        error.push('Start time required!');
-    }
+const updateTimeSlotSchema = z.strictObject({
+    day_of_week: z.enum(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']).optional(),
+    start_time: timeSchema.optional(),
+    end_time: timeSchema.optional()
+}).refine(
+    (data) => Object.keys(data).length > 0,
+    'At least one field must be provided.'
+).refine(
+    (data) => !data.start_time || !data.end_time || data.start_time < data.end_time,
+    { path: ['end_time'], message: 'End time must be after start time.' }
+);
 
-    if (!end_time || end_time.trim() === '') {
-        error.push('End time required!');
-    }
-
-    return error.length > 0
-        ? { success: false, error }
-        : { success: true, error: null };
-};
-
-const ValidationUpdateTimeSlot = (data) => {
-    const error = [];
-    const { day_of_week, start_time, end_time } = data;
-
-    const validDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-    if (day_of_week !== undefined && !validDays.includes(day_of_week)) {
-        error.push('Day of week must be one of Mon, Tue, Wed, Thu, Fri, Sat, Sun.');
-    }
-
-    if (start_time !== undefined && (typeof start_time !== 'string' || start_time.trim() === '')) {
-        error.push('Start time must be a non-empty string.');
-    }
-
-    if (end_time !== undefined && (typeof end_time !== 'string' || end_time.trim() === '')) {
-        error.push('End time must be a non-empty string.');
-    }
-
-    return error.length > 0
-        ? { success: false, error }
-        : { success: true, error: null };
-};
+const ValidationCreateTimeSlot = createValidator(createTimeSlotSchema);
+const ValidationUpdateTimeSlot = createValidator(updateTimeSlotSchema);
 
 module.exports = {
+    createTimeSlotSchema,
+    updateTimeSlotSchema,
     ValidationCreateTimeSlot,
     ValidationUpdateTimeSlot
 };

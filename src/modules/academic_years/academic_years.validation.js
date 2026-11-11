@@ -1,54 +1,35 @@
-const ValidationCreateAcademicYear = (data) => {
-    const error = [];
-    const { year_name, start_date, end_date, status } = data;
+const { z } = require('zod');
+const { createValidator } = require('../../utils/zodValidation');
 
-    if (!year_name || year_name.trim() === '') {
-        error.push('Year name required!');
-    }
+const createAcademicYearSchema = z.strictObject({
+    year_name: z.string().trim().min(1, 'Year name required!'),
+    start_date: z.iso.date('Start date must be a valid YYYY-MM-DD date!'),
+    end_date: z.iso.date('End date must be a valid YYYY-MM-DD date!'),
+    status: z.enum(['Active', 'Closed'], 'Status must be Active or Closed!').optional()
+}).refine(
+    (data) => data.start_date <= data.end_date,
+    { path: ['end_date'], message: 'End date must be on or after start date.' }
+);
 
-    if (!start_date || start_date.trim() === '') {
-        error.push('Start date required!');
-    }
+const updateAcademicYearSchema = z.strictObject({
+    year_name: z.string().trim().min(1, 'Year name must be a non-empty string.').optional(),
+    start_date: z.iso.date('Start date must be a valid YYYY-MM-DD date!').optional(),
+    end_date: z.iso.date('End date must be a valid YYYY-MM-DD date!').optional(),
+    status: z.enum(['Active', 'Closed'], 'Status must be Active or Closed!').optional()
+}).refine(
+    (data) => Object.keys(data).length > 0,
+    'At least one field must be provided.'
+).refine(
+    (data) => !data.start_date || !data.end_date || data.start_date <= data.end_date,
+    { path: ['end_date'], message: 'End date must be on or after start date.' }
+);
 
-    if (!end_date || end_date.trim() === '') {
-        error.push('End date required!');
-    }
-
-    if (status !== undefined && !['Active', 'Closed'].includes(status)) {
-        error.push('Status must be Active or Closed!');
-    }
-
-    return error.length > 0
-        ? { success: false, error }
-        : { success: true, error: null };
-};
-
-const ValidationUpdateAcademicYear = (data) => {
-    const error = [];
-    const { year_name, start_date, end_date, status } = data;
-
-    if (year_name !== undefined && (typeof year_name !== 'string' || year_name.trim() === '')) {
-        error.push('Year name must be a non-empty string.');
-    }
-
-    if (start_date !== undefined && (typeof start_date !== 'string' || start_date.trim() === '')) {
-        error.push('Start date must be a non-empty string.');
-    }
-
-    if (end_date !== undefined && (typeof end_date !== 'string' || end_date.trim() === '')) {
-        error.push('End date must be a non-empty string.');
-    }
-
-    if (status !== undefined && !['Active', 'Closed'].includes(status)) {
-        error.push('Status must be Active or Closed!');
-    }
-
-    return error.length > 0
-        ? { success: false, error }
-        : { success: true, error: null };
-};
+const ValidationCreateAcademicYear = createValidator(createAcademicYearSchema);
+const ValidationUpdateAcademicYear = createValidator(updateAcademicYearSchema);
 
 module.exports = {
+    createAcademicYearSchema,
+    updateAcademicYearSchema,
     ValidationCreateAcademicYear,
     ValidationUpdateAcademicYear
 };

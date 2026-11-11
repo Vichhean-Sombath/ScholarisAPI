@@ -49,7 +49,7 @@ const CreatePayment = async (req, res, next) => {
             });
         }
 
-        const paymentData = await CreatePaymentData(req.body);
+        const paymentData = await CreatePaymentData(validation.data);
 
         res.status(201).json({
             message: 'Payment created successfully!',
@@ -70,7 +70,7 @@ const UpdatePayment = async (req, res, next) => {
             });
         }
 
-        const paymentData = await UpdatePaymentData(req.params.id, req.body);
+        const paymentData = await UpdatePaymentData(req.params.id, validation.data);
 
         res.status(200).json({
             message: 'Payment updated successfully!',

@@ -45,7 +45,7 @@ const UpdateStudent = async (req, res, next) => {
             });
         }
 
-        const studentData = await UpdateStudentData(id, req.body);
+        const studentData = await UpdateStudentData(id, validation.data);
         res.status(200).json({
             message: 'Student updated successfully!',
             data: studentData

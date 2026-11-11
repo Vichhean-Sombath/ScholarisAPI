@@ -1,42 +1,28 @@
-const ValidationCreateSubject = (data) => {
-    const error = [];
-    const { subject_code, subject_name } = data;
+const { z } = require('zod');
+const { createValidator } = require('../../utils/zodValidation');
 
-    if (!subject_name || subject_name.trim() === '') {
-        error.push('Subject name required!');
-    }
+const createSubjectSchema = z.strictObject({
+    subject_code: z.string().trim().min(1, 'Subject code required!'),
+    subject_name: z.string().trim().min(1, 'Subject name required!'),
+    description: z.string().trim().min(1, 'Description must be a non-empty string.').optional(),
+    prerequisite_subject_id: z.number()
+        .int()
+        .positive('Prerequisite subject ID must be a positive integer.')
+        .nullable()
+        .optional()
+});
 
-    if (!subject_code || subject_code.trim() === '') {
-        error.push('Subject code required!');
-    }
+const updateSubjectSchema = createSubjectSchema.partial().refine(
+    (data) => Object.keys(data).length > 0,
+    'At least one field must be provided.'
+);
 
-    return error.length > 0
-        ? { success: false, error }
-        : { success: true, error: null };
-};
-
-const ValidationUpdateSubject = (data) => {
-    const error = [];
-    const { subject_code, subject_name, prerequisite_subject_id } = data;
-
-    if (subject_code !== undefined && (typeof subject_code !== 'string' || subject_code.trim() === '')) {
-        error.push('Subject code must be a non-empty string.');
-    }
-
-    if (subject_name !== undefined && (typeof subject_name !== 'string' || subject_name.trim() === '')) {
-        error.push('Subject name must be a non-empty string.');
-    }
-
-    if (prerequisite_subject_id !== undefined && isNaN(Number(prerequisite_subject_id))) {
-        error.push('Prerequisite subject ID must be a number.');
-    }
-
-    return error.length > 0
-        ? { success: false, error }
-        : { success: true, error: null };
-};
+const ValidationCreateSubject = createValidator(createSubjectSchema);
+const ValidationUpdateSubject = createValidator(updateSubjectSchema);
 
 module.exports = {
+    createSubjectSchema,
+    updateSubjectSchema,
     ValidationCreateSubject,
     ValidationUpdateSubject
 };

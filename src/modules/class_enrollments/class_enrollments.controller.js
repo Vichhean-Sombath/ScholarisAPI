@@ -37,7 +37,7 @@ const CreateClassEnrollment = async (req, res, next) => {
             });
         }
 
-        const enrollmentData = await CreateClassEnrollmentData(req.body);
+        const enrollmentData = await CreateClassEnrollmentData(validation.data);
 
         res.status(201).json({
             message: 'Class enrollment created successfully!',
@@ -58,7 +58,7 @@ const UpdateClassEnrollment = async (req, res, next) => {
             });
         }
 
-        const enrollmentData = await UpdateClassEnrollmentData(req.params.id, req.body);
+        const enrollmentData = await UpdateClassEnrollmentData(req.params.id, validation.data);
 
         res.status(200).json({
             message: 'Class enrollment updated successfully!',

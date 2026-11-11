@@ -37,7 +37,7 @@ const CreateCertificate = async (req, res, next) => {
             });
         }
 
-        const certificateData = await CreateCertificateData(req.body);
+        const certificateData = await CreateCertificateData(validation.data);
 
         res.status(201).json({
             message: 'Certificate created successfully!',

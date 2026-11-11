@@ -37,7 +37,7 @@ const CreateFinalGrade = async (req, res, next) => {
             });
         }
 
-        const finalGradeData = await CreateFinalGradeData(req.body);
+        const finalGradeData = await CreateFinalGradeData(validation.data);
 
         res.status(201).json({
             message: 'Final grade created successfully!',
@@ -58,7 +58,7 @@ const UpdateFinalGrade = async (req, res, next) => {
             });
         }
 
-        const finalGradeData = await UpdateFinalGradeData(req.params.id, req.body);
+        const finalGradeData = await UpdateFinalGradeData(req.params.id, validation.data);
 
         res.status(200).json({
             message: 'Final grade updated successfully!',

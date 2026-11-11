@@ -1,4 +1,8 @@
-const { ValidationCreateUser, ValidationUpdateUser } = require('./users.validation');
+const {
+    ValidationCreateUser,
+    ValidationUpdateUser,
+    ValidationChangePassword
+} = require('./users.validation');
 const { CreateUserData, UpdateUserData, ChangePasswordData, DisableUserData, EnableUserData } = require('./users.service');
 
 // Create
@@ -15,7 +19,7 @@ const CreateUser = async (req, res, next) => {
         }
 
         // Sync to database
-        const newUser = await CreateUserData(req.body);
+        const newUser = await CreateUserData(validation.data);
 
         res.status(201).json({
             message: 'User created successfully!',
@@ -39,7 +43,7 @@ const UpdateUser = async (req, res, next) => {
             });
         }
 
-        const newUserData = await UpdateUserData(req.params.id, req.body, req.user);
+        const newUserData = await UpdateUserData(req.params.id, validation.data, req.user);
 
         res.status(201).json({
             message: 'User updated successfully!',
@@ -53,15 +57,15 @@ const UpdateUser = async (req, res, next) => {
 // Change own password
 const ChangePassword = async (req, res, next) => {
     try {
-        const { currentPassword, newPassword } = req.body;
-        if (!currentPassword || !newPassword) {
+        const validation = ValidationChangePassword(req.body);
+        if (!validation.success) {
             return res.status(400).json({
                 message: 'Validation failed!',
-                errors: ['Current password and new password are required.']
+                errors: validation.error
             });
         }
 
-        const result = await ChangePasswordData(req.user, { currentPassword, newPassword });
+        const result = await ChangePasswordData(req.user, validation.data);
 
         res.status(200).json({
             message: 'Password changed successfully!',

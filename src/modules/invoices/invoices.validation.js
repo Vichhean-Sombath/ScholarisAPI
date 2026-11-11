@@ -1,102 +1,69 @@
-const isValidDecimal = (value) => {
-    if (value === undefined || value === null || value === '') return false;
-    const num = Number(value);
-    return !isNaN(num) && num >= 0;
-};
+const { z } = require('zod');
+const { createValidator } = require('../../utils/zodValidation');
 
-const ValidationCreateInvoice = (data) => {
-    const error = [];
-    const { invoice_number, student_id, fee_id, semester_id, issue_date, due_date, total_amount, amount_paid, status } = data;
-
-    if (!invoice_number || typeof invoice_number !== 'string' || invoice_number.trim() === '') {
-        error.push('Invoice number required and must be a non-empty string.');
-    } else if (invoice_number.length > 30) {
-        error.push('Invoice number must not exceed 30 characters.');
+const createInvoiceSchema = z.strictObject({
+    invoice_number: z.string()
+        .trim()
+        .min(1, 'Invoice number required and must be a non-empty string.')
+        .max(30, 'Invoice number must not exceed 30 characters.'),
+    student_id: z.number().int().positive('Student ID must be a positive integer.'),
+    fee_id: z.number().int().positive('Fee ID must be a positive integer.'),
+    semester_id: z.number().int().positive('Semester ID must be a positive integer.'),
+    issue_date: z.iso.date('Issue date must be a valid YYYY-MM-DD date.'),
+    due_date: z.iso.date('Due date must be a valid YYYY-MM-DD date.'),
+    total_amount: z.number().nonnegative('Total amount must be a non-negative number.'),
+    amount_paid: z.number().nonnegative('Amount paid must be a non-negative number.').optional(),
+    status: z.enum(
+        ['Unpaid', 'Partial', 'Paid', 'Overdue'],
+        'Status must be Unpaid, Partial, Paid, or Overdue.'
+    ).optional()
+}).superRefine((data, context) => {
+    if (data.issue_date > data.due_date) {
+        context.addIssue({
+            code: 'custom',
+            path: ['due_date'],
+            message: 'Due date must be on or after issue date.'
+        });
     }
 
-    if (student_id === undefined || student_id === null || isNaN(Number(student_id))) {
-        error.push('Student ID required and must be a number.');
+    if (data.amount_paid !== undefined && data.amount_paid > data.total_amount) {
+        context.addIssue({
+            code: 'custom',
+            path: ['amount_paid'],
+            message: 'Amount paid cannot exceed total amount.'
+        });
+    }
+});
+
+const updateInvoiceSchema = z.strictObject({
+    invoice_number: z.string().trim().min(1).max(30).optional(),
+    student_id: z.number().int().positive().optional(),
+    fee_id: z.number().int().positive().optional(),
+    semester_id: z.number().int().positive().optional(),
+    issue_date: z.iso.date().optional(),
+    due_date: z.iso.date().optional(),
+    total_amount: z.number().nonnegative().optional(),
+    amount_paid: z.number().nonnegative().optional(),
+    status: z.enum(['Unpaid', 'Partial', 'Paid', 'Overdue']).optional()
+}).refine(
+    (data) => Object.keys(data).length > 0,
+    'At least one field must be provided.'
+).superRefine((data, context) => {
+    if (data.issue_date && data.due_date && data.issue_date > data.due_date) {
+        context.addIssue({ code: 'custom', path: ['due_date'], message: 'Due date must be on or after issue date.' });
     }
 
-    if (fee_id === undefined || fee_id === null || isNaN(Number(fee_id))) {
-        error.push('Fee ID required and must be a number.');
+    if (data.total_amount !== undefined && data.amount_paid !== undefined && data.amount_paid > data.total_amount) {
+        context.addIssue({ code: 'custom', path: ['amount_paid'], message: 'Amount paid cannot exceed total amount.' });
     }
+});
 
-    if (semester_id === undefined || semester_id === null || isNaN(Number(semester_id))) {
-        error.push('Semester ID required and must be a number.');
-    }
-
-    if (!issue_date || isNaN(Date.parse(issue_date))) {
-        error.push('Issue date required and must be a valid date.');
-    }
-
-    if (!due_date || isNaN(Date.parse(due_date))) {
-        error.push('Due date required and must be a valid date.');
-    }
-
-    if (!isValidDecimal(total_amount)) {
-        error.push('Total amount required and must be a non-negative number.');
-    }
-
-    if (amount_paid !== undefined && !isValidDecimal(amount_paid)) {
-        error.push('Amount paid must be a non-negative number.');
-    }
-
-    if (status !== undefined && !['Unpaid', 'Partial', 'Paid', 'Overdue'].includes(status)) {
-        error.push('Status must be Unpaid, Partial, Paid, or Overdue.');
-    }
-
-    return error.length > 0
-        ? { success: false, error }
-        : { success: true, error: null };
-};
-
-const ValidationUpdateInvoice = (data) => {
-    const error = [];
-    const { invoice_number, student_id, fee_id, semester_id, issue_date, due_date, total_amount, amount_paid, status } = data;
-
-    if (invoice_number !== undefined && (typeof invoice_number !== 'string' || invoice_number.trim() === '')) {
-        error.push('Invoice number must be a non-empty string.');
-    }
-
-    if (student_id !== undefined && isNaN(Number(student_id))) {
-        error.push('Student ID must be a number.');
-    }
-
-    if (fee_id !== undefined && isNaN(Number(fee_id))) {
-        error.push('Fee ID must be a number.');
-    }
-
-    if (semester_id !== undefined && isNaN(Number(semester_id))) {
-        error.push('Semester ID must be a number.');
-    }
-
-    if (issue_date !== undefined && isNaN(Date.parse(issue_date))) {
-        error.push('Invalid issue date format.');
-    }
-
-    if (due_date !== undefined && isNaN(Date.parse(due_date))) {
-        error.push('Invalid due date format.');
-    }
-
-    if (total_amount !== undefined && !isValidDecimal(total_amount)) {
-        error.push('Total amount must be a non-negative number.');
-    }
-
-    if (amount_paid !== undefined && !isValidDecimal(amount_paid)) {
-        error.push('Amount paid must be a non-negative number.');
-    }
-
-    if (status !== undefined && !['Unpaid', 'Partial', 'Paid', 'Overdue'].includes(status)) {
-        error.push('Status must be Unpaid, Partial, Paid, or Overdue.');
-    }
-
-    return error.length > 0
-        ? { success: false, error }
-        : { success: true, error: null };
-};
+const ValidationCreateInvoice = createValidator(createInvoiceSchema);
+const ValidationUpdateInvoice = createValidator(updateInvoiceSchema);
 
 module.exports = {
+    createInvoiceSchema,
+    updateInvoiceSchema,
     ValidationCreateInvoice,
     ValidationUpdateInvoice
 };

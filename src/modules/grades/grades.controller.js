@@ -38,7 +38,7 @@ const CreateGrade = async (req, res, next) => {
             });
         }
 
-        const gradeData = await CreateGradeData(req.body, req.user);
+        const gradeData = await CreateGradeData(validation.data, req.user);
 
         res.status(201).json({
             message: 'Grade created successfully!',
@@ -59,7 +59,7 @@ const UpdateGrade = async (req, res, next) => {
             });
         }
 
-        const gradeData = await UpdateGradeData(req.params.id, req.body, req.user);
+        const gradeData = await UpdateGradeData(req.params.id, validation.data, req.user);
 
         res.status(200).json({
             message: 'Grade updated successfully!',

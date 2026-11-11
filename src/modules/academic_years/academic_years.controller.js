@@ -37,7 +37,7 @@ const CreateAcademicYear = async (req, res, next) => {
             });
         }
 
-        const academicYearData = await CreateAcademicYearData(req.body);
+        const academicYearData = await CreateAcademicYearData(validation.data);
 
         res.status(201).json({
             message: 'Academic year created successfully!',
@@ -58,7 +58,7 @@ const UpdateAcademicYear = async (req, res, next) => {
             });
         }
 
-        const academicYearData = await UpdateAcademicYearData(req.params.id, req.body);
+        const academicYearData = await UpdateAcademicYearData(req.params.id, validation.data);
 
         res.status(200).json({
             message: 'Academic year updated successfully!',

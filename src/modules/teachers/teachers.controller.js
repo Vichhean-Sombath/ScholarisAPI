@@ -45,7 +45,7 @@ const UpdateTeacher = async (req, res, next) => {
             });
         }
 
-        const teacherData = await UpdateTeacherData(id, req.body, req.user);
+        const teacherData = await UpdateTeacherData(id, validation.data, req.user);
         res.status(200).json({
             message: 'Teacher updated successfully!',
             data: teacherData
