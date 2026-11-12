@@ -3,7 +3,7 @@ const Users = require('../../models/users.model');
 const Teachers = require('../../models/teachers.model');
 const Students = require('../../models/students.model');
 require('../../models/mappingContext');
-const { checkDuplicateEmail, checkDuplicatePhone, todayString } = require('../../utils/validationHelpers');
+const { checkDuplicateEmail, checkDuplicatePhone } = require('../../utils/validationHelpers');
 
 const CreateUserData = async (userData) => {
     const {
@@ -83,7 +83,8 @@ const CreateUserData = async (userData) => {
             contact_number,
             specialization,
             bio,
-            hire_date: hire_date || todayString()
+            photo_url,
+            hire_date
         });
     }
 
@@ -108,7 +109,7 @@ const CreateUserData = async (userData) => {
             contact_number,
             address,
             photo_url,
-            enrollment_date: enrollment_date || todayString()
+            enrollment_date
         });
     }
 

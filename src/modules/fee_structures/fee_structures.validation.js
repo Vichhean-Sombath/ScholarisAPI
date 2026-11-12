@@ -8,7 +8,7 @@ const createFeeStructureSchema = z.strictObject({
         .trim()
         .min(1, 'Fee name required and must be a non-empty string.')
         .max(100, 'Fee name must not exceed 100 characters.'),
-    amount: z.number().nonnegative('Amount must be a non-negative number.'),
+    amount: z.number().min(150, 'School fee must be at least $150.'),
     due_date: z.iso.date('Due date must be a valid YYYY-MM-DD date.').optional()
 });
 

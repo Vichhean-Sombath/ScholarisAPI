@@ -1,5 +1,14 @@
 const AcademicYears = require('../../models/academic_years.model');
 const Semesters = require('../../models/semesters.model');
+const { hasMinimumAcademicYearDuration } = require('./academic_years.validation');
+
+const ensureMinimumAcademicYearDuration = (startDate, endDate) => {
+    if (!hasMinimumAcademicYearDuration(startDate, endDate)) {
+        const err = new Error('Academic year must be at least 10 months long!');
+        err.statusCode = 400;
+        throw err;
+    }
+};
 
 const GetAcademicYearData = async () => {
     return await AcademicYears.find().populate({
@@ -42,11 +51,7 @@ const CreateAcademicYearData = async (academicYearData) => {
         throw err;
     }
 
-    if (new Date(start_date) >= new Date(end_date)) {
-        const err = new Error('Start date must be earlier than end date!');
-        err.statusCode = 400;
-        throw err;
-    }
+    ensureMinimumAcademicYearDuration(start_date, end_date);
 
     // In a production MongoDB environment with Mongoose, you would automatically generate IDs.
     // For compatibility during the migration, we will generate user_id / academic_year_id sequentially
@@ -87,11 +92,7 @@ const UpdateAcademicYearData = async (academic_year_id, academicYearData) => {
 
     const newStart = academicYearData.start_date || selectedAcademicYear.start_date;
     const newEnd = academicYearData.end_date || selectedAcademicYear.end_date;
-    if (new Date(newStart) >= new Date(newEnd)) {
-        const err = new Error('Start date must be earlier than end date!');
-        err.statusCode = 400;
-        throw err;
-    }
+    ensureMinimumAcademicYearDuration(newStart, newEnd);
 
     Object.assign(selectedAcademicYear, academicYearData);
     await selectedAcademicYear.save();

@@ -164,7 +164,7 @@ For production deployments it is recommended to:
 | `MERCHANT_CITY` | Bakong merchant city | `Phnom Penh` |
 | `MERCHANT_PHONE` | Bakong merchant phone | `+85512345678` |
 | `STORE_LABEL` | Bakong store label | `Scholaris Store` |
-| `BAKONG_API_URL` | Bakong API base URL | `https://api.bakong.kh/v1` |
+| `BAKONG_API_URL` | Bakong API base URL | `https://api-bakong.nbc.gov.kh` |
 | `BAKONG_API_TOKEN` | Bakong API token | `token` |
 | `BAKONG_API_ENABLED` | Enable Bakong QR payments | `true` / `false` |
 

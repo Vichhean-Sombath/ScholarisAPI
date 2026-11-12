@@ -64,6 +64,12 @@ const CreateLessonResourceData = async (resourceData, currentUser) => {
         ? currentUser.teacher_id
         : resourceData.teacher_id;
 
+    if (teacher_id == null) {
+        const err = new Error('Teacher ID is required!');
+        err.statusCode = 400;
+        throw err;
+    }
+
     const relatedTeacher = await Teachers.findOne({ teacher_id });
     if (!relatedTeacher) {
         const err = new Error('Teacher not found!');

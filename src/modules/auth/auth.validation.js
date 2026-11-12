@@ -31,15 +31,32 @@ const registerSchema = z.strictObject({
     role: z.enum(['Teacher', 'Student'], 'Role must be Teacher or Student!'),
     first_name: z.string().trim().min(1, 'First name required!'),
     last_name: z.string().trim().min(1, 'Last name required!'),
-    gender: z.enum(['Male', 'Female', 'Other'], 'Gender must be Male, Female, or Other!').optional(),
+    gender: z.enum(['Male', 'Female', 'Other'], 'Gender must be Male, Female, or Other!'),
     dob: z.iso.date('Date of birth must be a valid YYYY-MM-DD date!'),
     contact_number: z.string().regex(/^\d{9,10}$/, 'Phone number must be 9-10 digits.'),
     address: z.string().trim().min(1, 'Address must be a non-empty string.').optional(),
     photo_url: z.string().trim().min(1, 'Photo URL must be a non-empty string.').optional(),
     specialization: z.string().trim().min(1, 'Specialization must be a non-empty string.').optional(),
     bio: z.string().trim().min(1, 'Bio must be a non-empty string.').optional(),
+    hire_date: z.iso.date('Hire date must be a valid YYYY-MM-DD date.').optional(),
     enrollment_date: z.iso.date('Enrollment date must be a valid YYYY-MM-DD date.').optional()
 }).superRefine((data, context) => {
+    const roleFields = data.role === 'Teacher'
+        ? [
+            ['specialization', 'Teacher specialization required!'],
+            ['hire_date', 'Teacher hire date required!']
+        ]
+        : [
+            ['address', 'Student address required!'],
+            ['enrollment_date', 'Student enrollment date required!']
+        ];
+
+    for (const [field, message] of roleFields) {
+        if (data[field] === undefined) {
+            context.addIssue({ code: 'custom', path: [field], message });
+        }
+    }
+
     const minimumAge = data.role === 'Teacher' ? 25 : 16;
 
     if (calculateAge(data.dob) < minimumAge) {

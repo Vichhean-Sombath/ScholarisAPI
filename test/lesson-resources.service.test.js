@@ -10,6 +10,83 @@ const {
     UpdateLessonResourceData,
     DeleteLessonResourceData
 } = require('../src/modules/lesson_resources/lesson_resources.service');
+const {
+    ValidationCreateLessonResource
+} = require('../src/modules/lesson_resources/lesson_resources.validation');
+
+test('teacher resource creation does not require a teacher ID in the request body', () => {
+    const validation = ValidationCreateLessonResource({
+        schedule_id: 3,
+        title: 'Lesson plan',
+        resource_type: 'LessonPlan',
+        file_url: 'https://example.com/lesson-plan.pdf'
+    });
+
+    assert.equal(validation.success, true);
+});
+
+test('teacher dashboard resource payload accepts a string schedule ID', () => {
+    const validation = ValidationCreateLessonResource({
+        schedule_id: '3',
+        title: 'Lesson plan',
+        description: '',
+        resource_type: 'LessonPlan',
+        file_url: 'https://example.com/lesson-plan.pdf',
+        upload_date: '2026-11-12'
+    });
+
+    assert.equal(validation.success, true);
+    assert.equal(validation.data.schedule_id, 3);
+    assert.equal(validation.data.description, undefined);
+});
+
+test('teacher resource creation requires a schedule and resource URL', () => {
+    const missingSchedule = ValidationCreateLessonResource({
+        title: 'Lesson plan',
+        resource_type: 'LessonPlan',
+        file_url: 'https://example.com/lesson-plan.pdf'
+    });
+    const missingUrl = ValidationCreateLessonResource({
+        schedule_id: 3,
+        title: 'Lesson plan',
+        resource_type: 'LessonPlan'
+    });
+
+    assert.equal(missingSchedule.success, false);
+    assert.equal(missingUrl.success, false);
+    assert.deepEqual(missingSchedule.error, ['Schedule ID is required.']);
+    assert.deepEqual(missingUrl.error, ['Resource URL is required.']);
+});
+
+test('resource URL validation returns one precise server message', () => {
+    const invalidUrl = ValidationCreateLessonResource({
+        schedule_id: 3,
+        title: 'Lesson plan',
+        resource_type: 'LessonPlan',
+        file_url: 'not-a-url'
+    });
+    const unsupportedProtocol = ValidationCreateLessonResource({
+        schedule_id: 3,
+        title: 'Lesson plan',
+        resource_type: 'LessonPlan',
+        file_url: 'ftp://example.com/lesson-plan.pdf'
+    });
+
+    assert.deepEqual(invalidUrl.error, ['Resource URL format is invalid.']);
+    assert.deepEqual(unsupportedProtocol.error, ['Resource URL must use http:// or https://.']);
+});
+
+test('admin resource creation requires a teacher ID', async () => {
+    await assert.rejects(
+        CreateLessonResourceData({
+            schedule_id: 3,
+            title: 'Lesson plan',
+            resource_type: 'LessonPlan',
+            file_url: 'https://example.com/lesson-plan.pdf'
+        }, { role: 'Admin' }),
+        (error) => error.statusCode === 400 && error.message === 'Teacher ID is required!'
+    );
+});
 
 test('lesson-resource service uses Mongoose queries for CRUD operations', async () => {
     const originals = {
@@ -65,6 +142,13 @@ test('lesson-resource service uses Mongoose queries for CRUD operations', async 
         assert.equal(createdData.resource_id, 5);
         assert.equal(createdData.teacher_id, 7);
         assert.equal(createdData.schedule_id, 3);
+
+        await CreateLessonResourceData({
+            title: 'Teacher lesson plan',
+            resource_type: 'LessonPlan'
+        }, { role: 'Teacher', teacher_id: 7 });
+
+        assert.equal(createdData.teacher_id, 7);
 
         let saved = false;
         let deleted = false;

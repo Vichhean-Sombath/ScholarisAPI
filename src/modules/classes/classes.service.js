@@ -80,6 +80,12 @@ const SelectedClassData = async (data) => {
 const CreateClassData = async (classData) => {
     const { class_name, academic_year_id, semester_id, room_number, max_capacity, homeroom_teacher_id } = classData;
 
+    if (homeroom_teacher_id == null) {
+        const err = new Error('Homeroom teacher required!');
+        err.statusCode = 400;
+        throw err;
+    }
+
     const academicYear = await AcademicYears.findOne({ academic_year_id });
     if (!academicYear) {
         const err = new Error('Academic year not found!');
@@ -94,13 +100,11 @@ const CreateClassData = async (classData) => {
         throw err;
     }
 
-    if (homeroom_teacher_id) {
-        const teacher = await Teachers.findOne({ teacher_id: homeroom_teacher_id });
-        if (!teacher) {
-            const err = new Error('Homeroom teacher not found!');
-            err.statusCode = 404;
-            throw err;
-        }
+    const teacher = await Teachers.findOne({ teacher_id: homeroom_teacher_id });
+    if (!teacher) {
+        const err = new Error('Homeroom teacher not found!');
+        err.statusCode = 404;
+        throw err;
     }
 
     let class_id = classData.class_id;
@@ -130,6 +134,12 @@ const UpdateClassData = async (class_id, classData) => {
         throw err;
     }
 
+    if (classData.homeroom_teacher_id === null) {
+        const err = new Error('Homeroom teacher required!');
+        err.statusCode = 400;
+        throw err;
+    }
+
     if (classData.academic_year_id) {
         const academicYear = await AcademicYears.findOne({ academic_year_id: classData.academic_year_id });
         if (!academicYear) {
@@ -148,7 +158,7 @@ const UpdateClassData = async (class_id, classData) => {
         }
     }
 
-    if (classData.homeroom_teacher_id) {
+    if (classData.homeroom_teacher_id !== undefined) {
         const teacher = await Teachers.findOne({ teacher_id: classData.homeroom_teacher_id });
         if (!teacher) {
             const err = new Error('Homeroom teacher not found!');

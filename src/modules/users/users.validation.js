@@ -40,7 +40,7 @@ const createUserSchema = z.strictObject({
 }).superRefine((data, context) => {
     if (data.role === 'Admin') return;
 
-    for (const field of ['first_name', 'last_name', 'dob', 'contact_number']) {
+    for (const field of ['first_name', 'last_name', 'gender', 'dob', 'contact_number']) {
         if (data[field] === undefined) {
             context.addIssue({
                 code: 'custom',
@@ -50,8 +50,20 @@ const createUserSchema = z.strictObject({
         }
     }
 
-    if (data.role === 'Teacher' && data.specialization === undefined) {
-        context.addIssue({ code: 'custom', path: ['specialization'], message: 'Teacher specialization required!' });
+    const roleFields = data.role === 'Teacher'
+        ? [
+            ['specialization', 'Teacher specialization required!'],
+            ['hire_date', 'Teacher hire date required!']
+        ]
+        : [
+            ['address', 'Student address required!'],
+            ['enrollment_date', 'Student enrollment date required!']
+        ];
+
+    for (const [field, message] of roleFields) {
+        if (data[field] === undefined) {
+            context.addIssue({ code: 'custom', path: [field], message });
+        }
     }
 
     if (data.dob) {

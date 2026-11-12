@@ -146,17 +146,27 @@ const checkTransactionByMd5 = async (md5) => {
             res.setEncoding('utf8');
             res.on('data', (chunk) => { data += chunk; });
             res.on('end', () => {
+                if (res.statusCode < 200 || res.statusCode >= 300) {
+                    return reject(Object.assign(
+                        new Error(`Bakong API request failed with HTTP ${res.statusCode}.`),
+                        { statusCode: 502 }
+                    ));
+                }
+
                 try {
                     const parsed = data ? JSON.parse(data) : {};
                     resolve(parsed);
                 } catch (error) {
-                    resolve({ raw: data });
+                    reject(Object.assign(
+                        new Error('Bakong API returned an invalid non-JSON response.'),
+                        { statusCode: 502 }
+                    ));
                 }
             });
         });
 
         req.on('error', (error) => reject(error));
-        req.on('timeout', () => reject(new Error('Bakong API request timed out')));
+        req.on('timeout', () => req.destroy(new Error('Bakong API request timed out.')));
         req.write(body);
         req.end();
     });

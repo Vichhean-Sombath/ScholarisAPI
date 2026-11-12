@@ -334,7 +334,10 @@ const BakongVerify = async (req, res, next) => {
                 }
             } catch (error) {
                 console.error('Bakong transaction check failed:', error.message);
-                bakongStatus = { error: error.message };
+                return res.status(error.statusCode || 502).json({
+                    message: 'Could not verify payment with Bakong.',
+                    error: error.message
+                });
             }
         }
 

@@ -6,7 +6,7 @@ require('../../models/mappingContext');
 const GetCertificateData = async () => {
     return await Certificates.find()
         .populate({ path: 'student', select: 'student_id first_name last_name' })
-        .populate({ path: 'issuedBy', select: 'user_id username email' })
+        .populate({ path: 'user', select: 'user_id username email' })
         .sort({ issue_date: -1 });
 };
 
@@ -23,7 +23,7 @@ const SelectCertificateData = async (data) => {
         $or: orConditions
     })
     .populate({ path: 'student', select: 'student_id first_name last_name' })
-    .populate({ path: 'issuedBy', select: 'user_id username email' });
+    .populate({ path: 'user', select: 'user_id username email' });
 
     if (!certificates.length) {
         const err = new Error('Certificate not found!');
@@ -74,7 +74,10 @@ const CreateCertificateData = async (data) => {
         issued_by
     });
 
-    return createCertificate;
+    return await createCertificate.populate([
+        { path: 'student', select: 'student_id first_name last_name' },
+        { path: 'user', select: 'user_id username email' }
+    ]);
 };
 
 const DeleteCertificateData = async (certificate_id) => {

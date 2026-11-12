@@ -1,8 +1,17 @@
 const TimeSlots = require('../../models/time_slots.model');
 const Schedules = require('../../models/schedules.model');
+const { hasMinimumTimeSlotDuration } = require('./time_slots.validation');
 require('../../models/mappingContext');
 
 const sharedPopulate = { path: 'schedules', select: 'schedule_id class_id subject_id teacher_id room_number' };
+
+const ensureMinimumTimeSlotDuration = (startTime, endTime) => {
+    if (!hasMinimumTimeSlotDuration(startTime, endTime)) {
+        const err = new Error('Time slot must be at least 1 hour 30 minutes long!');
+        err.statusCode = 400;
+        throw err;
+    }
+};
 
 const GetTimeSlotData = async () => {
     return await TimeSlots.find().populate(sharedPopulate);
@@ -23,11 +32,7 @@ const SelectedTimeSlotData = async (data) => {
 const CreateTimeSlotData = async (timeSlotData) => {
     const { day_of_week, start_time, end_time } = timeSlotData;
 
-    if (start_time >= end_time) {
-        const err = new Error('Start time must be earlier than end time!');
-        err.statusCode = 400;
-        throw err;
-    }
+    ensureMinimumTimeSlotDuration(start_time, end_time);
 
     const existedTimeSlot = await TimeSlots.findOne({
         day_of_week, start_time
@@ -65,11 +70,7 @@ const UpdateTimeSlotData = async (time_slot_id, timeSlotData) => {
     const newStart = timeSlotData.start_time || selectedTimeSlot.start_time;
     const newEnd = timeSlotData.end_time || selectedTimeSlot.end_time;
 
-    if (newStart >= newEnd) {
-        const err = new Error('Start time must be earlier than end time!');
-        err.statusCode = 400;
-        throw err;
-    }
+    ensureMinimumTimeSlotDuration(newStart, newEnd);
 
     if ((timeSlotData.day_of_week && timeSlotData.day_of_week !== selectedTimeSlot.day_of_week) ||
         (timeSlotData.start_time && timeSlotData.start_time !== selectedTimeSlot.start_time)) {

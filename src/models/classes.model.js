@@ -25,7 +25,8 @@ const ClassesSchema = new mongoose.Schema(
             type: Number
         },
         homeroom_teacher_id: {
-            type: Number
+            type: Number,
+            required: true
         }
     },
     {

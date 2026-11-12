@@ -31,7 +31,8 @@ const validCases = [
     ['auth', 'ValidationRegisterUser', {
         username: 'student1', email: 'student@example.com', password: 'StrongPass1!',
         role: 'Student', first_name: 'Stu', last_name: 'Dent', dob: '2000-01-01',
-        contact_number: '012345678'
+        gender: 'Other', contact_number: '012345678', address: '123 School Road',
+        photo_url: 'https://example.com/student.jpg', enrollment_date: '2026-09-01'
     }],
     ['certificates', 'ValidationCreateCertificate', {
         student_id: 1, certificate_type: 'Completion', issue_date: '2026-11-11', issued_by: 1
@@ -40,10 +41,10 @@ const validCases = [
         student_id: 1, class_id: 1, enrollment_date: '2026-09-01'
     }],
     ['classes', 'ValidationCreateClass', {
-        class_name: 'Grade 10 A', academic_year_id: 1, semester_id: 1
+        class_name: 'Grade 10 A', academic_year_id: 1, semester_id: 1, homeroom_teacher_id: 1
     }],
     ['fee_structures', 'ValidationCreateFeeStructure', {
-        semester_id: 1, fee_name: 'Tuition', amount: 100
+        semester_id: 1, fee_name: 'Tuition', amount: 150
     }],
     ['final_grades', 'ValidationCreateFinalGrade', {
         student_id: 1, subject_id: 1, class_id: 1, semester_id: 1, final_score: 95
@@ -59,7 +60,8 @@ const validCases = [
         issue_date: '2026-09-01', due_date: '2026-09-30', total_amount: 100
     }],
     ['lesson_resources', 'ValidationCreateLessonResource', {
-        teacher_id: 1, title: 'Lesson 1', resource_type: 'LessonPlan'
+        teacher_id: 1, schedule_id: 1, title: 'Lesson 1', resource_type: 'LessonPlan',
+        file_url: 'https://example.com/lesson-1.pdf'
     }],
     ['payments', 'ValidationCreatePayment', {
         invoice_id: 1, payment_date: '2026-11-11', amount: 100,
@@ -79,7 +81,7 @@ const validCases = [
     ['subjects', 'ValidationCreateSubject', { subject_code: 'MATH', subject_name: 'Mathematics' }],
     ['teachers', 'ValidationUpdateTeacher', { first_name: 'Updated' }],
     ['time_slots', 'ValidationCreateTimeSlot', {
-        day_of_week: 'Mon', start_time: '08:00', end_time: '09:00'
+        day_of_week: 'Mon', start_time: '08:00', end_time: '09:30'
     }],
     ['users', 'ValidationCreateUser', {
         username: 'admin1', email: 'admin@example.com', password: 'StrongPass1!', role: 'Admin'

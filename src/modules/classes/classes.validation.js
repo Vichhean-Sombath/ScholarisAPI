@@ -7,9 +7,9 @@ const createClassSchema = z.strictObject({
     semester_id: z.number().int().positive('Semester ID must be a positive integer!'),
     room_number: z.string().trim().min(1, 'Room number must be a non-empty string.').optional(),
     max_capacity: z.number().int().positive('Max capacity must be a positive integer.').optional(),
-    homeroom_teacher_id: z.number().int().positive('Homeroom teacher ID must be a positive integer.')
-        .nullable()
-        .optional()
+    homeroom_teacher_id: z.number({ error: 'Homeroom teacher required!' })
+        .int()
+        .positive('Homeroom teacher ID must be a positive integer.')
 });
 
 const updateClassSchema = createClassSchema.partial().refine(

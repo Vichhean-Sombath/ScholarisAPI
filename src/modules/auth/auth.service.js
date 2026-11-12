@@ -54,7 +54,7 @@ const LoginUserData = async (userData) => {
     };
 };
 
-const { checkDuplicateEmail, checkDuplicatePhone, todayString } = require('../../utils/validationHelpers');
+const { checkDuplicateEmail, checkDuplicatePhone } = require('../../utils/validationHelpers');
 
 const RegisterUserData = async (userData) => {
     const {
@@ -71,6 +71,7 @@ const RegisterUserData = async (userData) => {
         photo_url,
         specialization,
         bio,
+        hire_date,
         enrollment_date
     } = userData;
 
@@ -132,7 +133,7 @@ const RegisterUserData = async (userData) => {
             photo_url,
             specialization,
             bio,
-            hire_date: todayString()
+            hire_date
         });
         teacherId = newTeacher.teacher_id;
     }
@@ -151,7 +152,7 @@ const RegisterUserData = async (userData) => {
             contact_number,
             address,
             photo_url,
-            enrollment_date: enrollment_date || todayString()
+            enrollment_date
         });
         studentId = newStudent.student_id;
     }

@@ -3,14 +3,63 @@ const Assessments = require('../../models/assessments.model');
 const Schedules = require('../../models/schedules.model');
 const Students = require('../../models/students.model');
 const Teachers = require('../../models/teachers.model');
+const Counters = require('../../models/counters.model');
 require('../../models/mappingContext');
+
+const reserveNextGradeId = async () => {
+    const lastGrade = await Grades.findOne()
+        .sort({ grade_id: -1 })
+        .select('grade_id');
+    const highestExistingId = lastGrade?.grade_id || 0;
+
+    const reserveId = () => Counters.findOneAndUpdate(
+        { _id: 'grades' },
+        [
+            {
+                $set: {
+                    sequence_value: {
+                        $add: [
+                            {
+                                $cond: [
+                                    { $gt: [{ $ifNull: ['$sequence_value', 0] }, highestExistingId] },
+                                    '$sequence_value',
+                                    highestExistingId
+                                ]
+                            },
+                            1
+                        ]
+                    }
+                }
+            }
+        ],
+        {
+            new: true,
+            upsert: true,
+            updatePipeline: true
+        }
+    );
+
+    try {
+        const counter = await reserveId();
+        return counter.sequence_value;
+    } catch (error) {
+        // Two requests can race only while creating the counter for the first
+        // time. Once it exists, retrying reserves the next value atomically.
+        if (error?.code !== 11000) throw error;
+        const counter = await reserveId();
+        return counter.sequence_value;
+    }
+};
 
 const getPopulateOptions = (currentUser) => {
     const scheduleMatch = currentUser.role === 'Teacher' ? { teacher_id: currentUser.teacher_id } : {};
     return [
         {
             path: 'assessment',
-            select: 'assessment_id assessment_name max_score',
+            // schedule_id is required for the nested virtual populate below.
+            // Without it, teachers cannot retrieve existing grades and the UI
+            // mistakenly attempts to create duplicate records.
+            select: 'assessment_id schedule_id assessment_name max_score',
             populate: {
                 path: 'schedule',
                 select: 'schedule_id teacher_id',
@@ -106,11 +155,7 @@ const CreateGradeData = async (gradeData, currentUser) => {
         throw err;
     }
 
-    let grade_id = gradeData.grade_id;
-    if (!grade_id) {
-        const lastGrade = await Grades.findOne().sort({ grade_id: -1 });
-        grade_id = lastGrade ? lastGrade.grade_id + 1 : 1;
-    }
+    const grade_id = await reserveNextGradeId();
 
     const createGrade = await Grades.create({
         grade_id,

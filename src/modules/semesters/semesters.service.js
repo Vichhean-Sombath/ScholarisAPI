@@ -1,6 +1,15 @@
 const Semesters = require('../../models/semesters.model');
 const AcademicYears = require('../../models/academic_years.model');
+const { hasMinimumSemesterDuration } = require('./semesters.validation');
 require('../../models/mappingContext');
+
+const ensureMinimumSemesterDuration = (startDate, endDate) => {
+    if (!hasMinimumSemesterDuration(startDate, endDate)) {
+        const err = new Error('Semester must be at least 3 months long!');
+        err.statusCode = 400;
+        throw err;
+    }
+};
 
 const GetSemesterData = async () => {
     return await Semesters.find().populate({
@@ -45,20 +54,7 @@ const CreateSemesterData = async (semesterData) => {
 
     const startDate = new Date(start_date);
     const endDate = new Date(end_date);
-
-    if (startDate >= endDate) {
-        const err = new Error('Start date must be earlier than end date!');
-        err.statusCode = 400;
-        throw err;
-    }
-
-    const minEndDate = new Date(startDate);
-    minEndDate.setMonth(minEndDate.getMonth() + 3);
-    if (endDate < minEndDate) {
-        const err = new Error('Semester duration must be at least 3 months!');
-        err.statusCode = 400;
-        throw err;
-    }
+    ensureMinimumSemesterDuration(startDate, endDate);
 
     if (startDate < new Date(academicYear.start_date) || endDate > new Date(academicYear.end_date)) {
         const err = new Error('Semester dates must be within the academic year range!');
@@ -111,20 +107,7 @@ const UpdateSemesterData = async (semester_id, semesterData) => {
 
     const newStartDate = new Date(semesterData.start_date || selectedSemester.start_date);
     const newEndDate = new Date(semesterData.end_date || selectedSemester.end_date);
-
-    if (newStartDate >= newEndDate) {
-        const err = new Error('Start date must be earlier than end date!');
-        err.statusCode = 400;
-        throw err;
-    }
-
-    const minEndDate = new Date(newStartDate);
-    minEndDate.setMonth(minEndDate.getMonth() + 3);
-    if (newEndDate < minEndDate) {
-        const err = new Error('Semester duration must be at least 3 months!');
-        err.statusCode = 400;
-        throw err;
-    }
+    ensureMinimumSemesterDuration(newStartDate, newEndDate);
 
     if (newStartDate < new Date(academicYear.start_date) || newEndDate > new Date(academicYear.end_date)) {
         const err = new Error('Semester dates must be within the academic year range!');

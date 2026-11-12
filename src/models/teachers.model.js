@@ -21,25 +21,30 @@ const TeachersSchema = new mongoose.Schema(
         },
         gender: {
             type: String,
-            enum: ['Male', 'Female', 'Other']
+            enum: ['Male', 'Female', 'Other'],
+            required: true
         },
         dob: {
-            type: Date
+            type: Date,
+            required: true
         },
         photo_url: {
             type: String
         },
         contact_number: {
-            type: String
+            type: String,
+            required: true
         },
         specialization: {
-            type: String
+            type: String,
+            required: true
         },
         bio: {
             type: String
         },
         hire_date: {
-            type: Date
+            type: Date,
+            required: true
         },
         status: {
             type: String,

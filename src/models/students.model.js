@@ -20,20 +20,24 @@ const StudentsSchema = new mongoose.Schema(
             required: true
         },
         dob: {
-            type: Date
+            type: Date,
+            required: true
         },
         gender: {
             type: String,
-            enum: ['Male', 'Female', 'Other']
+            enum: ['Male', 'Female', 'Other'],
+            required: true
         },
         photo_url: {
             type: String
         },
         contact_number: {
-            type: String
+            type: String,
+            required: true
         },
         address: {
-            type: String
+            type: String,
+            required: true
         },
         enrollment_date: {
             type: Date,

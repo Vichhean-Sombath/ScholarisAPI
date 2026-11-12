@@ -169,14 +169,14 @@ const getStudentClasses = async (studentId) => {
     const enrollments = await ClassEnrollments.find({ student_id: studentId, status: 'Active' })
         .populate({
             path: 'class',
-            select: 'class_id class_name room_number max_capacity',
+            select: 'class_id class_name room_number max_capacity academic_year_id semester_id homeroom_teacher_id',
             populate: [
                 { path: 'academicYear', select: 'academic_year_id year_name' },
                 { path: 'semester', select: 'semester_id semester_name' },
                 { path: 'homeroomTeacher', select: 'teacher_id first_name last_name' },
                 {
                     path: 'schedules',
-                    select: 'schedule_id room_number',
+                    select: 'schedule_id room_number subject_id teacher_id time_slot_id',
                     populate: [
                         { path: 'subject', select: 'subject_id subject_code subject_name' },
                         { path: 'teacher', select: 'teacher_id first_name last_name' },
@@ -265,7 +265,7 @@ const getStudentGrades = async (studentId) => {
                 select: 'assessment_id assessment_name max_score assessment_date',
                 populate: {
                     path: 'schedule',
-                    select: 'schedule_id',
+                    select: 'schedule_id class_id subject_id',
                     populate: [
                         { path: 'class', select: 'class_id class_name' },
                         { path: 'subject', select: 'subject_id subject_code subject_name' }
@@ -319,7 +319,7 @@ const getStudentAttendance = async (studentId) => {
     const records = await AttendanceRecords.find({ student_id: studentId })
         .populate({
             path: 'schedule',
-            select: 'schedule_id',
+            select: 'schedule_id class_id subject_id time_slot_id',
             populate: [
                 { path: 'class', select: 'class_id class_name' },
                 { path: 'subject', select: 'subject_id subject_code subject_name' },
@@ -452,7 +452,7 @@ const getStudentResources = async (studentId) => {
     const resources = await LessonResources.find({ schedule_id: { $in: scheduleIds } })
         .populate({
             path: 'schedule',
-            select: 'schedule_id',
+            select: 'schedule_id class_id subject_id',
             populate: [
                 { path: 'class', select: 'class_id class_name' },
                 { path: 'subject', select: 'subject_id subject_code subject_name' }

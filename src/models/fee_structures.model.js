@@ -19,7 +19,8 @@ const FeeStructuresSchema = new mongoose.Schema(
         },
         amount: {
             type: Number,
-            required: true
+            required: true,
+            min: [150, 'School fee must be at least $150.']
         },
         due_date: {
             type: Date
