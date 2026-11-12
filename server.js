@@ -34,14 +34,8 @@ const ReportsController = require('./src/modules/reports/reports.route');
 const StudentPortalController = require('./src/modules/student_portal/student_portal.route');
 const errorHandler = require('./src/middleware/errorHandler');
 
-// Sync DB
+// Database
 const mongoose = require('./src/config/db');
-mongoose.connection.once('open', () => {
-    console.log('Database connected successfully!');
-})
-mongoose.connection.on('error', (err) => {
-    console.log('Database connection error: ', err);
-})
 
 // Models
 const {
@@ -125,7 +119,7 @@ StudentPortalController(app);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
-const server = app.listen(PORT, () => console.log(`Server is listening on port ${PORT}!`));
+let server;
 
 const gracefulShutdown = (signal) => {
     console.log(`${signal} received. Shutting down gracefully...`);
@@ -140,5 +134,18 @@ const gracefulShutdown = (signal) => {
     });
 };
 
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+const startServer = async () => {
+    try {
+        await mongoose.connect(process.env.MONGODB_URI);
+        console.log('Database connected successfully!');
+
+        server = app.listen(PORT, () => console.log(`Server is listening on port ${PORT}!`));
+        process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+        process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+    } catch (err) {
+        console.error('Database connection error:', err);
+        process.exit(1);
+    }
+};
+
+startServer();
